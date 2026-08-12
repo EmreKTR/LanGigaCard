@@ -121,6 +121,25 @@ void main() {
         reason: 'a session must actually change the card, not just tally counts');
   });
 
+  testWidgets('swiping past a revealed card skips it without rating', (tester) async {
+    MockData.addCard(_card('skip_me', MemoryStrength.reviewDue));
+    MockData.addCard(_card('second', MemoryStrength.reviewDue));
+
+    await tester.pumpWidget(_wrap(const StudySessionScreen(deck: _testDeck)));
+    await tester.pumpAndSettle();
+
+    // Flip to arm the swipe, then swipe right past the commit threshold.
+    await tester.tap(find.text('term-skip_me'));
+    await tester.pumpAndSettle();
+    await tester.drag(find.text('translation-skip_me'), const Offset(260, 0));
+    await tester.pumpAndSettle();
+
+    // The next card is shown, but the skipped one is untouched — a swipe
+    // must never write a rating the way the 4 buttons below the card do.
+    expect(find.text('term-second'), findsOneWidget);
+    expect(MockData.cards.firstWhere((c) => c.id == 'skip_me').strength, MemoryStrength.reviewDue);
+  });
+
   testWidgets('rating "Again" pushes a card back to Review Due', (tester) async {
     MockData.addCard(_card('forgot', MemoryStrength.learning));
 

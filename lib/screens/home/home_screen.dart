@@ -30,10 +30,11 @@ String initialsFor(String name) {
 /// followed by Quick Actions, Your Topics and Recently Learned on the
 /// regular scaffold background.
 class HomeScreen extends StatelessWidget {
-  const HomeScreen({super.key, required this.profile, required this.onStudyTap});
+  const HomeScreen({super.key, required this.profile, required this.onStudyTap, required this.onProfileTap});
 
   final UserProfile profile;
   final VoidCallback onStudyTap;
+  final VoidCallback onProfileTap;
 
   @override
   Widget build(BuildContext context) {
@@ -54,14 +55,14 @@ class HomeScreen extends StatelessWidget {
     return CustomScrollView(
       physics: const AlwaysScrollableScrollPhysics(),
       slivers: [
-        SliverToBoxAdapter(child: _GradientHeader(profile: profile, deck: deck, onStudyTap: onStudyTap)),
+        SliverToBoxAdapter(child: _GradientHeader(profile: profile, deck: deck, onStudyTap: onStudyTap, onProfileTap: onProfileTap)),
         SliverPadding(
           padding: const EdgeInsets.all(AppSpacing.lg),
           sliver: SliverList(
             delegate: SliverChildListDelegate([
               Text('QUICK ACTIONS', style: Theme.of(context).textTheme.titleMedium),
               const SizedBox(height: AppSpacing.md),
-              _QuickActionsRow(onStudyTap: onStudyTap),
+              const _QuickActionsRow(),
               const SizedBox(height: AppSpacing.xxl),
               Text('Your Topics', style: Theme.of(context).textTheme.titleLarge),
               const SizedBox(height: AppSpacing.md),
@@ -92,11 +93,12 @@ class HomeScreen extends StatelessWidget {
 }
 
 class _GradientHeader extends StatelessWidget {
-  const _GradientHeader({required this.profile, required this.deck, required this.onStudyTap});
+  const _GradientHeader({required this.profile, required this.deck, required this.onStudyTap, required this.onProfileTap});
 
   final UserProfile profile;
   final Deck deck;
   final VoidCallback onStudyTap;
+  final VoidCallback onProfileTap;
 
   @override
   Widget build(BuildContext context) {
@@ -130,70 +132,74 @@ class _GradientHeader extends StatelessWidget {
                   ],
                 ),
               ),
-              Stack(
-                clipBehavior: Clip.none,
-                children: [
-                  CircleAvatar(
-                    radius: 22,
-                    backgroundColor: Colors.white.withValues(alpha: 0.2),
-                    child: Text(initialsFor(profile.name), style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w700)),
-                  ),
-                  Positioned(top: -4, right: -8, child: StreakBadge(days: profile.streakDays)),
-                ],
+              InkWell(
+                onTap: onProfileTap,
+                customBorder: const CircleBorder(),
+                child: Stack(
+                  clipBehavior: Clip.none,
+                  children: [
+                    CircleAvatar(
+                      radius: 22,
+                      backgroundColor: Colors.white.withValues(alpha: 0.2),
+                      child: Text(initialsFor(profile.name), style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w700)),
+                    ),
+                    Positioned(top: -4, right: -8, child: StreakBadge(days: profile.streakDays)),
+                  ],
+                ),
               ),
             ],
           ),
           const SizedBox(height: AppSpacing.lg),
-          Container(
-            width: double.infinity,
-            padding: const EdgeInsets.all(AppSpacing.lg),
-            decoration: BoxDecoration(
-              color: Colors.white.withValues(alpha: 0.14),
-              borderRadius: BorderRadius.circular(AppRadius.lg),
-              border: Border.all(color: Colors.white.withValues(alpha: 0.16)),
-            ),
-            child: Row(
-              children: [
-                ProgressRing(
-                  progress: progress,
-                  size: 64,
-                  strokeWidth: 6,
-                  trackColor: Colors.white.withValues(alpha: 0.2),
-                  progressColor: Colors.white,
-                  child: Text('$progressPercent%', style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w700, fontSize: 13)),
-                ),
-                const SizedBox(width: AppSpacing.lg),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text('CONTINUE LEARNING', style: TextStyle(color: Colors.white.withValues(alpha: 0.7), fontSize: 10, letterSpacing: 1)),
-                      const SizedBox(height: 2),
-                      Text('${deck.name.replaceAll(' French', '')} Vocabulary',
-                          style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w700, fontSize: 15)),
-                      Text('${profile.nativeLanguage} → ${profile.targetLanguage} · Unit 3',
-                          style: TextStyle(color: Colors.white.withValues(alpha: 0.75), fontSize: 12)),
-                      const SizedBox(height: AppSpacing.sm),
-                      Wrap(
-                        spacing: AppSpacing.sm,
-                        runSpacing: 4,
-                        children: [
-                          _headerChip('${MockData.dueCountOf(deck.id)} cards due'),
-                          _headerChip('🔥 ${profile.dailyGoalMinutes} min goal'),
-                        ],
-                      ),
-                    ],
+          InkWell(
+            onTap: onStudyTap,
+            borderRadius: BorderRadius.circular(AppRadius.lg),
+            child: Container(
+              width: double.infinity,
+              padding: const EdgeInsets.all(AppSpacing.lg),
+              decoration: BoxDecoration(
+                color: Colors.white.withValues(alpha: 0.14),
+                borderRadius: BorderRadius.circular(AppRadius.lg),
+                border: Border.all(color: Colors.white.withValues(alpha: 0.16)),
+              ),
+              child: Row(
+                children: [
+                  ProgressRing(
+                    progress: progress,
+                    size: 64,
+                    strokeWidth: 6,
+                    trackColor: Colors.white.withValues(alpha: 0.2),
+                    progressColor: Colors.white,
+                    child: Text('$progressPercent%', style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w700, fontSize: 13)),
                   ),
-                ),
-                InkWell(
-                  onTap: onStudyTap,
-                  borderRadius: BorderRadius.circular(AppRadius.pill),
-                  child: const Padding(
+                  const SizedBox(width: AppSpacing.lg),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text('CONTINUE LEARNING', style: TextStyle(color: Colors.white.withValues(alpha: 0.7), fontSize: 10, letterSpacing: 1)),
+                        const SizedBox(height: 2),
+                        Text('${deck.name.replaceAll(' French', '')} Vocabulary',
+                            style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w700, fontSize: 15)),
+                        Text('${profile.nativeLanguage} → ${profile.targetLanguage} · Unit 3',
+                            style: TextStyle(color: Colors.white.withValues(alpha: 0.75), fontSize: 12)),
+                        const SizedBox(height: AppSpacing.sm),
+                        Wrap(
+                          spacing: AppSpacing.sm,
+                          runSpacing: 4,
+                          children: [
+                            _headerChip('${MockData.dueCountOf(deck.id)} cards due'),
+                            _headerChip('🔥 ${profile.dailyGoalMinutes} min goal'),
+                          ],
+                        ),
+                      ],
+                    ),
+                  ),
+                  const Padding(
                     padding: EdgeInsets.all(6),
                     child: Icon(Icons.arrow_forward_rounded, color: Colors.white),
                   ),
-                ),
-              ],
+                ],
+              ),
             ),
           ),
           const SizedBox(height: AppSpacing.lg),
@@ -239,22 +245,18 @@ class _StatColumn extends StatelessWidget {
 }
 
 class _QuickActionsRow extends StatelessWidget {
-  const _QuickActionsRow({required this.onStudyTap});
-
-  final VoidCallback onStudyTap;
+  const _QuickActionsRow();
 
   @override
   Widget build(BuildContext context) {
     final colors = context.appColors;
     final actions = [
-      (icon: Icons.style_rounded, label: 'Flashcards', color: colors.primary, onTap: onStudyTap),
       (
         icon: Icons.quiz_rounded,
         label: 'Quiz',
         color: colors.srsHard,
         onTap: () => Navigator.of(context).push(MaterialPageRoute(builder: (_) => const QuizScreen())),
       ),
-      (icon: Icons.bolt_rounded, label: 'Study Now', color: colors.success, onTap: onStudyTap),
       (
         icon: Icons.add_rounded,
         label: 'Add Word',

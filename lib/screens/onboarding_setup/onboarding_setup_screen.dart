@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
-import '../../data/mock_data.dart';
 import '../../data/onboarding_store.dart';
+import '../../models/app_models.dart';
 import '../../theme/app_theme.dart';
 import '../../widgets/app_buttons.dart';
 import '../../widgets/language_search_list.dart';
@@ -94,8 +94,10 @@ class _OnboardingSetupScreenState extends State<OnboardingSetupScreen> {
     if (!mounted) return;
 
     // Hand the profile straight over as well as saving it, so the app never
-    // flashes the demo account before the saved answers load back in.
-    final profile = profileFromOnboarding(data, MockData.buildDemoProfile());
+    // flashes the demo account before the saved answers load back in. Seeded
+    // fresh, not from the demo profile — a brand-new account starts at 0
+    // words / 0% accuracy / no streak, not the sample content's numbers.
+    final profile = profileFromOnboarding(data, UserProfile.empty());
     Navigator.of(context).pushAndRemoveUntil(
       MaterialPageRoute(builder: (_) => MainShell(profile: profile)),
       (r) => false,

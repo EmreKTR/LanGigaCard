@@ -3,6 +3,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:langigacards/app_controller.dart';
 import 'package:langigacards/data/mock_data.dart';
 import 'package:langigacards/data/onboarding_store.dart';
+import 'package:langigacards/models/app_models.dart';
 import 'package:langigacards/screens/onboarding/app_language_select_screen.dart';
 import 'package:langigacards/screens/onboarding_setup/onboarding_setup_screen.dart';
 import 'package:langigacards/theme/app_theme.dart';
@@ -107,6 +108,32 @@ void main() {
       // Stats the wizard never asks about are carried over from the seed.
       expect(profile.streakDays, MockData.buildDemoProfile().streakDays);
       expect(profile.wordsLearned, MockData.buildDemoProfile().wordsLearned);
+    });
+
+    test('a brand-new signup starts with fresh stats, not the demo numbers', () {
+      const data = OnboardingProfileData(
+        firstName: 'Ada',
+        lastName: 'Lovelace',
+        email: 'ada@example.com',
+        nativeLanguage: 'Turkish',
+        nativeLanguageCode: 'TR',
+        targetLanguage: 'German',
+        targetLanguageCode: 'DE',
+        targetLevel: 'Beginner',
+        learningPurposes: ['Travel'],
+        ageRange: '25-34',
+        categories: ['Food'],
+        dailyGoalMinutes: 20,
+      );
+
+      // This mirrors what OnboardingSetupScreen._finish actually seeds with.
+      final profile = profileFromOnboarding(data, UserProfile.empty());
+
+      expect(profile.streakDays, 0);
+      expect(profile.level, 1);
+      expect(profile.wordsLearned, 0);
+      expect(profile.accuracyPercent, 0);
+      expect(profile.studyHours, 0);
     });
 
     test('a blank name falls back to the seed rather than showing an empty header', () {

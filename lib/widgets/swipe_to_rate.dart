@@ -2,24 +2,26 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import '../theme/app_theme.dart';
 
-/// Drag-to-rate wrapper around the study card, the gesture every mainstream
-/// flashcard app uses: swipe right for "I knew it", left for "show me again".
+/// Drag-to-skip wrapper around the study card. Swiping either direction just
+/// moves on to the next card without rating it — some learners are just
+/// browsing, not grading themselves, and grading is what the 4 rating
+/// buttons below the card are for.
 ///
-/// The card follows your finger and tilts slightly, with a coloured KNEW IT /
-/// AGAIN stamp fading in past the commit threshold. Releasing before the
-/// threshold springs it back, so a half-hearted drag never rates a card.
+/// The card follows your finger and tilts slightly, with a SKIP stamp fading
+/// in past the commit threshold. Releasing before the threshold springs it
+/// back, so a half-hearted drag never advances the card.
 class SwipeToRate extends StatefulWidget {
   const SwipeToRate({
     super.key,
     required this.child,
-    required this.onSwipeRight,
-    required this.onSwipeLeft,
+    required this.onSwipe,
     this.enabled = true,
   });
 
   final Widget child;
-  final VoidCallback onSwipeRight;
-  final VoidCallback onSwipeLeft;
+
+  /// Fired once a drag in either direction passes the commit threshold.
+  final VoidCallback onSwipe;
 
   /// When false the card is inert — used while the question side is showing.
   final bool enabled;
@@ -92,14 +94,13 @@ class _SwipeToRateState extends State<SwipeToRate> with SingleTickerProviderStat
 
     _committed = true;
     HapticFeedback.mediumImpact();
-    final toRight = _dragX > 0;
-    // Reset for the next card before handing the rating up; the parent
+    // Reset for the next card before handing the skip up; the parent
     // replaces the card content synchronously.
     setState(() {
       _dragX = 0;
       _committed = false;
     });
-    toRight ? widget.onSwipeRight() : widget.onSwipeLeft();
+    widget.onSwipe();
   }
 
   @override
@@ -138,7 +139,7 @@ class _SwipeToRateState extends State<SwipeToRate> with SingleTickerProviderStat
   }
 }
 
-/// The KNEW IT / AGAIN badge that fades in as the card is dragged.
+/// The SKIP badge that fades in as the card is dragged, in either direction.
 class _RatingStamp extends StatelessWidget {
   const _RatingStamp({required this.progress});
 
@@ -150,7 +151,7 @@ class _RatingStamp extends StatelessWidget {
     final colors = context.appColors;
     final toRight = progress > 0;
     final strength = progress.abs().clamp(0.0, 1.0);
-    final color = toRight ? colors.srsEasy : colors.srsAgain;
+    final color = colors.textMuted;
 
     return Align(
       alignment: toRight ? Alignment.topLeft : Alignment.topRight,
@@ -170,10 +171,10 @@ class _RatingStamp extends StatelessWidget {
               child: Row(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  Icon(toRight ? Icons.star_rounded : Icons.replay_rounded, size: 18, color: color),
+                  Icon(Icons.skip_next_rounded, size: 18, color: color),
                   const SizedBox(width: 6),
                   Text(
-                    toRight ? 'KNEW IT' : 'AGAIN',
+                    'SKIP',
                     style: TextStyle(color: color, fontWeight: FontWeight.w800, fontSize: 15, letterSpacing: 1),
                   ),
                 ],
