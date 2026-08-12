@@ -89,6 +89,20 @@ class UserProfile {
   final int accuracyPercent;
   final double studyHours;
 
+  /// Seed for a learner who has no real progress yet: every stat at its
+  /// class default (0 words, 0% accuracy, level 1, no streak). Used instead
+  /// of [MockData.buildDemoProfile] wherever a profile is being built for an
+  /// actual account rather than the sample content — a new signup, or a
+  /// returning login before real progress tracking exists.
+  factory UserProfile.empty() => UserProfile(
+        name: '',
+        email: '',
+        nativeLanguage: '',
+        nativeLanguageCode: '',
+        targetLanguage: '',
+        targetLanguageCode: '',
+      );
+
   UserProfile copyWith({
     String? name,
     String? email,
