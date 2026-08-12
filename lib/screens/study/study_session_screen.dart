@@ -123,6 +123,17 @@ class _StudySessionScreenState extends State<StudySessionScreen> {
     });
   }
 
+  /// Moves on without rating — for a learner who just wants to look at a
+  /// card, not grade themselves on it. Rating stays the job of the 4 buttons
+  /// below the card, which write to the SM-2 schedule and the review log.
+  void _skip() {
+    setState(() {
+      _index += 1;
+      _flipped = false;
+      _exampleRevealed = false;
+    });
+  }
+
   MemoryStrength _strengthAfter(MemoryStrength current, SrsRating rating) => switch (rating) {
         SrsRating.again => MemoryStrength.reviewDue,
         SrsRating.hard => MemoryStrength.learning,
@@ -170,14 +181,13 @@ class _StudySessionScreenState extends State<StudySessionScreen> {
                       child: Semantics(
                         button: true,
                         label: _flipped
-                            ? 'Answer: ${_current.translation}. Tap to see the word again. Swipe right if you knew it, left if you did not.'
+                            ? 'Answer: ${_current.translation}. Tap to see the word again. Swipe to skip, or rate below.'
                             : 'Word: ${_current.term}. Tap to reveal the translation.',
                         child: SwipeToRate(
-                          // Swipe only arms once the answer is showing — rating
+                          // Swipe only arms once the answer is showing — skipping
                           // a card you haven't checked yet makes no sense.
                           enabled: _flipped,
-                          onSwipeRight: () => _rate(SrsRating.easy),
-                          onSwipeLeft: () => _rate(SrsRating.again),
+                          onSwipe: _skip,
                           child: FlipCard(
                             showBack: _flipped,
                             onTap: () => setState(() => _flipped = !_flipped),
@@ -200,7 +210,7 @@ class _StudySessionScreenState extends State<StudySessionScreen> {
               padding: const EdgeInsets.symmetric(vertical: AppSpacing.sm),
               child: Text(
                 _flipped
-                    ? 'How well did you know it?  ·  swipe → knew it,  ← again'
+                    ? 'Rate below, or swipe to skip without rating'
                     : 'Recall the translation, then flip to check',
                 textAlign: TextAlign.center,
                 style: TextStyle(color: colors.textMuted, fontSize: 12),

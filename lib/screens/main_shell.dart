@@ -43,7 +43,10 @@ class _MainShellState extends State<MainShell> {
   Future<void> _restoreSavedProfile() async {
     final saved = await OnboardingStore.loadProfile();
     if (saved == null || !mounted) return;
-    final restored = profileFromOnboarding(saved, _profile);
+    // Seeded fresh, not from the demo profile still sitting in `_profile` —
+    // there's nowhere yet that persists a returning learner's real stats, so
+    // the honest thing to show is 0, not the sample content's numbers.
+    final restored = profileFromOnboarding(saved, UserProfile.empty());
     PronunciationService.useLanguageCode(restored.targetLanguageCode);
     setState(() => _profile = restored);
   }
@@ -55,7 +58,7 @@ class _MainShellState extends State<MainShell> {
   @override
   Widget build(BuildContext context) {
     final tabs = [
-      HomeScreen(profile: _profile, onStudyTap: _startStudySession),
+      HomeScreen(profile: _profile, onStudyTap: _startStudySession, onProfileTap: () => setState(() => _tabIndex = 3)),
       const DeckDashboardScreen(),
       StatisticsScreen(profile: _profile),
       ProfileScreen(profile: _profile, onProfileChanged: (p) => setState(() => _profile = p)),
