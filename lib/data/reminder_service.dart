@@ -51,7 +51,7 @@ class ReminderService {
     if (_initialised) return;
     tz.initializeTimeZones();
     await plugin.initialize(
-      const InitializationSettings(
+      settings: const InitializationSettings(
         android: AndroidInitializationSettings('@mipmap/ic_launcher'),
         iOS: DarwinInitializationSettings(),
       ),
@@ -101,11 +101,11 @@ class ReminderService {
       if (!granted) return false;
 
       await plugin.zonedSchedule(
-        _notificationId,
-        'Time to review',
-        'Your cards are waiting — a few minutes keeps the streak alive.',
-        _nextOccurrence(setting.hour, setting.minute),
-        const NotificationDetails(
+        id: _notificationId,
+        title: 'Time to review',
+        body: 'Your cards are waiting — a few minutes keeps the streak alive.',
+        scheduledDate: _nextOccurrence(setting.hour, setting.minute),
+        notificationDetails: const NotificationDetails(
           android: AndroidNotificationDetails(
             'daily_review',
             'Daily review reminders',
@@ -146,7 +146,7 @@ class ReminderService {
   static Future<void> cancel() async {
     try {
       await _ensureInitialised();
-      await plugin.cancel(_notificationId);
+      await plugin.cancel(id: _notificationId);
     } catch (_) {
       // Nothing scheduled, or no plugin.
     }
