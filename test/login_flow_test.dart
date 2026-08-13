@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:langigacards/app_controller.dart';
+import 'package:langigacards/data/api/auth_api.dart';
 import 'package:langigacards/data/auth_store.dart';
 import 'package:langigacards/screens/auth/login_screen.dart';
 import 'package:langigacards/screens/main_shell.dart';
@@ -20,10 +21,19 @@ Future<void> _signIn(WidgetTester tester, String email, String password) async {
 }
 
 void main() {
-  setUp(() => SharedPreferences.setMockInitialValues({}));
+  setUp(() {
+    SharedPreferences.setMockInitialValues({});
+    AuthStore.api = FakeAuthApi();
+  });
 
   testWidgets('a registered account signs in and reaches the app', (tester) async {
-    await AuthStore.register('ada@example.com', 'Passw0rd!');
+    await AuthStore.api.register(
+      firstName: 'Ada',
+      lastName: 'Lovelace',
+      email: 'ada@example.com',
+      password: 'Passw0rd!',
+      confirmPassword: 'Passw0rd!',
+    );
 
     await tester.pumpWidget(_wrap(const LoginScreen()));
     await tester.pumpAndSettle();
@@ -33,7 +43,13 @@ void main() {
   });
 
   testWidgets('a wrong password is explained rather than ignored', (tester) async {
-    await AuthStore.register('ada@example.com', 'Passw0rd!');
+    await AuthStore.api.register(
+      firstName: 'Ada',
+      lastName: 'Lovelace',
+      email: 'ada@example.com',
+      password: 'Passw0rd!',
+      confirmPassword: 'Passw0rd!',
+    );
 
     await tester.pumpWidget(_wrap(const LoginScreen()));
     await tester.pumpAndSettle();
@@ -65,7 +81,13 @@ void main() {
   });
 
   testWidgets('"Remember me" prefills the email on the next visit', (tester) async {
-    await AuthStore.register('ada@example.com', 'Passw0rd!');
+    await AuthStore.api.register(
+      firstName: 'Ada',
+      lastName: 'Lovelace',
+      email: 'ada@example.com',
+      password: 'Passw0rd!',
+      confirmPassword: 'Passw0rd!',
+    );
 
     await tester.pumpWidget(_wrap(const LoginScreen()));
     await tester.pumpAndSettle();
@@ -88,7 +110,13 @@ void main() {
   });
 
   testWidgets('signing in without "Remember me" leaves nothing behind', (tester) async {
-    await AuthStore.register('ada@example.com', 'Passw0rd!');
+    await AuthStore.api.register(
+      firstName: 'Ada',
+      lastName: 'Lovelace',
+      email: 'ada@example.com',
+      password: 'Passw0rd!',
+      confirmPassword: 'Passw0rd!',
+    );
 
     await tester.pumpWidget(_wrap(const LoginScreen()));
     await tester.pumpAndSettle();

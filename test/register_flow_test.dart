@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:langigacards/app_controller.dart';
+import 'package:langigacards/data/api/auth_api.dart';
 import 'package:langigacards/data/auth_store.dart';
 import 'package:langigacards/screens/auth/email_verification_screen.dart';
 import 'package:langigacards/screens/auth/register_screen.dart';
@@ -32,7 +33,10 @@ Future<void> _fillValidDetails(WidgetTester tester) async {
 }
 
 void main() {
-  setUp(() => SharedPreferences.setMockInitialValues({}));
+  setUp(() {
+    SharedPreferences.setMockInitialValues({});
+    AuthStore.api = FakeAuthApi();
+  });
 
   testWidgets('an empty form reports every missing field instead of advancing', (tester) async {
     await _pumpRegister(tester);
@@ -88,7 +92,8 @@ void main() {
     expect(find.text('Verify Your Email'), findsOneWidget);
 
     // The account really exists now, so the learner can sign back in.
-    expect(await AuthStore.login('ada@example.com', 'Passw0rd!'), isTrue);
+    final result = await AuthStore.api.login(email: 'ada@example.com', password: 'Passw0rd!');
+    expect(result.isSuccess, isTrue);
   });
 
   testWidgets('the registered email is stored lowercased and trimmed', (tester) async {
@@ -100,6 +105,7 @@ void main() {
     await tester.tap(find.byType(PrimaryButton));
     await tester.pumpAndSettle();
 
-    expect(await AuthStore.login('ada@example.com', 'Passw0rd!'), isTrue);
+    final result = await AuthStore.api.login(email: 'ada@example.com', password: 'Passw0rd!');
+    expect(result.isSuccess, isTrue);
   });
 }
