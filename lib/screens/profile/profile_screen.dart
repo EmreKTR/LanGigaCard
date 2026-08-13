@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import '../../app_controller.dart';
+import '../../data/api/user_api.dart';
+import '../../data/api/vocabgrid_user_api.dart';
 import '../../data/auth_store.dart';
 import '../../data/mock_data.dart';
 import '../../models/app_models.dart';
@@ -24,14 +26,24 @@ class ProfileScreen extends StatelessWidget {
   final UserProfile profile;
   final ValueChanged<UserProfile> onProfileChanged;
 
-  void _editCategories(BuildContext context) {
+  void _editCategories(BuildContext context) async {
+    final allCategories = await userApi.getCategories();
+    if (!context.mounted) return;
+    final myIds = await userApi.getMyCategoryIds();
+    if (!context.mounted) return;
+
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
       builder: (_) => CategoryPickerSheet(
-        initial: profile.categories.toSet(),
-        onSave: (categories) => onProfileChanged(profile.copyWith(categories: categories.toList())),
+        allCategories: allCategories,
+        initial: myIds.toSet(),
+        onSave: (categoryIds) async {
+          await userApi.updateMyCategories(categoryIds.toList());
+          final categoryNames = allCategories.where((c) => categoryIds.contains(c.id)).map((c) => c.name).toList();
+          onProfileChanged(profile.copyWith(categories: categoryNames));
+        },
       ),
     );
   }
@@ -65,14 +77,22 @@ class ProfileScreen extends StatelessWidget {
   }
 
   Future<void> _editPurposes(BuildContext context) async {
-    final picked = await showModalBottomSheet<Set<String>>(
+    final allPurposes = await userApi.getLearningPurposes();
+    if (!context.mounted) return;
+    final myIds = await userApi.getMyLearningPurposeIds();
+    if (!context.mounted) return;
+
+    final picked = await showModalBottomSheet<Set<int>>(
       context: context,
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
-      builder: (_) => _PurposesSheet(initial: profile.learningPurposes.toSet()),
+      builder: (_) => _PurposesSheet(allPurposes: allPurposes, initial: myIds.toSet()),
     );
     if (picked == null) return;
-    onProfileChanged(profile.copyWith(learningPurposes: picked.toList()));
+
+    await userApi.updateMyLearningPurposes(picked.toList());
+    final purposeNames = allPurposes.where((p) => picked.contains(p.id)).map((p) => p.name).toList();
+    onProfileChanged(profile.copyWith(learningPurposes: purposeNames));
   }
 
   Future<void> _editProfile(BuildContext context) async {
@@ -558,18 +578,19 @@ class _LanguageSheet extends StatelessWidget {
   }
 }
 
-/// Multi-select for "Learning Purpose", backed by [MockData.learningPurposes].
+/// Multi-select for "Learning Purpose", backed by the API's reference list.
 class _PurposesSheet extends StatefulWidget {
-  const _PurposesSheet({required this.initial});
+  const _PurposesSheet({required this.allPurposes, required this.initial});
 
-  final Set<String> initial;
+  final List<LearningPurposeData> allPurposes;
+  final Set<int> initial;
 
   @override
   State<_PurposesSheet> createState() => _PurposesSheetState();
 }
 
 class _PurposesSheetState extends State<_PurposesSheet> {
-  late final Set<String> _selected = Set.of(widget.initial);
+  late final Set<int> _selected = Set.of(widget.initial);
 
   @override
   Widget build(BuildContext context) {
@@ -589,12 +610,12 @@ class _PurposesSheetState extends State<_PurposesSheet> {
             Wrap(
               spacing: AppSpacing.sm,
               runSpacing: AppSpacing.sm,
-              children: MockData.learningPurposes
+              children: widget.allPurposes
                   .map((purpose) => ChoiceChipButton(
-                        label: purpose,
-                        selected: _selected.contains(purpose),
+                        label: purpose.name,
+                        selected: _selected.contains(purpose.id),
                         onTap: () => setState(() =>
-                            _selected.contains(purpose) ? _selected.remove(purpose) : _selected.add(purpose)),
+                            _selected.contains(purpose.id) ? _selected.remove(purpose.id) : _selected.add(purpose.id)),
                       ))
                   .toList(),
             ),
