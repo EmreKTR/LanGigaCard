@@ -75,6 +75,7 @@ abstract class AuthApi {
 class FakeAuthApi implements AuthApi {
   final Map<String, String> _passwordsByEmail = {};
   final Map<String, (String firstName, String lastName)> _namesByEmail = {};
+  final Map<String, int> _idsByEmail = {};
   int _nextId = 1;
 
   String _key(String email) => email.trim().toLowerCase();
@@ -97,9 +98,11 @@ class FakeAuthApi implements AuthApi {
 
     _passwordsByEmail[key] = password;
     _namesByEmail[key] = (firstName, lastName);
+    final id = _nextId++;
+    _idsByEmail[key] = id;
 
     return AuthResult.success(AuthSession(
-      userId: _nextId++,
+      userId: id,
       firstName: firstName,
       lastName: lastName,
       email: key,
@@ -119,7 +122,7 @@ class FakeAuthApi implements AuthApi {
 
     final (firstName, lastName) = _namesByEmail[key]!;
     return AuthResult.success(AuthSession(
-      userId: 1,
+      userId: _idsByEmail[key]!,
       firstName: firstName,
       lastName: lastName,
       email: key,

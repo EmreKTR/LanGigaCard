@@ -20,6 +20,14 @@ Future<void> _signIn(WidgetTester tester, String email, String password) async {
   await tester.pumpAndSettle();
 }
 
+Future<void> _registerAda() => AuthStore.api.register(
+      firstName: 'Ada',
+      lastName: 'Lovelace',
+      email: 'ada@example.com',
+      password: 'Passw0rd!',
+      confirmPassword: 'Passw0rd!',
+    );
+
 void main() {
   setUp(() {
     SharedPreferences.setMockInitialValues({});
@@ -27,13 +35,7 @@ void main() {
   });
 
   testWidgets('a registered account signs in and reaches the app', (tester) async {
-    await AuthStore.api.register(
-      firstName: 'Ada',
-      lastName: 'Lovelace',
-      email: 'ada@example.com',
-      password: 'Passw0rd!',
-      confirmPassword: 'Passw0rd!',
-    );
+    await _registerAda();
 
     await tester.pumpWidget(_wrap(const LoginScreen()));
     await tester.pumpAndSettle();
@@ -43,13 +45,7 @@ void main() {
   });
 
   testWidgets('a wrong password is explained rather than ignored', (tester) async {
-    await AuthStore.api.register(
-      firstName: 'Ada',
-      lastName: 'Lovelace',
-      email: 'ada@example.com',
-      password: 'Passw0rd!',
-      confirmPassword: 'Passw0rd!',
-    );
+    await _registerAda();
 
     await tester.pumpWidget(_wrap(const LoginScreen()));
     await tester.pumpAndSettle();
@@ -81,13 +77,7 @@ void main() {
   });
 
   testWidgets('"Remember me" prefills the email on the next visit', (tester) async {
-    await AuthStore.api.register(
-      firstName: 'Ada',
-      lastName: 'Lovelace',
-      email: 'ada@example.com',
-      password: 'Passw0rd!',
-      confirmPassword: 'Passw0rd!',
-    );
+    await _registerAda();
 
     await tester.pumpWidget(_wrap(const LoginScreen()));
     await tester.pumpAndSettle();
@@ -110,13 +100,7 @@ void main() {
   });
 
   testWidgets('signing in without "Remember me" leaves nothing behind', (tester) async {
-    await AuthStore.api.register(
-      firstName: 'Ada',
-      lastName: 'Lovelace',
-      email: 'ada@example.com',
-      password: 'Passw0rd!',
-      confirmPassword: 'Passw0rd!',
-    );
+    await _registerAda();
 
     await tester.pumpWidget(_wrap(const LoginScreen()));
     await tester.pumpAndSettle();
