@@ -1,12 +1,10 @@
-import 'dart:io' show Platform;
-
 import 'package:dio/dio.dart';
-import 'package:flutter/foundation.dart' show kIsWeb;
+import 'package:flutter/foundation.dart' show TargetPlatform, defaultTargetPlatform, kIsWeb;
 
 /// Picks the address the app should use to reach the VocabGrid API from
 /// wherever it's currently running. Pure and side-effect free so it can be
 /// tested without a real platform check — [ApiClient] calls it with the
-/// real [kIsWeb]/[Platform.isAndroid] values.
+/// real [kIsWeb]/`defaultTargetPlatform == TargetPlatform.android` values.
 ///
 /// The Android emulator can't resolve "localhost" to the host machine (it
 /// resolves to the emulator itself), so it needs the special 10.0.2.2 alias
@@ -42,7 +40,7 @@ class ApiClient {
           BaseOptions(
             baseUrl: resolveApiBaseUrl(
               isWeb: kIsWeb,
-              isAndroid: !kIsWeb && Platform.isAndroid,
+              isAndroid: !kIsWeb && defaultTargetPlatform == TargetPlatform.android,
             ),
             connectTimeout: const Duration(seconds: 10),
             receiveTimeout: const Duration(seconds: 10),
@@ -103,25 +101,36 @@ class ApiClient {
       return;
     }
 
+    final String newToken;
     try {
       final response = await dio.post('/api/Auth/refresh', data: {'refreshToken': _refreshToken});
       final data = response.data as Map<String, dynamic>;
-      final newToken = data['token'] as String;
+      newToken = data['token'] as String;
       final newRefreshToken = data['refreshToken'] as String;
       final newExpiry = DateTime.parse(data['refreshTokenExpiryTime'] as String);
 
       updateSession(token: newToken, refreshToken: newRefreshToken);
       await onSessionRefreshed?.call(newToken, newRefreshToken, newExpiry);
+    } catch (_) {
+      updateSession(token: null, refreshToken: null);
+      await onSessionExpired?.call();
+      handler.next(error);
+      return;
+    }
 
+    // Refresh succeeded — the retry is now a separate concern. If IT fails
+    // (e.g. a transient 500, unrelated to the token), that failure must
+    // propagate on its own merits and must NOT be treated as a session
+    // failure: the session we just obtained is valid, so wiping it out here
+    // would force a wrongful sign-out over an unrelated retry error.
+    try {
       final retryOptions = error.requestOptions;
       retryOptions.extra['refreshRetried'] = true;
       retryOptions.headers['Authorization'] = 'Bearer $newToken';
       final retryResponse = await dio.fetch(retryOptions);
       handler.resolve(retryResponse);
-    } catch (_) {
-      updateSession(token: null, refreshToken: null);
-      await onSessionExpired?.call();
-      handler.next(error);
+    } on DioException catch (retryError) {
+      handler.next(retryError);
     }
   }
 }

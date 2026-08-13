@@ -96,7 +96,7 @@ void main() {
       await client.dio.get('/api/Categories');
     } catch (_) {}
 
-    expect(adapter.requestedPaths, contains('/api/Auth/refresh'));
+    expect(adapter.requestedPaths.where((p) => p == '/api/Auth/refresh').length, 1);
     expect(refreshedToken, 'new-token');
   });
 
