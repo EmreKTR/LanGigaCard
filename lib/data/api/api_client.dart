@@ -92,9 +92,11 @@ class ApiClient {
   }
 
   Future<void> _onError(DioException error, ErrorInterceptorHandler handler) async {
+    final alreadyRetried = error.requestOptions.extra['refreshRetried'] == true;
     final shouldTryRefresh = error.response?.statusCode == 401 &&
         !isAuthEndpointPath(error.requestOptions.path) &&
-        _refreshToken != null;
+        _refreshToken != null &&
+        !alreadyRetried;
 
     if (!shouldTryRefresh) {
       handler.next(error);
@@ -112,6 +114,7 @@ class ApiClient {
       await onSessionRefreshed?.call(newToken, newRefreshToken, newExpiry);
 
       final retryOptions = error.requestOptions;
+      retryOptions.extra['refreshRetried'] = true;
       retryOptions.headers['Authorization'] = 'Bearer $newToken';
       final retryResponse = await dio.fetch(retryOptions);
       handler.resolve(retryResponse);
