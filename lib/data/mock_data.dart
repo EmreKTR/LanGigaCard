@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../models/app_models.dart';
 import 'library_storage.dart';
+import 'starter_content.dart';
 import 'sqlite_library_storage.dart';
 
 /// The learner's decks and cards, plus the fixed reference lists (languages,
@@ -18,25 +19,23 @@ class MockData {
   /// the whole cost of moving between JSON, SQLite and a future API.
   static LibraryStorage storage = SqliteLibraryStorage();
 
-  /// Restores the saved library, falling back to the sample content on a
-  /// first launch. Call once at startup, before the first screen reads
-  /// [decks] or [cards].
+  /// Restores the saved library. Call once at startup, before the first
+  /// screen reads [decks] or [cards].
+  ///
+  /// A first launch finds nothing and leaves the library empty on purpose —
+  /// [applyStarterContent] fills it once the learner's language pair is
+  /// known, so nobody is handed French decks they never asked for.
   static Future<void> load() async {
     LibrarySnapshot? snapshot;
     try {
       snapshot = await storage.load();
     } catch (_) {
       // Startup awaits this, so a storage failure must never stop the app
-      // from opening — fall back to the sample library instead.
+      // from opening.
       return;
     }
 
-    if (snapshot == null) {
-      // First run: keep the seeded sample library and write it down so later
-      // edits have something to build on.
-      await _persist();
-      return;
-    }
+    if (snapshot == null) return;
 
     decks
       ..clear()
@@ -59,15 +58,67 @@ class MockData {
     }
   }
 
-  /// Wipes the saved library and restores the sample content. Used by tests
-  /// and a future "reset" action.
-  static Future<void> resetToSeed() async {
+  /// Empties the library. A "start over" action, and the clean slate tests
+  /// build their fixtures on.
+  static Future<void> clearLibrary() async {
+    decks.clear();
+    cards.clear();
+    revision.value++;
+    await _persist();
+  }
+
+  /// Installs the fixed French sample used by the test suite.
+  ///
+  /// Deliberately not shipped to learners: the app seeds
+  /// [applyStarterContent] in the language they actually chose. This exists so
+  /// tests have a known, stable library to assert against.
+  @visibleForTesting
+  static Future<void> seedSampleLibrary() async {
     decks
       ..clear()
-      ..addAll(_seedDecks);
+      ..addAll(_sampleDecks);
     cards
       ..clear()
-      ..addAll(_seedCards);
+      ..addAll(_sampleCards);
+    revision.value++;
+    await _persist();
+  }
+
+  /// Gives a learner starter decks in the language they are actually
+  /// learning.
+  ///
+  /// The sample library used to be French no matter what was chosen during
+  /// onboarding, so a Turkish speaker learning English opened the app to
+  /// "French Basics". Called once the profile is known — on first launch, and
+  /// again whenever the target language changes.
+  ///
+  /// Only replaces content the learner hasn't touched: if they have made a
+  /// deck of their own, the new starter decks are added alongside instead.
+  static Future<void> applyStarterContent({
+    required String targetCode,
+    required String targetName,
+    required String nativeCode,
+  }) async {
+    if (targetCode.isEmpty || nativeCode.isEmpty) return;
+
+    final starter = StarterContent.buildFor(
+      targetCode: targetCode,
+      targetName: targetName,
+      nativeCode: nativeCode,
+    );
+    if (starter.decks.isEmpty) return;
+
+    // Already present — nothing to do.
+    if (decks.any((d) => d.id == starter.decks.first.id)) return;
+
+    if (StarterContent.isUntouchedLibrary(decks)) {
+      // Nothing here but sample content for another language: swap it out.
+      decks.clear();
+      cards.clear();
+    }
+
+    decks.addAll(starter.decks);
+    cards.addAll(starter.cards);
     revision.value++;
     await _persist();
   }
@@ -116,9 +167,9 @@ class MockData {
 
   static const List<int> dailyGoalOptions = [5, 10, 15, 20, 30];
 
-  /// Sample library shipped with the app, used on a first launch and by
-  /// [resetToSeed].
-  static const List<Deck> _seedDecks = [
+  /// Fixed French sample used only by the test suite — see
+  /// [seedSampleLibrary].
+  static const List<Deck> _sampleDecks = [
     Deck(
       id: 'french_basics',
       name: 'French Basics',
@@ -154,7 +205,7 @@ class MockData {
     ),
   ];
 
-  static const List<FlashCard> _seedCards = [
+  static const List<FlashCard> _sampleCards = [
     FlashCard(
       id: 'bonjour',
       deckId: 'french_basics',
@@ -249,8 +300,8 @@ class MockData {
 
   /// The live library. Starts as the sample content and is replaced by
   /// whatever [load] finds in storage.
-  static final List<Deck> decks = List.of(_seedDecks);
-  static final List<FlashCard> cards = List.of(_seedCards);
+  static final List<Deck> decks = <Deck>[];
+  static final List<FlashCard> cards = <FlashCard>[];
 
   static const List<Achievement> achievements = [
     Achievement(

@@ -32,9 +32,7 @@ class _MainShellState extends State<MainShell> {
   @override
   void initState() {
     super.initState();
-    // Cards are written in the language being learned, so that's the voice
-    // the speaker buttons should use.
-    PronunciationService.useLanguageCode(_profile.targetLanguageCode);
+    _applyProfile(_profile);
     // Signing back in has no profile handed to it, so recover whatever the
     // onboarding wizard saved last time rather than showing the demo account.
     if (widget.profile == null) _restoreSavedProfile();
@@ -47,8 +45,31 @@ class _MainShellState extends State<MainShell> {
     // there's nowhere yet that persists a returning learner's real stats, so
     // the honest thing to show is 0, not the sample content's numbers.
     final restored = profileFromOnboarding(saved, UserProfile.empty());
-    PronunciationService.useLanguageCode(restored.targetLanguageCode);
     setState(() => _profile = restored);
+    _applyProfile(restored);
+  }
+
+  /// Brings everything that depends on the language pair in line with
+  /// [profile]: the speaking voice, and the starter decks.
+  void _applyProfile(UserProfile profile) {
+    // Cards are written in the language being learned, so that's the voice
+    // the speaker buttons should use.
+    PronunciationService.useLanguageCode(profile.targetLanguageCode);
+    // And the sample decks should be in that language too — they used to be
+    // French regardless of what the learner chose.
+    MockData.applyStarterContent(
+      targetCode: profile.targetLanguageCode,
+      targetName: profile.targetLanguage,
+      nativeCode: profile.nativeLanguageCode,
+    );
+  }
+
+  /// Profile edits can change the language pair, so re-apply when they do.
+  void _onProfileChanged(UserProfile updated) {
+    final languageChanged = updated.targetLanguageCode != _profile.targetLanguageCode ||
+        updated.nativeLanguageCode != _profile.nativeLanguageCode;
+    setState(() => _profile = updated);
+    if (languageChanged) _applyProfile(updated);
   }
 
   void _startStudySession() {
@@ -61,7 +82,7 @@ class _MainShellState extends State<MainShell> {
       HomeScreen(profile: _profile, onStudyTap: _startStudySession, onProfileTap: () => setState(() => _tabIndex = 3)),
       const DeckDashboardScreen(),
       StatisticsScreen(profile: _profile),
-      ProfileScreen(profile: _profile, onProfileChanged: (p) => setState(() => _profile = p)),
+      ProfileScreen(profile: _profile, onProfileChanged: _onProfileChanged),
     ];
 
     return Scaffold(

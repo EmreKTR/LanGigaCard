@@ -17,7 +17,12 @@ int _cardCountOf(String deckId) => MockData.decks.firstWhere((d) => d.id == deck
 
 void main() {
   // Keep the library in memory: these tests exercise data rules, not disk.
-  setUp(() => MockData.storage = InMemoryLibraryStorage());
+  setUp(() async {
+    MockData.storage = InMemoryLibraryStorage();
+    // The app now starts empty and seeds by language; these tests assert
+    // against the fixed sample library, so install it explicitly.
+    await MockData.seedSampleLibrary();
+  });
 
   group('MockData card mutations keep deck.cardCount in sync', () {
     test('addCard appends the card and bumps its deck count', () {

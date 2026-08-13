@@ -178,9 +178,14 @@ class _GradientHeader extends StatelessWidget {
                       children: [
                         Text('CONTINUE LEARNING', style: TextStyle(color: Colors.white.withValues(alpha: 0.7), fontSize: 10, letterSpacing: 1)),
                         const SizedBox(height: 2),
-                        Text('${deck.name.replaceAll(' French', '')} Vocabulary',
-                            style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w700, fontSize: 15)),
-                        Text('${profile.nativeLanguage} → ${profile.targetLanguage} · Unit 3',
+                        // The deck's own name — this used to strip the word
+                        // "French" out and append "Vocabulary", which only
+                        // ever made sense for the French sample library.
+                        Text(deck.name,
+                            style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w700, fontSize: 15),
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis),
+                        Text('${profile.nativeLanguage} → ${profile.targetLanguage}',
                             style: TextStyle(color: Colors.white.withValues(alpha: 0.75), fontSize: 12)),
                         const SizedBox(height: AppSpacing.sm),
                         Wrap(

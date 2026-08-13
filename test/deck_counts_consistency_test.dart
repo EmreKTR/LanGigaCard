@@ -28,7 +28,12 @@ FlashCard _card(String id, MemoryStrength strength) => FlashCard(
 
 void main() {
   // Keep the library in memory: these tests exercise data rules, not disk.
-  setUp(() => MockData.storage = InMemoryLibraryStorage());
+  setUp(() async {
+    MockData.storage = InMemoryLibraryStorage();
+    // The app now starts empty and seeds by language; these tests assert
+    // against the fixed sample library, so install it explicitly.
+    await MockData.seedSampleLibrary();
+  });
 
   setUp(() {
     MockData.cards.removeWhere((c) => c.deckId == _deck.id);

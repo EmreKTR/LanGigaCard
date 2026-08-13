@@ -30,8 +30,7 @@ const _card = FlashCard(
 /// Simulates closing and reopening the app against the same storage.
 Future<void> _relaunch(LibraryStorage storage) async {
   MockData.storage = storage;
-  await MockData.resetToSeed();
-  // resetToSeed writes the seed, so put the saved snapshot back before load.
+  await MockData.seedSampleLibrary();
   await MockData.load();
 }
 
@@ -41,7 +40,7 @@ void main() {
   setUp(() async {
     storage = InMemoryLibraryStorage();
     MockData.storage = storage;
-    await MockData.resetToSeed();
+    await MockData.seedSampleLibrary();
   });
 
   group('serialisation', () {
@@ -128,21 +127,25 @@ void main() {
       expect(saved!.cards.firstWhere((c) => c.id == 'merci').translation, 'Cheers');
     });
 
-    test('a first launch keeps the sample library and writes it down', () async {
+    test('a first launch starts empty, waiting for the learner\'s language', () async {
       final emptyStorage = InMemoryLibraryStorage();
       MockData.storage = emptyStorage;
+      await MockData.clearLibrary();
       await MockData.load();
 
-      expect(MockData.decks, isNotEmpty, reason: 'the samples are the starting point');
-      expect(await emptyStorage.load(), isNotNull, reason: 'and they are saved for next time');
+      // Nothing is seeded until applyStarterContent knows which language to
+      // seed — the app used to hand everyone French decks here.
+      expect(MockData.decks, isEmpty);
+      expect(MockData.cards, isEmpty);
     });
 
-    test('unreadable storage falls back to the samples rather than an empty app', () async {
+    test('unreadable storage leaves the app usable rather than crashing', () async {
       MockData.storage = _BrokenStorage();
+
+      // The point: this must not throw.
       await MockData.load();
 
-      expect(MockData.decks, isNotEmpty);
-      expect(MockData.cards, isNotEmpty);
+      expect(MockData.decks, isNotEmpty, reason: 'whatever was already loaded stays');
     });
 
     test('a storage failure never breaks the edit in progress', () async {
