@@ -305,7 +305,7 @@ class MockData {
 
   static const List<Achievement> achievements = [
     Achievement(
-      emoji: '🔥',
+      emoji: '⚡',
       title: '7-Day Streak',
       description: 'Study 7 days in a row',
       earned: true,

@@ -8,11 +8,12 @@ import 'decks/deck_dashboard_screen.dart';
 import 'home/home_screen.dart';
 import 'profile/profile_screen.dart';
 import 'stats/statistics_screen.dart';
+import 'study/quiz_screen.dart';
 import 'study/study_session_screen.dart';
 
 /// Root shell hosting the 4 persistent tabs (Home, Decks, Stats, Profile)
-/// behind [AppBottomNav]. The 5th nav item ("Study") is an action that
-/// pushes a focus-mode [StudySessionScreen] on top instead of switching tabs.
+/// behind [AppBottomNav]. The 5th nav item ("Quiz") is an action that
+/// pushes [QuizScreen] on top instead of switching tabs.
 class MainShell extends StatefulWidget {
   const MainShell({super.key, this.profile});
 
@@ -88,11 +89,11 @@ class _MainShellState extends State<MainShell> {
     return Scaffold(
       body: IndexedStack(index: _tabIndex, children: tabs),
       bottomNavigationBar: AppBottomNav(
-        // Bottom nav order is Home(0) Decks(1) Study(2) Stats(3) Profile(4);
-        // "Study" has no tab content, so map our 4-tab index back onto the
+        // Bottom nav order is Home(0) Decks(1) Quiz(2) Stats(3) Profile(4);
+        // "Quiz" has no tab content, so map our 4-tab index back onto the
         // 5-item nav bar index for correct highlighting.
         currentIndex: _tabIndex >= 2 ? _tabIndex + 1 : _tabIndex,
-        onStudyTap: _startStudySession,
+        onQuizTap: () => Navigator.of(context).push(MaterialPageRoute(builder: (_) => const QuizScreen())),
         onTabSelected: (i) => setState(() => _tabIndex = i > 2 ? i - 1 : i),
       ),
     );

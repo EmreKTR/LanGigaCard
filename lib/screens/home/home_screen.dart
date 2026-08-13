@@ -134,16 +134,17 @@ class _GradientHeader extends StatelessWidget {
               ),
               InkWell(
                 onTap: onProfileTap,
-                customBorder: const CircleBorder(),
-                child: Stack(
-                  clipBehavior: Clip.none,
+                borderRadius: BorderRadius.circular(AppRadius.pill),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
                   children: [
+                    StreakBadge(days: profile.streakDays),
+                    const SizedBox(width: 8),
                     CircleAvatar(
                       radius: 22,
                       backgroundColor: Colors.white.withValues(alpha: 0.2),
                       child: Text(initialsFor(profile.name), style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w700)),
                     ),
-                    Positioned(top: -4, right: -8, child: StreakBadge(days: profile.streakDays)),
                   ],
                 ),
               ),
