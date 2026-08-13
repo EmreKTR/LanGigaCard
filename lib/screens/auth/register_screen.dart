@@ -108,37 +108,51 @@ class _RegisterScreenState extends State<RegisterScreen> {
       _creating = true;
       _errorText = null;
     });
-    final email = _emailController.text.trim();
-    final result = await AuthStore.api.register(
-      firstName: _firstNameController.text.trim(),
-      lastName: _lastNameController.text.trim(),
-      email: email,
-      password: _passwordController.text,
-      confirmPassword: _confirmController.text,
-    );
-    if (!mounted) return;
 
-    if (!result.isSuccess) {
-      setState(() {
-        _creating = false;
-        _errorText = switch (result.outcome) {
-          AuthOutcome.emailTaken => 'An account with this email already exists.',
-          AuthOutcome.networkError => "Can't reach the server. Check your connection and try again.",
-          _ => result.message ?? 'Something went wrong. Please try again.',
-        };
-      });
-      return;
-    }
+    // Tracks whether we're about to leave this screen, so the `finally`
+    // below never resets `_creating` right before navigating away (that
+    // would flash the button back to its idle state for a frame). Anything
+    // that throws before this is set still gets `_creating` reset, so the
+    // button can never get stuck disabled.
+    var didNavigateAway = false;
+    try {
+      final email = _emailController.text.trim();
+      final result = await AuthStore.api.register(
+        firstName: _firstNameController.text.trim(),
+        lastName: _lastNameController.text.trim(),
+        email: email,
+        password: _passwordController.text,
+        confirmPassword: _confirmController.text,
+      );
+      if (!mounted) return;
 
-    Navigator.of(context).pushReplacement(
-      MaterialPageRoute(
-        builder: (_) => EmailVerificationScreen(
-          firstName: _firstNameController.text.trim(),
-          lastName: _lastNameController.text.trim(),
-          email: email,
+      if (!result.isSuccess) {
+        setState(() {
+          _creating = false;
+          _errorText = switch (result.outcome) {
+            AuthOutcome.emailTaken => 'An account with this email already exists.',
+            AuthOutcome.networkError => "Can't reach the server. Check your connection and try again.",
+            _ => result.message ?? 'Something went wrong. Please try again.',
+          };
+        });
+        return;
+      }
+
+      didNavigateAway = true;
+      Navigator.of(context).pushReplacement(
+        MaterialPageRoute(
+          builder: (_) => EmailVerificationScreen(
+            firstName: _firstNameController.text.trim(),
+            lastName: _lastNameController.text.trim(),
+            email: email,
+          ),
         ),
-      ),
-    );
+      );
+    } finally {
+      if (!didNavigateAway && mounted && _creating) {
+        setState(() => _creating = false);
+      }
+    }
   }
 
   @override

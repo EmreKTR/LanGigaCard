@@ -59,28 +59,41 @@ class _LoginScreenState extends State<LoginScreen> {
       _errorText = null;
     });
 
-    final email = _emailController.text.trim();
-    final result = await AuthStore.api.login(email: email, password: _passwordController.text);
-    if (!mounted) return;
+    // Tracks whether we're about to leave this screen, so the `finally`
+    // below never resets `_signingIn` right before navigating away (that
+    // would flash the button back to its idle state for a frame). Anything
+    // that throws before this is set still gets `_signingIn` reset, so the
+    // button can never get stuck disabled.
+    var didNavigateAway = false;
+    try {
+      final email = _emailController.text.trim();
+      final result = await AuthStore.api.login(email: email, password: _passwordController.text);
+      if (!mounted) return;
 
-    if (!result.isSuccess) {
-      setState(() {
-        _signingIn = false;
-        _errorText = switch (result.outcome) {
-          AuthOutcome.networkError => "Can't reach the server. Check your connection and try again.",
-          _ => 'Incorrect email or password. Create an account if you don\'t have one yet.',
-        };
-      });
-      return;
+      if (!result.isSuccess) {
+        setState(() {
+          _signingIn = false;
+          _errorText = switch (result.outcome) {
+            AuthOutcome.networkError => "Can't reach the server. Check your connection and try again.",
+            _ => 'Incorrect email or password. Create an account if you don\'t have one yet.',
+          };
+        });
+        return;
+      }
+
+      await AuthStore.rememberEmail(_rememberMe ? email : null);
+      if (!mounted) return;
+
+      didNavigateAway = true;
+      Navigator.of(context).pushAndRemoveUntil(
+        MaterialPageRoute(builder: (_) => const MainShell()),
+        (r) => false,
+      );
+    } finally {
+      if (!didNavigateAway && mounted && _signingIn) {
+        setState(() => _signingIn = false);
+      }
     }
-
-    await AuthStore.rememberEmail(_rememberMe ? email : null);
-    if (!mounted) return;
-
-    Navigator.of(context).pushAndRemoveUntil(
-      MaterialPageRoute(builder: (_) => const MainShell()),
-      (r) => false,
-    );
   }
 
   @override

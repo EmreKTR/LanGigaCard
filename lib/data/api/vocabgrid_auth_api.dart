@@ -40,6 +40,8 @@ class VocabGridAuthApi implements AuthApi {
       return _resultFromAuthResponse(response.data as Map<String, dynamic>);
     } on DioException catch (e) {
       return _resultFromError(e, isRegister: true);
+    } catch (_) {
+      return const AuthResult.networkError();
     }
   }
 
@@ -53,6 +55,8 @@ class VocabGridAuthApi implements AuthApi {
       return _resultFromAuthResponse(response.data as Map<String, dynamic>);
     } on DioException catch (e) {
       return _resultFromError(e, isRegister: false);
+    } catch (_) {
+      return const AuthResult.networkError();
     }
   }
 
