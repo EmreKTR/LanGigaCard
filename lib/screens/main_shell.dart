@@ -65,17 +65,24 @@ class _MainShellState extends State<MainShell> {
     final allCategoriesFuture = userApi.getCategories();
     final allPurposesFuture = userApi.getLearningPurposes();
 
-    final myCategoryIds = await categoryIdsFuture;
-    final myPurposeIds = await purposeIdsFuture;
-    final allCategories = await allCategoriesFuture;
-    final allPurposes = await allPurposesFuture;
-    if (!mounted) return;
+    final UserProfile profile;
+    try {
+      final myCategoryIds = await categoryIdsFuture;
+      final myPurposeIds = await purposeIdsFuture;
+      final allCategories = await allCategoriesFuture;
+      final allPurposes = await allPurposesFuture;
+      if (!mounted) return;
 
-    final profile = profileFromApiData(
-      result.profile!,
-      categoryNames: allCategories.where((c) => myCategoryIds.contains(c.id)).map((c) => c.name).toList(),
-      purposeNames: allPurposes.where((p) => myPurposeIds.contains(p.id)).map((p) => p.name).toList(),
-    );
+      profile = profileFromApiData(
+        result.profile!,
+        categoryNames: allCategories.where((c) => myCategoryIds.contains(c.id)).map((c) => c.name).toList(),
+        purposeNames: allPurposes.where((p) => myPurposeIds.contains(p.id)).map((p) => p.name).toList(),
+      );
+    } catch (_) {
+      if (!mounted) return;
+      setState(() => _profileLoadFailed = true);
+      return;
+    }
 
     setState(() => _profile = profile);
     _applyProfile(profile);
