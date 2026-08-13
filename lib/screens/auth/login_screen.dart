@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../../data/api/auth_api.dart';
 import '../../data/auth_store.dart';
 import '../../theme/app_theme.dart';
 import '../../widgets/app_buttons.dart';
@@ -59,13 +60,16 @@ class _LoginScreenState extends State<LoginScreen> {
     });
 
     final email = _emailController.text.trim();
-    final ok = await AuthStore.login(email, _passwordController.text);
+    final result = await AuthStore.api.login(email: email, password: _passwordController.text);
     if (!mounted) return;
 
-    if (!ok) {
+    if (!result.isSuccess) {
       setState(() {
         _signingIn = false;
-        _errorText = 'Incorrect email or password. Create an account if you don\'t have one yet.';
+        _errorText = switch (result.outcome) {
+          AuthOutcome.networkError => "Can't reach the server. Check your connection and try again.",
+          _ => 'Incorrect email or password. Create an account if you don\'t have one yet.',
+        };
       });
       return;
     }
