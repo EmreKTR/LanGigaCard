@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../../data/api/auth_api.dart';
 import '../../data/auth_store.dart';
 import '../../theme/app_theme.dart';
 import '../../widgets/app_buttons.dart';
@@ -38,6 +39,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
   bool _confirmTouched = false;
 
   bool _creating = false;
+  String? _errorText;
 
   @override
   void initState() {
@@ -92,9 +94,9 @@ class _RegisterScreenState extends State<RegisterScreen> {
           ? "Passwords don't match"
           : null;
 
-  /// Creates the local account, then hands off to email verification and the
-  /// onboarding wizard, which is where the language pair and study
-  /// preferences are actually collected.
+  /// Registers the account against the real backend, then hands off to
+  /// email verification and the onboarding wizard, which is where the
+  /// language pair and study preferences are actually collected.
   Future<void> _createAccount() async {
     if (_creating) return;
     if (!_step1Valid) {
@@ -102,20 +104,55 @@ class _RegisterScreenState extends State<RegisterScreen> {
       return;
     }
 
-    setState(() => _creating = true);
-    final email = _emailController.text.trim();
-    await AuthStore.register(email, _passwordController.text);
-    if (!mounted) return;
+    setState(() {
+      _creating = true;
+      _errorText = null;
+    });
 
-    Navigator.of(context).pushReplacement(
-      MaterialPageRoute(
-        builder: (_) => EmailVerificationScreen(
-          firstName: _firstNameController.text.trim(),
-          lastName: _lastNameController.text.trim(),
-          email: email,
+    // Tracks whether we're about to leave this screen, so the `finally`
+    // below never resets `_creating` right before navigating away (that
+    // would flash the button back to its idle state for a frame). Anything
+    // that throws before this is set still gets `_creating` reset, so the
+    // button can never get stuck disabled.
+    var didNavigateAway = false;
+    try {
+      final email = _emailController.text.trim();
+      final result = await AuthStore.api.register(
+        firstName: _firstNameController.text.trim(),
+        lastName: _lastNameController.text.trim(),
+        email: email,
+        password: _passwordController.text,
+        confirmPassword: _confirmController.text,
+      );
+      if (!mounted) return;
+
+      if (!result.isSuccess) {
+        setState(() {
+          _creating = false;
+          _errorText = switch (result.outcome) {
+            AuthOutcome.emailTaken => 'An account with this email already exists.',
+            AuthOutcome.networkError => "Can't reach the server. Check your connection and try again.",
+            _ => result.message ?? 'Something went wrong. Please try again.',
+          };
+        });
+        return;
+      }
+
+      didNavigateAway = true;
+      Navigator.of(context).pushReplacement(
+        MaterialPageRoute(
+          builder: (_) => EmailVerificationScreen(
+            firstName: _firstNameController.text.trim(),
+            lastName: _lastNameController.text.trim(),
+            email: email,
+          ),
         ),
-      ),
-    );
+      );
+    } finally {
+      if (!didNavigateAway && mounted && _creating) {
+        setState(() => _creating = false);
+      }
+    }
   }
 
   @override
@@ -150,6 +187,24 @@ class _RegisterScreenState extends State<RegisterScreen> {
                       style: TextStyle(color: colors.textMuted, fontSize: 13),
                     ),
                     const SizedBox(height: AppSpacing.xxl),
+                    if (_errorText != null)
+                      Container(
+                        width: double.infinity,
+                        margin: const EdgeInsets.only(bottom: AppSpacing.lg),
+                        padding: const EdgeInsets.all(AppSpacing.md),
+                        decoration: BoxDecoration(
+                          color: colors.danger.withValues(alpha: 0.12),
+                          borderRadius: BorderRadius.circular(AppRadius.md),
+                          border: Border.all(color: colors.danger.withValues(alpha: 0.4)),
+                        ),
+                        child: Row(
+                          children: [
+                            Icon(Icons.error_outline_rounded, color: colors.danger, size: 18),
+                            const SizedBox(width: AppSpacing.sm),
+                            Expanded(child: Text(_errorText!, style: TextStyle(color: colors.danger, fontSize: 13))),
+                          ],
+                        ),
+                      ),
                     AnimatedBuilder(
                       animation: Listenable.merge([
                         _firstNameController,

@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../../app_controller.dart';
+import '../../data/auth_store.dart';
 import '../../data/mock_data.dart';
 import '../../models/app_models.dart';
 import '../../models/text_size_option.dart';
@@ -319,6 +320,9 @@ class ProfileScreen extends StatelessWidget {
       ),
     );
     if (confirmed != true || !context.mounted) return;
+
+    await AuthStore.api.logout();
+    if (!context.mounted) return;
 
     Navigator.of(context).pushAndRemoveUntil(
       MaterialPageRoute(builder: (_) => const LoginScreen()),

@@ -1,8 +1,18 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
+    <uses-permission android:name="android.permission.INTERNET"/>
+    <!-- usesCleartextTraffic: pragmatic fix for local development. The API
+         is reached over plain http (e.g. http://10.0.2.2:5068, the
+         emulator's alias for the host machine's loopback), and Android
+         blocks cleartext traffic by default since API 28. That loopback
+         alias is only actually reachable from the emulator itself, so this
+         is effectively scoped to dev/emulator use. A network_security_config.xml
+         scoped to just that host would be more precise, but is out of scope
+         for this fix. -->
     <application
         android:label="langigacards"
         android:name="${applicationName}"
-        android:icon="@mipmap/ic_launcher">
+        android:icon="@mipmap/ic_launcher"
+        android:usesCleartextTraffic="true">
         <activity
             android:name=".MainActivity"
             android:exported="true"
