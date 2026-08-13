@@ -127,9 +127,17 @@ class _OnboardingSetupScreenState extends State<OnboardingSetupScreen> {
       return;
     }
 
-    await userApi.updateMyCategories(_categoryIds.toList());
-    await userApi.updateMyLearningPurposes(_learningPurposeIds.toList());
+    final categoryResult = await userApi.updateMyCategories(_categoryIds.toList());
+    final purposeResult = await userApi.updateMyLearningPurposes(_learningPurposeIds.toList());
     if (!mounted) return;
+
+    if (categoryResult.length != _categoryIds.length || purposeResult.length != _learningPurposeIds.length) {
+      setState(() {
+        _saving = false;
+        _errorText = "Couldn't save your topics or learning purpose. Please try again.";
+      });
+      return;
+    }
 
     final categoryNames = _availableCategories!
         .where((c) => _categoryIds.contains(c.id))
