@@ -55,6 +55,13 @@ class VocabGridUserApi implements UserApi {
     } on DioException catch (e) {
       if (e.response?.statusCode == 400) {
         final body = e.response?.data;
+        if (body is Map && body['errors'] is Map) {
+          final errors = (body['errors'] as Map)
+              .values
+              .expand((messages) => (messages as List).cast<String>())
+              .join(' ');
+          return ProfileResult.validationError(errors.isEmpty ? 'Invalid request.' : errors);
+        }
         if (body is String && body.isNotEmpty) {
           return ProfileResult.validationError(body);
         }
