@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import '../../data/api/user_api.dart';
+import '../../data/api/vocabgrid_user_api.dart';
 import '../../data/onboarding_store.dart';
 import '../../models/app_models.dart';
 import '../../theme/app_theme.dart';
@@ -19,8 +21,8 @@ const _stepLabels = [
 
 /// 7-step profile wizard, run once right after email verification: native
 /// language -> target language -> target level -> learning purpose -> age
-/// range -> topics -> daily goal. Answers are persisted via [OnboardingStore]
-/// so [MainShell] can seed the demo profile with the learner's real choices.
+/// range -> topics -> daily goal. Answers save straight to the API — there
+/// is no local fallback, matching how Auth already requires network.
 class OnboardingSetupScreen extends StatefulWidget {
   const OnboardingSetupScreen({super.key, required this.firstName, required this.lastName, required this.email});
 
@@ -36,24 +38,47 @@ class _OnboardingSetupScreenState extends State<OnboardingSetupScreen> {
   static const _stepCount = 7;
   int _step = 0;
 
+  /// Null while the reference lists are still loading. The wizard can't
+  /// render steps 3/5 (which need real ids to select from) until these
+  /// resolve, so the whole wizard waits on both up front rather than
+  /// lazy-loading per step.
+  List<CategoryData>? _availableCategories;
+  List<LearningPurposeData>? _availablePurposes;
+
   String? _nativeLanguage;
   String? _nativeLanguageCode;
   String? _targetLanguage;
   String? _targetLanguageCode;
   String? _targetLevel;
-  final Set<String> _learningPurposes = {};
+  final Set<int> _learningPurposeIds = {};
   String? _ageRange;
-  final Set<String> _categories = {};
+  final Set<int> _categoryIds = {};
   int? _dailyGoalMinutes;
   bool _saving = false;
+  String? _errorText;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadReferenceData();
+  }
+
+  Future<void> _loadReferenceData() async {
+    final results = await Future.wait([userApi.getCategories(), userApi.getLearningPurposes()]);
+    if (!mounted) return;
+    setState(() {
+      _availableCategories = results[0] as List<CategoryData>;
+      _availablePurposes = results[1] as List<LearningPurposeData>;
+    });
+  }
 
   bool get _canContinue => switch (_step) {
         0 => _nativeLanguage != null,
         1 => _targetLanguage != null,
         2 => _targetLevel != null,
-        3 => _learningPurposes.isNotEmpty,
+        3 => _learningPurposeIds.isNotEmpty,
         4 => _ageRange != null,
-        5 => _categories.isNotEmpty,
+        5 => _categoryIds.isNotEmpty,
         6 => _dailyGoalMinutes != null,
         _ => false,
       };
@@ -75,29 +100,52 @@ class _OnboardingSetupScreenState extends State<OnboardingSetupScreen> {
   }
 
   Future<void> _finish() async {
-    setState(() => _saving = true);
-    final data = OnboardingProfileData(
+    setState(() {
+      _saving = true;
+      _errorText = null;
+    });
+
+    final profileResult = await userApi.updateProfile(
       firstName: widget.firstName,
       lastName: widget.lastName,
-      email: widget.email,
-      nativeLanguage: _nativeLanguage!,
-      nativeLanguageCode: _nativeLanguageCode!,
-      targetLanguage: _targetLanguage!,
-      targetLanguageCode: _targetLanguageCode!,
-      targetLevel: _targetLevel!,
-      learningPurposes: _learningPurposes.toList(),
-      ageRange: _ageRange!,
-      categories: _categories.toList(),
-      dailyGoalMinutes: _dailyGoalMinutes!,
+      nativeLanguage: _nativeLanguage,
+      nativeLanguageCode: _nativeLanguageCode,
+      targetLanguage: _targetLanguage,
+      targetLanguageCode: _targetLanguageCode,
+      targetProficiencyLevel: _targetLevel,
+      dailyGoalMinutes: _dailyGoalMinutes,
     );
-    await OnboardingStore.saveProfile(data);
     if (!mounted) return;
 
-    // Hand the profile straight over as well as saving it, so the app never
-    // flashes the demo account before the saved answers load back in. Seeded
-    // fresh, not from the demo profile — a brand-new account starts at 0
-    // words / 0% accuracy / no streak, not the sample content's numbers.
-    final profile = profileFromOnboarding(data, UserProfile.empty());
+    if (!profileResult.isSuccess) {
+      setState(() {
+        _saving = false;
+        _errorText = profileResult.outcome == ProfileOutcome.networkError
+            ? "Can't reach the server. Check your connection and try again."
+            : (profileResult.message ?? 'Something went wrong. Please try again.');
+      });
+      return;
+    }
+
+    await userApi.updateMyCategories(_categoryIds.toList());
+    await userApi.updateMyLearningPurposes(_learningPurposeIds.toList());
+    if (!mounted) return;
+
+    final categoryNames = _availableCategories!
+        .where((c) => _categoryIds.contains(c.id))
+        .map((c) => c.name)
+        .toList();
+    final purposeNames = _availablePurposes!
+        .where((p) => _learningPurposeIds.contains(p.id))
+        .map((p) => p.name)
+        .toList();
+
+    final profile = profileFromApiData(
+      profileResult.profile!,
+      categoryNames: categoryNames,
+      purposeNames: purposeNames,
+    );
+
     Navigator.of(context).pushAndRemoveUntil(
       MaterialPageRoute(builder: (_) => MainShell(profile: profile)),
       (r) => false,
@@ -107,6 +155,11 @@ class _OnboardingSetupScreenState extends State<OnboardingSetupScreen> {
   @override
   Widget build(BuildContext context) {
     final colors = context.appColors;
+
+    if (_availableCategories == null || _availablePurposes == null) {
+      return const Scaffold(body: Center(child: CircularProgressIndicator()));
+    }
+
     final percent = (((_step + 1) / _stepCount) * 100).round();
 
     return Scaffold(
@@ -148,6 +201,27 @@ class _OnboardingSetupScreenState extends State<OnboardingSetupScreen> {
               ),
             ),
             const SizedBox(height: AppSpacing.lg),
+            if (_errorText != null)
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: AppSpacing.xxl),
+                child: Container(
+                  width: double.infinity,
+                  margin: const EdgeInsets.only(bottom: AppSpacing.lg),
+                  padding: const EdgeInsets.all(AppSpacing.md),
+                  decoration: BoxDecoration(
+                    color: colors.danger.withValues(alpha: 0.12),
+                    borderRadius: BorderRadius.circular(AppRadius.md),
+                    border: Border.all(color: colors.danger.withValues(alpha: 0.4)),
+                  ),
+                  child: Row(
+                    children: [
+                      Icon(Icons.error_outline_rounded, color: colors.danger, size: 18),
+                      const SizedBox(width: AppSpacing.sm),
+                      Expanded(child: Text(_errorText!, style: TextStyle(color: colors.danger, fontSize: 13))),
+                    ],
+                  ),
+                ),
+              ),
             Expanded(
               child: SingleChildScrollView(
                 padding: const EdgeInsets.fromLTRB(AppSpacing.xxl, 0, AppSpacing.xxl, AppSpacing.xxl),
@@ -218,15 +292,17 @@ class _OnboardingSetupScreenState extends State<OnboardingSetupScreen> {
         );
       case 3:
         return LearningPurposeStep(
-          selected: _learningPurposes,
-          onToggle: (v) => setState(() => _learningPurposes.contains(v) ? _learningPurposes.remove(v) : _learningPurposes.add(v)),
+          purposes: _availablePurposes!,
+          selected: _learningPurposeIds,
+          onToggle: (id) => setState(() => _learningPurposeIds.contains(id) ? _learningPurposeIds.remove(id) : _learningPurposeIds.add(id)),
         );
       case 4:
         return AgeRangeStep(selected: _ageRange, onSelected: (v) => setState(() => _ageRange = v));
       case 5:
         return TopicsStep(
-          selected: _categories,
-          onToggle: (v) => setState(() => _categories.contains(v) ? _categories.remove(v) : _categories.add(v)),
+          categories: _availableCategories!,
+          selected: _categoryIds,
+          onToggle: (id) => setState(() => _categoryIds.contains(id) ? _categoryIds.remove(id) : _categoryIds.add(id)),
         );
       case 6:
       default:
