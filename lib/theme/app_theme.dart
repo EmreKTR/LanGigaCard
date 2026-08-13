@@ -29,10 +29,10 @@ enum AccentColor { purple, pink, green, orange }
 
 extension AccentColorX on AccentColor {
   Color get seed => switch (this) {
-        AccentColor.purple => const Color(0xFF6C5CE7),
-        AccentColor.pink => const Color(0xFFEC4899),
-        AccentColor.green => const Color(0xFF10B981),
-        AccentColor.orange => const Color(0xFFF59E0B),
+        AccentColor.purple => const Color(0xFF7C4DFF),
+        AccentColor.pink => const Color(0xFFFF4081),
+        AccentColor.green => const Color(0xFF00C853),
+        AccentColor.orange => const Color(0xFFFF6D00),
       };
 
   String get label => switch (this) {

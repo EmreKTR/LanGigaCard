@@ -136,7 +136,7 @@ class _StatisticsScreenState extends State<StatisticsScreen> {
               children: [
                 Expanded(
                   child: _MetricCard(
-                    icon: Icons.local_fire_department_rounded,
+                    icon: Icons.bolt_rounded,
                     value: '${stats.streakDays}',
                     delta: stats.streakDays == 1 ? 'day' : 'days',
                     label: 'Streak',

@@ -22,7 +22,7 @@ class MemoryStrengthPill extends StatelessWidget {
   }
 }
 
-/// Small orange/red streak badge ("🔥14") shown next to the user's avatar.
+/// Small orange/red streak badge ("⚡14") shown next to the user's avatar.
 class StreakBadge extends StatelessWidget {
   const StreakBadge({super.key, required this.days, this.size = 24});
 
@@ -43,7 +43,7 @@ class StreakBadge extends StatelessWidget {
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
-          const Icon(Icons.local_fire_department_rounded, color: Colors.white, size: 14),
+          const Icon(Icons.bolt_rounded, color: Colors.white, size: 14),
           const SizedBox(width: 2),
           Text('$days', style: const TextStyle(color: Colors.white, fontSize: 11, fontWeight: FontWeight.w700)),
         ],

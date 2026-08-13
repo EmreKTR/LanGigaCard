@@ -225,17 +225,22 @@ class ProfileScreen extends StatelessWidget {
                                   Text(controller.textSize.label, style: TextStyle(color: colors.textMuted, fontSize: 12)),
                                 ],
                               ),
-                              const SizedBox(height: AppSpacing.sm),
-                              Wrap(
-                                spacing: AppSpacing.sm,
-                                runSpacing: AppSpacing.sm,
-                                children: TextSizeOption.values
-                                    .map((opt) => ChoiceChipButton(
-                                          label: opt.label,
-                                          selected: controller.textSize == opt,
-                                          onTap: () => controller.setTextSize(opt),
-                                        ))
-                                    .toList(),
+                              Row(
+                                children: [
+                                  Icon(Icons.text_fields_rounded, size: 14, color: colors.textMuted),
+                                  Expanded(
+                                    child: Slider(
+                                      value: TextSizeOption.values.indexOf(controller.textSize).toDouble(),
+                                      min: 0,
+                                      max: (TextSizeOption.values.length - 1).toDouble(),
+                                      divisions: TextSizeOption.values.length - 1,
+                                      label: controller.textSize.label,
+                                      activeColor: colors.primary,
+                                      onChanged: (v) => controller.setTextSize(TextSizeOption.values[v.round()]),
+                                    ),
+                                  ),
+                                  Icon(Icons.text_fields_rounded, size: 22, color: colors.textMuted),
+                                ],
                               ),
                             ],
                           ),
@@ -377,7 +382,7 @@ class _ProfileHeader extends StatelessWidget {
                   children: [
                     _pill('⭐ Level ${profile.level}', Colors.white.withValues(alpha: 0.2)),
                     const SizedBox(width: AppSpacing.sm),
-                    _pill('🔥 ${profile.streakDays}-day streak', Colors.black.withValues(alpha: 0.2)),
+                    _pill('⚡ ${profile.streakDays}-day streak', Colors.black.withValues(alpha: 0.2)),
                   ],
                 ),
               ],
