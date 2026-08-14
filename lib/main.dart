@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'app_controller.dart';
-import 'data/mock_data.dart';
+import 'data/deck_store.dart';
 import 'models/text_size_option.dart';
 import 'screens/splash_screen.dart';
 import 'theme/app_theme.dart';
@@ -9,7 +9,7 @@ Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
   // Restores the saved decks and cards before the first screen reads them.
   // The splash screen's delay covers this comfortably.
-  await MockData.load();
+  await DeckStore.load();
   runApp(LanGigaCardsApp(controller: AppController()));
 }
 

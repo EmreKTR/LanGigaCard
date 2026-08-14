@@ -105,11 +105,6 @@ class StarterContent {
   static bool isStarterDeck(String deckId) =>
       deckId.startsWith(idPrefix) || legacyIds.contains(deckId);
 
-  /// True when nothing in [decks] was made by the learner, so replacing the
-  /// sample content costs them nothing.
-  static bool isUntouchedLibrary(List<Deck> decks) =>
-      decks.isNotEmpty && decks.every((d) => isStarterDeck(d.id));
-
   /// Builds the starter decks and cards for a learner whose native language is
   /// [nativeCode] and who is learning [targetCode].
   ///

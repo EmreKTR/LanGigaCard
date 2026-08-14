@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../../data/deck_store.dart';
 import '../../data/mock_data.dart';
 import '../../data/review_log.dart';
 import '../../models/app_models.dart';
@@ -120,7 +121,7 @@ class _StatisticsScreenState extends State<StatisticsScreen> {
         // The library breakdown reads live card data, so redraw when cards
         // are added, rated or deleted on another screen.
         child: ValueListenableBuilder<int>(
-          valueListenable: MockData.revision,
+          valueListenable: DeckStore.revision,
           builder: (context, _, __) => Refreshable(
             child: ListView(
           physics: const AlwaysScrollableScrollPhysics(),
@@ -209,7 +210,7 @@ class _StatisticsScreenState extends State<StatisticsScreen> {
             const SizedBox(height: AppSpacing.xxl),
             Text('Library Breakdown', style: Theme.of(context).textTheme.titleLarge),
             const SizedBox(height: AppSpacing.md),
-            _LibraryBreakdown(cards: List.unmodifiable(MockData.cards)),
+            _LibraryBreakdown(cards: List.unmodifiable(DeckStore.cards)),
             const SizedBox(height: AppSpacing.xxl),
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,

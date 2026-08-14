@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import '../../data/mock_data.dart';
+import '../../data/deck_store.dart';
 import '../../models/app_models.dart';
 import '../../theme/app_theme.dart';
 import '../../widgets/app_buttons.dart';
@@ -22,7 +22,7 @@ class _AddWordScreenState extends State<AddWordScreen> {
   late final _backController = TextEditingController(text: widget.editingCard?.translation);
   late final _exampleController = TextEditingController(text: widget.editingCard?.exampleSentence);
   late final _imageUrlController = TextEditingController(text: widget.editingCard?.imageUrl);
-  late String _deckId = widget.editingCard?.deckId ?? widget.initialDeckId ?? MockData.decks.first.id;
+  late String _deckId = widget.editingCard?.deckId ?? widget.initialDeckId ?? DeckStore.decks.first.id;
 
   bool get _isEditing => widget.editingCard != null;
 
@@ -52,32 +52,30 @@ class _AddWordScreenState extends State<AddWordScreen> {
     super.dispose();
   }
 
-  void _submit() {
-    if (_isEditing) {
-      MockData.updateCard(
-        FlashCard(
-          id: widget.editingCard!.id,
-          deckId: _deckId,
-          term: _frontController.text.trim(),
-          translation: _backController.text.trim(),
-          exampleSentence: _exampleController.text.trim(),
-          strength: widget.editingCard!.strength,
-          reviewCount: widget.editingCard!.reviewCount,
-          imageUrl: _imageUrlValue,
-        ),
+  Future<void> _submit() async {
+    final ok = _isEditing
+        ? await DeckStore.updateCard(
+            wordId: widget.editingCard!.id,
+            deckId: _deckId,
+            term: _frontController.text.trim(),
+            translation: _backController.text.trim(),
+            exampleSentence: _exampleController.text.trim(),
+            imageUrl: _imageUrlValue,
+          )
+        : await DeckStore.addCard(
+            deckId: _deckId,
+            term: _frontController.text.trim(),
+            translation: _backController.text.trim(),
+            exampleSentence: _exampleController.text.trim(),
+            imageUrl: _imageUrlValue,
+          );
+
+    if (!mounted) return;
+    if (!ok) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(_isEditing ? "Couldn't save changes. Please try again." : "Couldn't add the card. Please try again.")),
       );
-    } else {
-      MockData.addCard(
-        FlashCard(
-          id: 'card_${DateTime.now().microsecondsSinceEpoch}',
-          deckId: _deckId,
-          term: _frontController.text.trim(),
-          translation: _backController.text.trim(),
-          exampleSentence: _exampleController.text.trim(),
-          strength: MemoryStrength.learning,
-          imageUrl: _imageUrlValue,
-        ),
-      );
+      return;
     }
     Navigator.of(context).pop(true);
   }
@@ -101,7 +99,7 @@ class _AddWordScreenState extends State<AddWordScreen> {
               const SizedBox(height: AppSpacing.sm),
               DropdownButtonFormField<String>(
                 initialValue: _deckId,
-                items: [for (final d in MockData.decks) DropdownMenuItem(value: d.id, child: Text(d.name))],
+                items: [for (final d in DeckStore.decks) DropdownMenuItem(value: d.id, child: Text(d.name))],
                 onChanged: (v) => setState(() => _deckId = v ?? _deckId),
               ),
               const SizedBox(height: AppSpacing.lg),

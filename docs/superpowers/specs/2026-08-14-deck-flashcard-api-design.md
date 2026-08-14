@@ -48,14 +48,27 @@ and creates them for real via `DeckApi.createDeck`/`createFlashcard` — so a ne
 decks are persisted, editable, and present on any device from day one, not a local-only fixture that
 resets.
 
-**The app adopts the server's real spaced-repetition scheduler.** Today `MemoryStrength` (`mastered`
-/ `learning` / `reviewDue`) is a value stored directly on each card and set by hand after a rating.
-Going forward it becomes a **derived display value**, computed from what `POST
-/api/Progress/reviews/{wordId}` actually returns (`masteryLevel` 0–5, `nextReviewDate`):
-`reviewDue` if never reviewed or past due, `mastered` at `masteryLevel >= 4`, otherwise `learning`.
-The real scheduling (interval days, ease factor) lives entirely server-side; the app never computes
-it. The local `SrsRating` enum (`again`/`hard`/`medium`/`easy`) is already an exact match for the
-four rating strings `SubmitReviewDto.Rating` accepts — no mapping needed.
+**The app adopts the server's real spaced-repetition scheduler, retiring its own.** This needs
+correcting from an earlier draft of this document, which underestimated what's actually being
+replaced: the app doesn't just store a simple `MemoryStrength` label — `lib/data/srs_scheduler.dart`
+/ `srs_store.dart` / `models/srs_state.dart` are a complete local SM-2 implementation (ease factor,
+growing intervals, due dates), functionally equivalent to the backend's `StudyEngine`. The due-review
+queue (`study_session_screen.dart`'s `_buildQueue`) is driven by this local scheduler today, not by
+`MemoryStrength` directly. All three files are retired outright — `getDueReviews` and `submitReview`
+replace `SrsStore`/`SrsScheduler` entirely, and `MemoryStrength` becomes a **derived display value**
+computed from the response's `masteryLevel` (0–5) and `nextReviewDate`: `reviewDue` if never
+reviewed or past due, `mastered` at `masteryLevel >= 4`, otherwise `learning`. The local `SrsRating`
+enum (`again`/`hard`/`medium`/`easy`) already matches the four strings `SubmitReviewDto.Rating`
+accepts — no mapping needed.
+
+**`ReviewLog` (`lib/data/review_log.dart`) is kept, not retired.** It's a separate local log
+powering the *current* Statistics screen's streak/heatmap/accuracy — unrelated to scheduling, and
+Statistics integration is explicitly out of scope for this plan (see Scope). `study_session_screen`'s
+`_rate` keeps calling `ReviewLog.record(...)` alongside the new `DeckApi.submitReview(...)` call, so
+Statistics keeps working unchanged. The backend independently logs the same review as a
+`StudyActivity` record for its own (currently unused) `Statistics`/`Progress.streak` endpoints —
+redundant with the local log for now, but harmless; consolidating onto one source is Statistics'
+job when it gets its own slice.
 
 **Offline support: cache-and-refresh reads, queued writes — not full conflict resolution.** Reads
 show the local cache immediately and refresh in the background; a failed background refresh just
@@ -232,9 +245,12 @@ the live local server, same approach as Auth/Profile: create a deck and cards, r
 several intervals, confirm the server's returned schedule against `StudyEngine`'s known formulas,
 kill the server mid-session to confirm the offline queue path, restart and confirm it flushes.
 
-Existing SRS tests (`srs_persistence_test.dart`, `swipe_to_rate_test.dart`, `study_session_test.dart`)
-need updating for server-derived `MemoryStrength` — flagged here as known migration work, to be
-scoped precisely in the implementation plan rather than line-by-line in this design.
+`srs_scheduler_test.dart` and `srs_persistence_test.dart` are **deleted outright** — they test
+`SrsScheduler`/`SrsStore`, which no longer exist once this lands. `review_log_test.dart` is
+untouched (`ReviewLog` is kept, see Decisions). `study_session_test.dart` and
+`swipe_to_rate_test.dart` need updating for server-derived `MemoryStrength` and the `DeckApi`-backed
+queue — flagged here as known migration work, scoped precisely in the implementation plan rather
+than line-by-line in this design.
 
 ## Out of scope (future work)
 

@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import '../data/mock_data.dart';
+import '../data/deck_store.dart';
 
 /// Wraps a scrollable in the standard pull-to-refresh gesture.
 ///
@@ -22,7 +22,7 @@ class Refreshable extends StatelessWidget {
         await onRefresh?.call();
         // Brief pause so the spinner is legible rather than flashing.
         await Future<void>.delayed(const Duration(milliseconds: 400));
-        MockData.revision.value++;
+        DeckStore.revision.value++;
       },
       child: child,
     );

@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import '../../data/mock_data.dart';
+import '../../data/deck_store.dart';
 import '../../models/app_models.dart';
 import '../../theme/app_theme.dart';
 import '../../widgets/app_buttons.dart';
@@ -23,7 +23,7 @@ class _CardLibraryScreenState extends State<CardLibraryScreen> {
   String _query = '';
   late String? _deckFilter = widget.deck?.id;
 
-  // Add/edit/delete all rebuild via [MockData.revision], so these only need
+  // Add/edit/delete all rebuild via [DeckStore.revision], so these only need
   // to open the right screen — no manual setState.
   void _addCard() {
     Navigator.of(context).push(MaterialPageRoute(builder: (_) => AddWordScreen(initialDeckId: _deckFilter)));
@@ -50,17 +50,17 @@ class _CardLibraryScreenState extends State<CardLibraryScreen> {
     );
     if (confirmed != true) return;
 
-    final index = MockData.removeCard(card.id);
-    if (index == -1 || !mounted) return;
+    final ok = await DeckStore.removeCard(card.id);
+    if (!mounted) return;
+    if (!ok) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text("Couldn't delete the card. Please try again.")),
+      );
+      return;
+    }
 
     ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text('"${card.term}" deleted'),
-        action: SnackBarAction(
-          label: 'Undo',
-          onPressed: () => MockData.restoreCard(index, card),
-        ),
-      ),
+      SnackBar(content: Text('"${card.term}" deleted')),
     );
   }
 
@@ -83,7 +83,7 @@ class _CardLibraryScreenState extends State<CardLibraryScreen> {
       body: SafeArea(
         top: false,
         child: ValueListenableBuilder<int>(
-          valueListenable: MockData.revision,
+          valueListenable: DeckStore.revision,
           builder: (context, _, __) => _buildBody(context),
         ),
       ),
@@ -92,7 +92,7 @@ class _CardLibraryScreenState extends State<CardLibraryScreen> {
 
   Widget _buildBody(BuildContext context) {
     final colors = context.appColors;
-    final cards = MockData.cards.where((c) {
+    final cards = DeckStore.cards.where((c) {
       final matchesDeck = _deckFilter == null || c.deckId == _deckFilter;
       final matchesQuery = _query.isEmpty ||
           c.term.toLowerCase().contains(_query.toLowerCase()) ||
@@ -123,7 +123,7 @@ class _CardLibraryScreenState extends State<CardLibraryScreen> {
                       decoration: const InputDecoration(contentPadding: EdgeInsets.symmetric(horizontal: AppSpacing.md)),
                       items: [
                         const DropdownMenuItem(value: null, child: Text('All Decks')),
-                        for (final d in MockData.decks) DropdownMenuItem(value: d.id, child: Text(d.name, overflow: TextOverflow.ellipsis)),
+                        for (final d in DeckStore.decks) DropdownMenuItem(value: d.id, child: Text(d.name, overflow: TextOverflow.ellipsis)),
                       ],
                       onChanged: (v) => setState(() => _deckFilter = v),
                     ),
@@ -242,7 +242,7 @@ class _CardRow extends StatelessWidget {
     final colors = context.appColors;
     // A card can outlive its deck (deck removed while the card list is open),
     // so fall back instead of letting firstWhere throw.
-    final deck = MockData.decks.where((d) => d.id == card.deckId).firstOrNull;
+    final deck = DeckStore.decks.where((d) => d.id == card.deckId).firstOrNull;
     final deckName = deck?.name ?? 'Unknown deck';
     return Container(
       padding: const EdgeInsets.all(AppSpacing.md),

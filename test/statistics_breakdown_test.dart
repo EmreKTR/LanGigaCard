@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:langigacards/data/library_storage.dart';
+import 'package:langigacards/data/deck_store.dart';
 import 'package:langigacards/data/mock_data.dart';
 import 'package:langigacards/models/app_models.dart';
 import 'package:langigacards/screens/stats/statistics_screen.dart';
@@ -35,28 +36,28 @@ Future<void> _pump(WidgetTester tester) async {
 void main() {
   // Keep the library in memory: these tests exercise data rules, not disk.
   setUp(() async {
-    MockData.storage = InMemoryLibraryStorage();
+    DeckStore.storage = InMemoryLibraryStorage();
     // The app now starts empty and seeds by language; these tests assert
     // against the fixed sample library, so install it explicitly.
     await MockData.seedSampleLibrary();
   });
 
   setUp(() {
-    _originalCards = List.of(MockData.cards);
-    MockData.cards.clear();
-    MockData.revision.value++;
+    _originalCards = List.of(DeckStore.cards);
+    DeckStore.cards.clear();
+    DeckStore.revision.value++;
   });
 
   tearDown(() {
-    MockData.cards
+    DeckStore.cards
       ..clear()
       ..addAll(_originalCards);
-    MockData.revision.value++;
+    DeckStore.revision.value++;
   });
 
   testWidgets('the breakdown reflects the real strength split', (tester) async {
     // 2 mastered, 1 learning, 1 due -> 50 / 25 / 25.
-    MockData.cards.addAll([
+    DeckStore.cards.addAll([
       _card('a', MemoryStrength.mastered),
       _card('b', MemoryStrength.mastered),
       _card('c', MemoryStrength.learning),
@@ -74,7 +75,7 @@ void main() {
 
   testWidgets('the three shares always add up to 100', (tester) async {
     // 1/3 each rounds to 33/33/33, so the remainder must land somewhere.
-    MockData.cards.addAll([
+    DeckStore.cards.addAll([
       _card('a', MemoryStrength.mastered),
       _card('b', MemoryStrength.learning),
       _card('c', MemoryStrength.reviewDue),
@@ -96,7 +97,7 @@ void main() {
   });
 
   testWidgets('the breakdown updates when a card is rated elsewhere', (tester) async {
-    MockData.cards.addAll([
+    DeckStore.cards.addAll([
       _card('a', MemoryStrength.learning),
       _card('b', MemoryStrength.learning),
     ]);
@@ -104,7 +105,12 @@ void main() {
     await _pump(tester);
     expect(_shareIn(tester, 'breakdown-mastered'), '0%');
 
-    MockData.updateCard(_card('a', MemoryStrength.mastered));
+    // StatisticsScreen reads DeckStore.cards synchronously and never calls
+    // the API itself, so mutate the list directly rather than through the
+    // now-async, API-backed updateCard.
+    final index = DeckStore.cards.indexWhere((c) => c.id == 'a');
+    DeckStore.cards[index] = DeckStore.cards[index].copyWith(strength: MemoryStrength.mastered);
+    DeckStore.revision.value++;
     await tester.pumpAndSettle();
 
     expect(_shareIn(tester, 'breakdown-mastered'), '50%');

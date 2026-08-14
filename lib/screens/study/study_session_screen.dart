@@ -1,10 +1,7 @@
 import 'package:flutter/material.dart';
-import '../../data/mock_data.dart';
+import '../../data/deck_store.dart';
 import '../../data/pronunciation_service.dart';
 import '../../data/review_log.dart';
-import '../../data/srs_scheduler.dart';
-import '../../data/srs_store.dart';
-import '../../models/srs_state.dart';
 import '../../models/app_models.dart';
 import '../../theme/app_theme.dart';
 import '../../widgets/app_buttons.dart';
@@ -32,17 +29,27 @@ class _StudySessionScreenState extends State<StudySessionScreen> {
   /// deck-scoped and mixed-review flows — studying a deck used to queue up
   /// every card in it, contradicting the "Study N cards" count on the tile.
   ///
-  /// Null while the persisted due dates are still loading.
+  /// Null while the due-review queue is still loading from the API.
   List<FlashCard>? _queue;
 
-  /// SM-2 schedules written by previous sessions. A card that has never been
-  /// rated has no entry and falls back to its seeded [MemoryStrength].
-  Map<String, SrsCardState> _schedules = const {};
+  /// Set when [_load] fails (e.g. the API call throws) so `build` can show a
+  /// retry view instead of spinning forever.
+  bool _loadFailed = false;
 
   int _index = 0;
   bool _exampleRevealed = false;
   bool _flipped = false;
   final Map<SrsRating, int> _tally = {for (final r in SrsRating.values) r: 0};
+
+  /// Real interval math now lives entirely server-side, so these are just an
+  /// approximate "sneak peek" hint next to each rating button, not the
+  /// actual applied result — a deliberate simplification, not an oversight.
+  static const Map<SrsRating, String> _approximateIntervalPreviews = {
+    SrsRating.again: '10m',
+    SrsRating.hard: '1d',
+    SrsRating.medium: '3d',
+    SrsRating.easy: '7d',
+  };
 
   @override
   void initState() {
@@ -51,70 +58,30 @@ class _StudySessionScreenState extends State<StudySessionScreen> {
   }
 
   Future<void> _load() async {
-    final schedules = await SrsStore.loadSchedules();
-    if (!mounted) return;
-    setState(() {
-      _schedules = schedules;
-      _queue = _buildQueue(schedules, DateTime.now());
-    });
-  }
-
-  List<FlashCard> _buildQueue(Map<String, SrsCardState> schedules, DateTime now) {
-    final deck = widget.deck;
-    final pool = MockData.cards.where((c) {
-      final inDeck = deck == null || c.deckId == deck.id;
-      return inDeck && SrsStore.isDue(c, schedules, now);
-    }).toList();
-
-    // Most overdue first, matching the deck banner's "Sorted by urgency".
-    pool.sort((a, b) => _priority(b, schedules, now).compareTo(_priority(a, schedules, now)));
-    return pool;
-  }
-
-  /// How badly a card wants reviewing: minutes past its due date, or a
-  /// stand-in derived from the seeded strength when it has never been rated.
-  double _priority(FlashCard card, Map<String, SrsCardState> schedules, DateTime now) {
-    final due = schedules[card.id]?.dueDate;
-    if (due != null) return now.difference(due).inMinutes.toDouble();
-    return switch (card.strength) {
-      MemoryStrength.reviewDue => const Duration(days: 1).inMinutes.toDouble(),
-      MemoryStrength.learning => 1,
-      MemoryStrength.mastered => -1,
-    };
-  }
-
-  bool _isOverdue(FlashCard card, DateTime now) {
-    final due = _schedules[card.id]?.dueDate;
-    if (due != null) return !due.isAfter(now);
-    return card.strength == MemoryStrength.reviewDue;
-  }
-
-  /// What each rating button will do to the card on screen, so the labels
-  /// show the real next interval rather than a fixed "+7 days".
-  Map<SrsRating, String> _intervalPreviews(FlashCard card, DateTime now) {
-    final state = _schedules[card.id] ?? SrsCardState(cardId: card.id);
-    return {
-      for (final rating in SrsRating.values) rating: SrsScheduler.previewLabel(state, rating, now),
-    };
+    setState(() => _loadFailed = false);
+    try {
+      final queue = await DeckStore.dueReviews(deckId: widget.deck?.id, take: 50);
+      if (!mounted) return;
+      setState(() => _queue = queue);
+    } catch (_) {
+      if (!mounted) return;
+      setState(() => _loadFailed = true);
+    }
   }
 
   FlashCard get _current => _queue![_index];
   bool get _finished => _index >= _queue!.length;
 
-  void _rate(SrsRating rating) {
+  Future<void> _rate(SrsRating rating) async {
     final card = _current;
-
-    // Ratings move the card two ways: the pill shown around the app updates
-    // immediately, and the SM-2 schedule is written to disk so the queue
-    // still respects it after a restart.
     final now = DateTime.now();
-    MockData.updateCard(card.copyWith(strength: _strengthAfter(card.strength, rating)));
-    SrsStore.recordReview(card.id, rating, now);
-    // Logged separately from the schedule: the schedule says when a card
-    // returns, the log says what the learner has been doing, which is what
-    // the streak, heatmap and accuracy are built from.
+
+    await DeckStore.submitReview(card.id, rating: rating, durationSeconds: 0);
+    // Kept alongside the API call — ReviewLog powers the current Statistics
+    // screen, which isn't part of this integration yet.
     ReviewLog.record(card.id, rating, now);
 
+    if (!mounted) return;
     setState(() {
       _tally[rating] = (_tally[rating] ?? 0) + 1;
       _index += 1;
@@ -125,7 +92,7 @@ class _StudySessionScreenState extends State<StudySessionScreen> {
 
   /// Moves on without rating — for a learner who just wants to look at a
   /// card, not grade themselves on it. Rating stays the job of the 4 buttons
-  /// below the card, which write to the SM-2 schedule and the review log.
+  /// below the card, which submit to the API and the review log.
   void _skip() {
     setState(() {
       _index += 1;
@@ -134,15 +101,11 @@ class _StudySessionScreenState extends State<StudySessionScreen> {
     });
   }
 
-  MemoryStrength _strengthAfter(MemoryStrength current, SrsRating rating) => switch (rating) {
-        SrsRating.again => MemoryStrength.reviewDue,
-        SrsRating.hard => MemoryStrength.learning,
-        SrsRating.medium => current == MemoryStrength.reviewDue ? MemoryStrength.learning : MemoryStrength.mastered,
-        SrsRating.easy => MemoryStrength.mastered,
-      };
-
   @override
   Widget build(BuildContext context) {
+    if (_loadFailed) {
+      return _QueueLoadErrorView(onRetry: _load);
+    }
     final queue = _queue;
     if (queue == null) {
       return const Scaffold(body: Center(child: CircularProgressIndicator()));
@@ -156,8 +119,7 @@ class _StudySessionScreenState extends State<StudySessionScreen> {
 
     final colors = context.appColors;
     final deckName = widget.deck?.name ?? 'All decks';
-    final now = DateTime.now();
-    final dueCount = queue.where((c) => _isOverdue(c, now)).length;
+    final dueCount = queue.where((c) => c.strength == MemoryStrength.reviewDue).length;
 
     return Scaffold(
       body: SafeArea(
@@ -223,7 +185,7 @@ class _StudySessionScreenState extends State<StudySessionScreen> {
                 duration: const Duration(milliseconds: 200),
                 child: IgnorePointer(
                   ignoring: !_flipped,
-                  child: SrsRatingBar(onRate: _rate, intervalPreviews: _intervalPreviews(_current, now)),
+                  child: SrsRatingBar(onRate: _rate, intervalPreviews: _approximateIntervalPreviews),
                 ),
               ),
             ),
@@ -272,6 +234,42 @@ class _NothingDueView extends StatelessWidget {
                   child: const Text('Back to Decks'),
                 ),
               ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+/// Shown when [_StudySessionScreenState._load] fails — e.g. the API call
+/// throws — so the screen never gets stuck on a spinner with no way out.
+class _QueueLoadErrorView extends StatelessWidget {
+  const _QueueLoadErrorView({required this.onRetry});
+
+  final VoidCallback onRetry;
+
+  @override
+  Widget build(BuildContext context) {
+    final colors = context.appColors;
+    return Scaffold(
+      body: SafeArea(
+        child: Padding(
+          padding: const EdgeInsets.all(AppSpacing.xxl),
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Icon(Icons.cloud_off_rounded, size: 56, color: colors.textMuted),
+              const SizedBox(height: AppSpacing.lg),
+              Text("Couldn't load your review queue", style: Theme.of(context).textTheme.headlineMedium, textAlign: TextAlign.center),
+              const SizedBox(height: AppSpacing.sm),
+              Text(
+                "Check your connection and try again.",
+                textAlign: TextAlign.center,
+                style: TextStyle(color: colors.textMuted),
+              ),
+              const SizedBox(height: AppSpacing.xxl),
+              SizedBox(width: double.infinity, child: PrimaryButton(label: 'Try Again', onPressed: onRetry)),
             ],
           ),
         ),
