@@ -333,6 +333,62 @@ class DeckStore {
     return true;
   }
 
+  static Future<List<FlashCard>> dueReviews({String? deckId, int take = 50}) async {
+    final results = await api.getDueReviews(deckId: deckId, take: take);
+    return results
+        .map((r) => FlashCard(
+              id: r.wordId,
+              deckId: r.deckId,
+              term: r.term,
+              translation: r.translation,
+              exampleSentence: r.exampleSentence ?? '',
+              strength: deriveMemoryStrength(masteryLevel: r.masteryLevel, nextReviewDate: r.nextReviewDate),
+              reviewCount: r.reviewCount,
+              imageUrl: r.imageUrl,
+            ))
+        .toList();
+  }
+
+  static Future<bool> submitReview(String wordId, {required SrsRating rating, required int durationSeconds}) async {
+    final result = await api.submitReview(wordId, rating: rating, durationSeconds: durationSeconds);
+    if (result.isSuccess) {
+      _applyReviewResult(wordId, result);
+      revision.value++;
+      await _persist();
+      return true;
+    }
+    if (result.outcome == DeckOutcome.validationError) return false;
+
+    // Network failure: apply a best-effort local guess and queue the real
+    // submission for later — corrected once the queue actually flushes.
+    final index = cards.indexWhere((c) => c.id == wordId);
+    if (index != -1) {
+      final guessedMastery = switch (rating) {
+        SrsRating.again => 0,
+        SrsRating.hard => cards[index].strength == MemoryStrength.reviewDue ? 0 : 2,
+        SrsRating.medium => 3,
+        SrsRating.easy => 5,
+      };
+      cards[index] = cards[index].copyWith(
+        strength: deriveMemoryStrength(masteryLevel: guessedMastery, nextReviewDate: DateTime.now().add(const Duration(days: 1))),
+      );
+    }
+    writeQueue.enqueue(PendingWrite.submitReview(localId: wordId, rating: rating, durationSeconds: durationSeconds));
+    await writeQueue.persist();
+    revision.value++;
+    await _persist();
+    return true;
+  }
+
+  static void _applyReviewResult(String wordId, ReviewResult result) {
+    final index = cards.indexWhere((c) => c.id == wordId);
+    if (index == -1) return;
+    cards[index] = cards[index].copyWith(
+      strength: deriveMemoryStrength(masteryLevel: result.masteryLevel, nextReviewDate: result.nextReviewDate),
+      reviewCount: result.reviewCount,
+    );
+  }
+
   /// Attempts to sync everything in [writeQueue] with the server. Call this
   /// on app foreground and after any successful API call — both are cheap
   /// signals that connectivity might be back.

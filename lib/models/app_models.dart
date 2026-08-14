@@ -38,6 +38,18 @@ extension SrsRatingX on SrsRating {
 /// How well a card is currently memorized; shown as a colored pill.
 enum MemoryStrength { mastered, learning, reviewDue }
 
+/// Buckets a card's server-computed review state into the 3-way label the
+/// UI shows. Purely a display derivation — the real scheduling (interval
+/// days, ease factor) lives entirely server-side; the app never computes it.
+MemoryStrength deriveMemoryStrength({required int masteryLevel, required DateTime? nextReviewDate}) {
+  final neverReviewed = masteryLevel == 0 && nextReviewDate == null;
+  if (neverReviewed || nextReviewDate == null || !nextReviewDate.isAfter(DateTime.now())) {
+    return MemoryStrength.reviewDue;
+  }
+  if (masteryLevel >= 4) return MemoryStrength.mastered;
+  return MemoryStrength.learning;
+}
+
 extension MemoryStrengthX on MemoryStrength {
   String get label => switch (this) {
         MemoryStrength.mastered => 'Mastered',

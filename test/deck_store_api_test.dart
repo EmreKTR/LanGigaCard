@@ -2,6 +2,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:langigacards/data/api/deck_api.dart';
 import 'package:langigacards/data/deck_store.dart';
 import 'package:langigacards/data/library_storage.dart';
+import 'package:langigacards/models/app_models.dart';
 
 void main() {
   setUp(() {
@@ -53,5 +54,17 @@ void main() {
     final ok = await DeckStore.addCard(deckId: deckId, term: 'a', translation: 'b', exampleSentence: '', imageUrl: null);
     expect(ok, isTrue);
     expect(DeckStore.cards, hasLength(1));
+  });
+
+  test('submitReview updates the card\'s strength from the server response', () async {
+    await DeckStore.addDeck(title: 'D', description: null);
+    final deckId = DeckStore.decks.first.id;
+    await DeckStore.addCard(deckId: deckId, term: 'a', translation: 'b', exampleSentence: '', imageUrl: null);
+    final cardId = DeckStore.cards.first.id;
+
+    final ok = await DeckStore.submitReview(cardId, rating: SrsRating.easy, durationSeconds: 3);
+
+    expect(ok, isTrue);
+    expect(DeckStore.cards.first.strength, isNot(MemoryStrength.reviewDue));
   });
 }
