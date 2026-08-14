@@ -17,6 +17,7 @@ dependencies:
   timezone: ^0.11.1
   sqflite: ^2.4.1
   dio: ^5.7.0
+  uuid: ^4.6.0
 
 dev_dependencies:
   flutter_test:

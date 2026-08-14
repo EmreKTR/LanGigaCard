@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
+import 'package:uuid/uuid.dart';
 import '../models/app_models.dart';
 import 'api/deck_api.dart';
 import 'api/vocabgrid_deck_api.dart';
+import 'deck_write_queue.dart';
 import 'library_storage.dart';
 import 'sqlite_library_storage.dart';
 
@@ -28,6 +30,10 @@ class DeckStore {
   /// Where decks/flashcards/reviews actually go. Replace in tests.
   static DeckApi api = deckApi;
 
+  /// Not-yet-synced mutations made while offline (or while the API was
+  /// otherwise unreachable). Replace in tests.
+  static final DeckWriteQueue writeQueue = DeckWriteQueue();
+
   /// Restores the saved library. Call once at startup, before the first
   /// screen reads [decks] or [cards].
   static Future<void> load() async {
@@ -49,24 +55,29 @@ class DeckStore {
     revision.value++;
   }
 
-  /// Fetches the learner's decks and cards from the API and replaces local
-  /// state with the result.
+  /// Shows the cache immediately, then refreshes from the API in the
+  /// background. A failed refresh leaves the cache exactly as it was — no
+  /// error, since offline reading is an expected, supported state here.
   static Future<void> refresh() async {
-    final apiDecks = await api.getDecks();
-    final allCards = <FlashCard>[];
-    for (final deck in apiDecks) {
-      final apiCards = await api.getFlashcards(deck.id);
-      allCards.addAll(apiCards.map(_cardFromApi));
+    await load();
+    try {
+      final apiDecks = await api.getDecks();
+      final allCards = <FlashCard>[];
+      for (final deck in apiDecks) {
+        final apiCards = await api.getFlashcards(deck.id);
+        allCards.addAll(apiCards.map(_cardFromApi));
+      }
+      decks
+        ..clear()
+        ..addAll(apiDecks.map(_deckFromApi));
+      cards
+        ..clear()
+        ..addAll(allCards);
+      revision.value++;
+      await _persist();
+    } catch (_) {
+      // Offline — cache from load() above stands.
     }
-
-    decks
-      ..clear()
-      ..addAll(apiDecks.map(_deckFromApi));
-    cards
-      ..clear()
-      ..addAll(allCards);
-    revision.value++;
-    await _persist();
   }
 
   static Future<void> _persist() async {
@@ -104,8 +115,30 @@ class DeckStore {
 
   static Future<bool> addDeck({required String title, String? description}) async {
     final result = await api.createDeck(title: title, description: description);
-    if (!result.isSuccess) return false;
-    decks.add(_deckFromApi(result.deck!));
+    if (result.isSuccess) {
+      decks.add(_deckFromApi(result.deck!));
+      revision.value++;
+      await _persist();
+      return true;
+    }
+    if (result.outcome == DeckOutcome.validationError) return false;
+
+    // Network failure: apply optimistically under a temporary id, queue the
+    // real create for later.
+    final localId = 'pending_${const Uuid().v4()}';
+    decks.add(Deck(
+      id: localId,
+      name: title,
+      description: description?.isEmpty ?? true ? 'No description yet' : description!,
+      cardCount: 0,
+      dueCount: 0,
+      reviewCount: 0,
+      masteryPercent: 0,
+      emoji: '📘',
+      accentColor: const Color(0xFF6C5CE7),
+    ));
+    writeQueue.enqueue(PendingWrite.createDeck(localId: localId, title: title, description: description));
+    await writeQueue.persist();
     revision.value++;
     await _persist();
     return true;
@@ -113,9 +146,25 @@ class DeckStore {
 
   static Future<bool> updateDeck(String id, {required String title, String? description}) async {
     final result = await api.updateDeck(id, title: title, description: description);
-    if (!result.isSuccess) return false;
+    if (result.isSuccess) {
+      final index = decks.indexWhere((d) => d.id == id);
+      if (index != -1) decks[index] = _deckFromApi(result.deck!);
+      revision.value++;
+      await _persist();
+      return true;
+    }
+    if (result.outcome == DeckOutcome.validationError) return false;
+
+    // Network failure: apply optimistically, queue the update for later.
     final index = decks.indexWhere((d) => d.id == id);
-    if (index != -1) decks[index] = _deckFromApi(result.deck!);
+    if (index != -1) {
+      decks[index] = decks[index].copyWith(
+        name: title,
+        description: description?.isEmpty ?? true ? 'No description yet' : description!,
+      );
+    }
+    writeQueue.enqueue(PendingWrite.updateDeck(localId: id, title: title, description: description));
+    await writeQueue.persist();
     revision.value++;
     await _persist();
     return true;
@@ -123,7 +172,26 @@ class DeckStore {
 
   static Future<bool> removeDeck(String deckId) async {
     final ok = await api.deleteDeck(deckId);
-    if (!ok) return false;
+    if (ok) {
+      decks.removeWhere((d) => d.id == deckId);
+      cards.removeWhere((c) => c.deckId == deckId);
+      revision.value++;
+      await _persist();
+      return true;
+    }
+
+    // deleteDeck's bare bool can't distinguish "network unreachable" from
+    // any other failure, so any false here is treated as a network failure
+    // — the same call DeckWriteQueue._apply makes for delete operations.
+    // If this deck was never synced in the first place (still a temporary
+    // id), the server has never heard of it, so just drop it locally
+    // instead of queueing a delete for something that doesn't exist there.
+    if (deckId.startsWith('pending_')) {
+      writeQueue.pending.removeWhere((w) => w.localId == deckId);
+    } else {
+      writeQueue.enqueue(PendingWrite.deleteDeck(localId: deckId));
+    }
+    await writeQueue.persist();
     decks.removeWhere((d) => d.id == deckId);
     cards.removeWhere((c) => c.deckId == deckId);
     revision.value++;
@@ -145,9 +213,37 @@ class DeckStore {
       exampleSentence: exampleSentence.isEmpty ? null : exampleSentence,
       imageUrl: imageUrl,
     );
-    if (!result.isSuccess) return false;
-    cards.add(_cardFromApi(result.card!));
+    if (result.isSuccess) {
+      cards.add(_cardFromApi(result.card!));
+      _bumpDeckCardCount(deckId, 1);
+      revision.value++;
+      await _persist();
+      return true;
+    }
+    if (result.outcome == DeckOutcome.validationError) return false;
+
+    // Network failure: apply optimistically under a temporary id, queue the
+    // real create for later.
+    final localId = 'pending_${const Uuid().v4()}';
+    cards.add(FlashCard(
+      id: localId,
+      deckId: deckId,
+      term: term,
+      translation: translation,
+      exampleSentence: exampleSentence,
+      strength: MemoryStrength.reviewDue,
+      imageUrl: imageUrl,
+    ));
     _bumpDeckCardCount(deckId, 1);
+    writeQueue.enqueue(PendingWrite.createCard(
+      localId: localId,
+      deckId: deckId,
+      term: term,
+      translation: translation,
+      exampleSentence: exampleSentence.isEmpty ? null : exampleSentence,
+      imageUrl: imageUrl,
+    ));
+    await writeQueue.persist();
     revision.value++;
     await _persist();
     return true;
@@ -168,18 +264,42 @@ class DeckStore {
       exampleSentence: exampleSentence.isEmpty ? null : exampleSentence,
       imageUrl: imageUrl,
     );
-    if (!result.isSuccess) return false;
+    if (result.isSuccess) {
+      final index = cards.indexWhere((c) => c.id == wordId);
+      if (index != -1) {
+        // Strength/reviewCount aren't part of a card edit — keep whatever the
+        // card already had, only the content fields change.
+        cards[index] = cards[index].copyWith(
+          term: result.card!.term,
+          translation: result.card!.translation,
+          exampleSentence: result.card!.exampleSentence ?? '',
+          imageUrl: result.card!.imageUrl,
+        );
+      }
+      revision.value++;
+      await _persist();
+      return true;
+    }
+    if (result.outcome == DeckOutcome.validationError) return false;
+
+    // Network failure: apply optimistically, queue the update for later.
     final index = cards.indexWhere((c) => c.id == wordId);
     if (index != -1) {
-      // Strength/reviewCount aren't part of a card edit — keep whatever the
-      // card already had, only the content fields change.
       cards[index] = cards[index].copyWith(
-        term: result.card!.term,
-        translation: result.card!.translation,
-        exampleSentence: result.card!.exampleSentence ?? '',
-        imageUrl: result.card!.imageUrl,
+        term: term,
+        translation: translation,
+        exampleSentence: exampleSentence,
+        imageUrl: imageUrl,
       );
     }
+    writeQueue.enqueue(PendingWrite.updateCard(
+      localId: wordId,
+      term: term,
+      translation: translation,
+      exampleSentence: exampleSentence.isEmpty ? null : exampleSentence,
+      imageUrl: imageUrl,
+    ));
+    await writeQueue.persist();
     revision.value++;
     await _persist();
     return true;
@@ -189,14 +309,85 @@ class DeckStore {
     final index = cards.indexWhere((c) => c.id == cardId);
     if (index == -1) return false;
     final ok = await api.deleteFlashcard(cardId);
-    if (!ok) return false;
+    if (ok) {
+      final deckId = cards[index].deckId;
+      cards.removeAt(index);
+      _bumpDeckCardCount(deckId, -1);
+      revision.value++;
+      await _persist();
+      return true;
+    }
+
+    // Same ambiguous-bool reasoning as removeDeck above.
     final deckId = cards[index].deckId;
+    if (cardId.startsWith('pending_')) {
+      writeQueue.pending.removeWhere((w) => w.localId == cardId);
+    } else {
+      writeQueue.enqueue(PendingWrite.deleteCard(localId: cardId));
+    }
+    await writeQueue.persist();
     cards.removeAt(index);
     _bumpDeckCardCount(deckId, -1);
     revision.value++;
     await _persist();
     return true;
   }
+
+  /// Attempts to sync everything in [writeQueue] with the server. Call this
+  /// on app foreground and after any successful API call — both are cheap
+  /// signals that connectivity might be back.
+  static Future<void> flushPendingWrites() async {
+    if (writeQueue.pending.isEmpty) return;
+    final report = await writeQueue.flush(api);
+
+    for (final entry in report.idRemap.entries) {
+      final deckIndex = decks.indexWhere((d) => d.id == entry.key);
+      if (deckIndex != -1) {
+        decks[deckIndex] = Deck(
+          id: entry.value,
+          name: decks[deckIndex].name,
+          description: decks[deckIndex].description,
+          cardCount: decks[deckIndex].cardCount,
+          dueCount: decks[deckIndex].dueCount,
+          reviewCount: decks[deckIndex].reviewCount,
+          masteryPercent: decks[deckIndex].masteryPercent,
+          emoji: decks[deckIndex].emoji,
+          accentColor: decks[deckIndex].accentColor,
+        );
+        for (var i = 0; i < cards.length; i++) {
+          if (cards[i].deckId == entry.key) cards[i] = cards[i].copyWith(deckId: entry.value);
+        }
+      }
+
+      final cardIndex = cards.indexWhere((c) => c.id == entry.key);
+      if (cardIndex != -1) {
+        cards[cardIndex] = FlashCard(
+          id: entry.value,
+          deckId: cards[cardIndex].deckId,
+          term: cards[cardIndex].term,
+          translation: cards[cardIndex].translation,
+          exampleSentence: cards[cardIndex].exampleSentence,
+          strength: cards[cardIndex].strength,
+          reviewCount: cards[cardIndex].reviewCount,
+          imageUrl: cards[cardIndex].imageUrl,
+        );
+      }
+    }
+
+    if (report.droppedForValidation.isNotEmpty) {
+      onSyncDropped?.call(report.droppedForValidation.length);
+    }
+
+    if (report.idRemap.isNotEmpty || report.droppedForValidation.isNotEmpty) {
+      revision.value++;
+      await _persist();
+    }
+  }
+
+  /// Set by the UI layer (Task 8's `MainShell`) to show a dismissible notice
+  /// when one or more queued writes were rejected outright rather than
+  /// retried. Null in tests that don't care.
+  static void Function(int droppedCount)? onSyncDropped;
 
   static void _bumpDeckCardCount(String deckId, int delta) {
     final deckIndex = decks.indexWhere((d) => d.id == deckId);
