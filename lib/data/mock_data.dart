@@ -27,9 +27,11 @@ class MockData {
 
   /// Installs the fixed French sample used by the test suite.
   ///
-  /// Deliberately not shipped to learners: the app seeds
-  /// [applyStarterContent] in the language they actually chose. This exists so
-  /// tests have a known, stable library to assert against.
+  /// Deliberately not shipped to learners: the app instead builds starter
+  /// content in the language they actually chose via [buildStarterContent]
+  /// and creates it for real through `DeckStore.addDeck`/`addCard` (see
+  /// `MainShell._maybeCreateStarterContent`). This method exists so tests
+  /// have a known, stable library to assert against.
   @visibleForTesting
   static Future<void> seedSampleLibrary() async {
     DeckStore.decks

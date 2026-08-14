@@ -134,7 +134,8 @@ class _MainShellState extends State<MainShell> {
 
     for (final deck in starter.decks) {
       final created = await DeckStore.addDeck(title: deck.name, description: deck.description);
-      if (!created || !mounted) continue;
+      if (!mounted) return;
+      if (!created) continue;
       final realDeckId = DeckStore.decks.last.id;
       for (final card in starter.cards.where((c) => c.deckId == deck.id)) {
         await DeckStore.addCard(

@@ -7,7 +7,7 @@ import 'api/vocabgrid_auth_api.dart';
 ///
 /// [api] does the actual registering/signing in, against the real
 /// VocabGrid backend by default. Swappable — tests replace it with
-/// [FakeAuthApi] the same way [MockData.storage] gets replaced with
+/// [FakeAuthApi] the same way [DeckStore.storage] gets replaced with
 /// [InMemoryLibraryStorage].
 class AuthStore {
   AuthStore._();

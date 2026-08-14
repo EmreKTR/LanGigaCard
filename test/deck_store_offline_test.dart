@@ -38,6 +38,38 @@ void main() {
     expect(DeckStore.decks.first.name, 'Cached');
   });
 
+  test('refresh() does not wipe the library or persist an empty state when getDecks() throws', () async {
+    final storage = InMemoryLibraryStorage();
+    DeckStore.storage = storage;
+    DeckStore.decks.add(const Deck(
+      id: '1', name: 'Cached', description: 'd', cardCount: 1, dueCount: 0,
+      reviewCount: 0, masteryPercent: 0, emoji: '📘', accentColor: Color(0xFF6C5CE7),
+    ));
+    DeckStore.cards.add(const FlashCard(
+      id: 'c1', deckId: '1', term: 'a', translation: 'b', exampleSentence: '', strength: MemoryStrength.learning,
+    ));
+    // Persist the pre-refresh state so we can also confirm refresh() never
+    // overwrites it with an empty snapshot.
+    await storage.save(LibrarySnapshot(decks: List.of(DeckStore.decks), cards: List.of(DeckStore.cards)));
+    DeckStore.api = _NetworkErrorDeckApi();
+
+    await DeckStore.refresh();
+
+    // This is the regression this test exists for: getDecks() used to
+    // swallow every failure to [], so refresh() would proceed to clear and
+    // repopulate `decks` with nothing — wiping the library. Now that
+    // getDecks() throws on failure, refresh()'s catch block should leave
+    // both the in-memory lists and the persisted snapshot untouched.
+    expect(DeckStore.decks, hasLength(1));
+    expect(DeckStore.decks.first.name, 'Cached');
+    expect(DeckStore.cards, hasLength(1));
+
+    final persisted = await storage.load();
+    expect(persisted, isNotNull);
+    expect(persisted!.decks, hasLength(1));
+    expect(persisted.decks.first.name, 'Cached');
+  });
+
   test('reconnecting and flushing turns a pending deck into a real one', () async {
     DeckStore.api = _NetworkErrorDeckApi();
     await DeckStore.addDeck(title: 'Offline Deck', description: null);

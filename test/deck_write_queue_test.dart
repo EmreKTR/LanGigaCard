@@ -76,6 +76,33 @@ void main() {
     expect(queue.pending.every((w) => w.deckId == realDeckId), isTrue);
   });
 
+  test('a createCard referencing an orphaned pending_ deckId is dropped, not retried forever, and does not block a later entry', () async {
+    // Simulates a createCard whose parent createDeck was removed from the
+    // queue (e.g. the deck itself was deleted before it ever synced) — the
+    // deckId it references is a pending_ id that will never resolve.
+    queue
+      ..enqueue(PendingWrite.createCard(
+        localId: 'pending_orphan_card',
+        deckId: 'pending_orphan_deck',
+        term: 'a',
+        translation: 'b',
+        exampleSentence: null,
+        imageUrl: null,
+      ))
+      ..enqueue(PendingWrite.createDeck(localId: 'pending_next', title: 'Next Deck', description: null));
+
+    final report = await queue.flush(api);
+
+    expect(report.droppedForValidation, hasLength(1));
+    expect(report.droppedForValidation.first.localId, 'pending_orphan_card');
+    // The unrelated entry queued after the orphan still succeeds — proving
+    // the orphan didn't stall the flush the way a doomed network call would.
+    expect(report.idRemap['pending_next'], isNotNull);
+    expect(queue.pending, isEmpty);
+    final decks = await api.getDecks();
+    expect(decks.map((d) => d.title), contains('Next Deck'));
+  });
+
   test('the queue persists across instances via the same storage key', () async {
     queue.enqueue(PendingWrite.createDeck(localId: 'pending_1', title: 'D', description: null));
     await queue.persist();
@@ -124,7 +151,7 @@ class _CreateDeckSucceedsCardsFailApi implements DeckApi {
 /// simulate being offline mid-flush.
 class _AlwaysNetworkErrorApi implements DeckApi {
   @override
-  Future<List<DeckData>> getDecks() async => const [];
+  Future<List<DeckData>> getDecks() async => throw Exception('offline');
   @override
   Future<DeckResult> createDeck({required String title, String? description}) async => const DeckResult.networkError();
   @override
@@ -132,7 +159,7 @@ class _AlwaysNetworkErrorApi implements DeckApi {
   @override
   Future<bool> deleteDeck(String id) async => false;
   @override
-  Future<List<FlashcardData>> getFlashcards(String deckId) async => const [];
+  Future<List<FlashcardData>> getFlashcards(String deckId) async => throw Exception('offline');
   @override
   Future<FlashcardResult> createFlashcard({required String deckId, required String term, required String translation, String? exampleSentence, String? imageUrl}) async =>
       const FlashcardResult.networkError();

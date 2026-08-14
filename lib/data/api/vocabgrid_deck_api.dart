@@ -15,12 +15,8 @@ class VocabGridDeckApi implements DeckApi {
 
   @override
   Future<List<DeckData>> getDecks() async {
-    try {
-      final response = await _client.dio.get('/api/Deck');
-      return (response.data as List).map((e) => _deckFromJson(e as Map<String, dynamic>)).toList();
-    } catch (_) {
-      return const [];
-    }
+    final response = await _client.dio.get('/api/Deck');
+    return (response.data as List).map((e) => _deckFromJson(e as Map<String, dynamic>)).toList();
   }
 
   @override
@@ -60,6 +56,12 @@ class VocabGridDeckApi implements DeckApi {
     try {
       await _client.dio.delete('/api/Deck/$id');
       return true;
+    } on DioException catch (e) {
+      // A 404 means the deck is already gone (deleted from another device,
+      // say) — the desired end state is already achieved, so treat it as a
+      // success rather than a network failure that would stall the queue.
+      if (e.response?.statusCode == 404) return true;
+      return false;
     } catch (_) {
       return false;
     }
@@ -67,12 +69,8 @@ class VocabGridDeckApi implements DeckApi {
 
   @override
   Future<List<FlashcardData>> getFlashcards(String deckId) async {
-    try {
-      final response = await _client.dio.get('/api/Flashcard', queryParameters: {'deckId': deckId});
-      return (response.data as List).map((e) => _cardFromJson(e as Map<String, dynamic>)).toList();
-    } catch (_) {
-      return const [];
-    }
+    final response = await _client.dio.get('/api/Flashcard', queryParameters: {'deckId': deckId});
+    return (response.data as List).map((e) => _cardFromJson(e as Map<String, dynamic>)).toList();
   }
 
   @override
@@ -129,6 +127,10 @@ class VocabGridDeckApi implements DeckApi {
     try {
       await _client.dio.delete('/api/Flashcard/$wordId');
       return true;
+    } on DioException catch (e) {
+      // Same reasoning as deleteDeck above: a 404 means it's already gone.
+      if (e.response?.statusCode == 404) return true;
+      return false;
     } catch (_) {
       return false;
     }
@@ -136,15 +138,11 @@ class VocabGridDeckApi implements DeckApi {
 
   @override
   Future<List<ReviewCardData>> getDueReviews({String? deckId, int take = 50}) async {
-    try {
-      final response = await _client.dio.get('/api/Progress/reviews/due', queryParameters: {
-        if (deckId != null) 'deckId': deckId,
-        'take': take,
-      });
-      return (response.data as List).map((e) => _reviewCardFromJson(e as Map<String, dynamic>)).toList();
-    } catch (_) {
-      return const [];
-    }
+    final response = await _client.dio.get('/api/Progress/reviews/due', queryParameters: {
+      if (deckId != null) 'deckId': deckId,
+      'take': take,
+    });
+    return (response.data as List).map((e) => _reviewCardFromJson(e as Map<String, dynamic>)).toList();
   }
 
   @override

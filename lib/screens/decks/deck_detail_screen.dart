@@ -206,9 +206,15 @@ class _Header extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final colors = context.appColors;
-    // Derived from the cards actually present, not the deck's stored
-    // masteryPercent, so it can't drift from reality.
-    final mastery = cards.isEmpty ? 0.0 : mastered / cards.length;
+    // Sourced from the server-computed masteryPercent rather than
+    // recomputed from locally-cached card strength, which defaults every
+    // card to "review due" on a fresh fetch (no per-card review-progress
+    // data comes back from the flashcard-list endpoint) — recomputing here
+    // made every deck look like 0% mastered right after a fresh login. The
+    // Mastered/Learning/Review-Due breakdown row below is left as a local
+    // computation: the API only returns one aggregate percentage, not a
+    // 3-way split, so there's nothing server-side to source that from.
+    final mastery = deck.masteryPercent / 100;
 
     return Container(
       padding: const EdgeInsets.fromLTRB(AppSpacing.lg, 0, AppSpacing.lg, AppSpacing.xl),

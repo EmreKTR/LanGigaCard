@@ -306,10 +306,15 @@ class DeckStore {
   }
 
   static Future<bool> removeCard(String cardId) async {
-    final index = cards.indexWhere((c) => c.id == cardId);
-    if (index == -1) return false;
+    if (!cards.any((c) => c.id == cardId)) return false;
     final ok = await api.deleteFlashcard(cardId);
     if (ok) {
+      // Re-resolve the index after the await rather than reusing one
+      // captured beforehand — a concurrent refresh() could have replaced
+      // `cards` while deleteFlashcard's round-trip was in flight, making a
+      // pre-await index stale (pointing at the wrong card, or out of range).
+      final index = cards.indexWhere((c) => c.id == cardId);
+      if (index == -1) return true; // already gone (e.g. a concurrent refresh removed it)
       final deckId = cards[index].deckId;
       cards.removeAt(index);
       _bumpDeckCardCount(deckId, -1);
@@ -318,7 +323,10 @@ class DeckStore {
       return true;
     }
 
-    // Same ambiguous-bool reasoning as removeDeck above.
+    // Same ambiguous-bool reasoning as removeDeck above. Also re-resolve the
+    // index after the await, for the same reason as the success branch.
+    final index = cards.indexWhere((c) => c.id == cardId);
+    if (index == -1) return true;
     final deckId = cards[index].deckId;
     if (cardId.startsWith('pending_')) {
       writeQueue.pending.removeWhere((w) => w.localId == cardId);

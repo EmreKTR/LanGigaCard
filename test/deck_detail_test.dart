@@ -13,7 +13,7 @@ const _deck = Deck(
   cardCount: 0,
   dueCount: 0,
   reviewCount: 17,
-  masteryPercent: 99, // deliberately wrong: the screen must not trust this
+  masteryPercent: 99, // server-computed figure the mastery ring should trust
   emoji: '📗',
   accentColor: Color(0xFF6C5CE7),
 );
@@ -84,7 +84,7 @@ void main() {
 
   tearDown(_cleanUp);
 
-  testWidgets('mastery is computed from the cards, not the stored percentage', (tester) async {
+  testWidgets('the mastery ring shows the server-computed percentage, not one recomputed from local card strength', (tester) async {
     _addCardLocally(_card('a', MemoryStrength.mastered));
     _addCardLocally(_card('b', MemoryStrength.learning));
     _addCardLocally(_card('c', MemoryStrength.reviewDue));
@@ -92,9 +92,14 @@ void main() {
 
     await _pump(tester);
 
-    // 2 of 4 mastered = 50%, despite the deck claiming 99%.
-    expect(find.text('50%'), findsOneWidget);
-    expect(find.text('99%'), findsNothing);
+    // 2 of 4 locally-cached cards are mastered (50%), but the ring must show
+    // the deck's server-computed masteryPercent (99%) instead — recomputing
+    // locally is exactly the bug that made every deck look "0% mastered"
+    // right after a fresh login, before any card had been re-rated this
+    // session (a freshly-fetched card always starts at MemoryStrength.reviewDue
+    // locally, since review-progress isn't part of the flashcard-list response).
+    expect(find.text('99%'), findsOneWidget);
+    expect(find.text('50%'), findsNothing);
   });
 
   testWidgets('the strength breakdown counts each bucket', (tester) async {

@@ -165,6 +165,14 @@ class DeckWriteQueue {
 
   void enqueue(PendingWrite write) => pending.add(write);
 
+  /// Empties the queue and persists the empty state — used on logout so the
+  /// next account on this device doesn't inherit the previous user's
+  /// not-yet-synced writes.
+  Future<void> clear() async {
+    pending.clear();
+    await persist();
+  }
+
   Future<void> persist() async {
     try {
       final prefs = await SharedPreferences.getInstance();
@@ -244,15 +252,18 @@ class DeckWriteQueue {
         return result.outcome == DeckOutcome.validationError ? const _ValidationFailed() : const _NetworkFailed();
 
       case PendingWriteKind.updateDeck:
+        if (write.localId.startsWith('pending_')) return const _ValidationFailed();
         final result = await api.updateDeck(write.localId, title: write.title!, description: write.description);
         if (result.isSuccess) return const _Applied(null);
         return result.outcome == DeckOutcome.validationError ? const _ValidationFailed() : const _NetworkFailed();
 
       case PendingWriteKind.deleteDeck:
+        if (write.localId.startsWith('pending_')) return const _ValidationFailed();
         final ok = await api.deleteDeck(write.localId);
         return ok ? const _Applied(null) : const _NetworkFailed();
 
       case PendingWriteKind.createCard:
+        if (write.deckId!.startsWith('pending_')) return const _ValidationFailed();
         final result = await api.createFlashcard(
           deckId: write.deckId!,
           term: write.term!,
@@ -264,6 +275,7 @@ class DeckWriteQueue {
         return result.outcome == DeckOutcome.validationError ? const _ValidationFailed() : const _NetworkFailed();
 
       case PendingWriteKind.updateCard:
+        if (write.localId.startsWith('pending_')) return const _ValidationFailed();
         final result = await api.updateFlashcard(
           write.localId,
           term: write.term!,
@@ -275,10 +287,12 @@ class DeckWriteQueue {
         return result.outcome == DeckOutcome.validationError ? const _ValidationFailed() : const _NetworkFailed();
 
       case PendingWriteKind.deleteCard:
+        if (write.localId.startsWith('pending_')) return const _ValidationFailed();
         final ok = await api.deleteFlashcard(write.localId);
         return ok ? const _Applied(null) : const _NetworkFailed();
 
       case PendingWriteKind.submitReview:
+        if (write.localId.startsWith('pending_')) return const _ValidationFailed();
         final result = await api.submitReview(write.localId, rating: write.rating!, durationSeconds: write.durationSeconds ?? 0);
         if (result.isSuccess) return const _Applied(null);
         return result.outcome == DeckOutcome.validationError ? const _ValidationFailed() : const _NetworkFailed();
