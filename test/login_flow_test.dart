@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:langigacards/app_controller.dart';
 import 'package:langigacards/data/api/auth_api.dart';
+import 'package:langigacards/data/api/user_api.dart';
+import 'package:langigacards/data/api/vocabgrid_user_api.dart';
 import 'package:langigacards/data/auth_store.dart';
 import 'package:langigacards/screens/auth/login_screen.dart';
 import 'package:langigacards/screens/main_shell.dart';
@@ -32,6 +34,11 @@ void main() {
   setUp(() {
     SharedPreferences.setMockInitialValues({});
     AuthStore.api = FakeAuthApi();
+    // A successful sign-in navigates to MainShell, which fetches the
+    // profile via the top-level `userApi` — must be faked so this suite
+    // never makes a real network call (matches every other test touching
+    // the post-login path: onboarding_wizard_test.dart, main_shell_test.dart).
+    userApi = FakeUserApi();
   });
 
   testWidgets('a registered account signs in and reaches the app', (tester) async {
