@@ -145,13 +145,17 @@ void main() {
       emoji: '📘',
       accentColor: Color(0xFF6C5CE7),
     );
-    DeckStore.addDeck(thinDeck);
+    // QuizScreen reads DeckStore.decks/.cards synchronously and never calls
+    // the API itself, so this fixture is seeded straight into those lists
+    // rather than through the now-async, API-backed addDeck/addCard.
+    DeckStore.decks.add(thinDeck);
+    DeckStore.revision.value++;
     addTearDown(() {
       DeckStore.cards.removeWhere((c) => c.deckId == thinDeck.id);
       DeckStore.decks.removeWhere((d) => d.id == thinDeck.id);
     });
 
-    DeckStore.addCard(const FlashCard(
+    DeckStore.cards.add(const FlashCard(
       id: 'thin_1',
       deckId: 'thin_deck',
       term: 'Un',
@@ -159,6 +163,7 @@ void main() {
       exampleSentence: '',
       strength: MemoryStrength.learning,
     ));
+    DeckStore.revision.value++;
 
     await tester.pumpWidget(_wrap(const QuizScreen(deck: thinDeck)));
 

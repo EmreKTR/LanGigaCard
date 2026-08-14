@@ -27,6 +27,35 @@ FlashCard _card(String id, MemoryStrength strength) => FlashCard(
       strength: strength,
     );
 
+/// DeckDetailScreen reads DeckStore.decks/.cards synchronously and never
+/// calls the API itself, so fixtures are seeded straight into those lists
+/// rather than through DeckStore's now-async, API-backed
+/// addDeck/addCard/updateDeck/removeDeck. That also preserves the
+/// deliberately-wrong reviewCount/masteryPercent on [_deck] above, which
+/// only a hand-built Deck (not one round-tripped through a FakeDeckApi,
+/// which always starts a deck at 0) can carry.
+void _addDeckLocally(Deck deck) {
+  DeckStore.decks.add(deck);
+  DeckStore.revision.value++;
+}
+
+void _addCardLocally(FlashCard card) {
+  DeckStore.cards.add(card);
+  DeckStore.revision.value++;
+}
+
+void _removeDeckLocally(String id) {
+  DeckStore.decks.removeWhere((d) => d.id == id);
+  DeckStore.cards.removeWhere((c) => c.deckId == id);
+  DeckStore.revision.value++;
+}
+
+void _renameDeckLocally(String id, String name) {
+  final index = DeckStore.decks.indexWhere((d) => d.id == id);
+  DeckStore.decks[index] = DeckStore.decks[index].copyWith(name: name);
+  DeckStore.revision.value++;
+}
+
 void _cleanUp() {
   DeckStore.cards.removeWhere((c) => c.deckId == _deck.id);
   DeckStore.decks.removeWhere((d) => d.id == _deck.id);
@@ -50,16 +79,16 @@ void main() {
 
   setUp(() {
     _cleanUp();
-    DeckStore.addDeck(_deck);
+    _addDeckLocally(_deck);
   });
 
   tearDown(_cleanUp);
 
   testWidgets('mastery is computed from the cards, not the stored percentage', (tester) async {
-    DeckStore.addCard(_card('a', MemoryStrength.mastered));
-    DeckStore.addCard(_card('b', MemoryStrength.learning));
-    DeckStore.addCard(_card('c', MemoryStrength.reviewDue));
-    DeckStore.addCard(_card('d', MemoryStrength.mastered));
+    _addCardLocally(_card('a', MemoryStrength.mastered));
+    _addCardLocally(_card('b', MemoryStrength.learning));
+    _addCardLocally(_card('c', MemoryStrength.reviewDue));
+    _addCardLocally(_card('d', MemoryStrength.mastered));
 
     await _pump(tester);
 
@@ -69,10 +98,10 @@ void main() {
   });
 
   testWidgets('the strength breakdown counts each bucket', (tester) async {
-    DeckStore.addCard(_card('a', MemoryStrength.mastered));
-    DeckStore.addCard(_card('b', MemoryStrength.learning));
-    DeckStore.addCard(_card('c', MemoryStrength.learning));
-    DeckStore.addCard(_card('d', MemoryStrength.reviewDue));
+    _addCardLocally(_card('a', MemoryStrength.mastered));
+    _addCardLocally(_card('b', MemoryStrength.learning));
+    _addCardLocally(_card('c', MemoryStrength.learning));
+    _addCardLocally(_card('d', MemoryStrength.reviewDue));
 
     await _pump(tester);
 
@@ -90,9 +119,9 @@ void main() {
   });
 
   testWidgets('the study button counts only cards that still need work', (tester) async {
-    DeckStore.addCard(_card('a', MemoryStrength.mastered));
-    DeckStore.addCard(_card('b', MemoryStrength.learning));
-    DeckStore.addCard(_card('c', MemoryStrength.reviewDue));
+    _addCardLocally(_card('a', MemoryStrength.mastered));
+    _addCardLocally(_card('b', MemoryStrength.learning));
+    _addCardLocally(_card('c', MemoryStrength.reviewDue));
 
     await _pump(tester);
 
@@ -100,8 +129,8 @@ void main() {
   });
 
   testWidgets('a fully mastered deck disables studying', (tester) async {
-    DeckStore.addCard(_card('a', MemoryStrength.mastered));
-    DeckStore.addCard(_card('b', MemoryStrength.mastered));
+    _addCardLocally(_card('a', MemoryStrength.mastered));
+    _addCardLocally(_card('b', MemoryStrength.mastered));
 
     await _pump(tester);
 
@@ -118,24 +147,24 @@ void main() {
   });
 
   testWidgets('the screen survives its deck being deleted underneath it', (tester) async {
-    DeckStore.addCard(_card('a', MemoryStrength.learning));
+    _addCardLocally(_card('a', MemoryStrength.learning));
     await _pump(tester);
 
     expect(find.text('Detail Deck'), findsNothing, reason: 'name renders with its emoji prefix');
 
-    DeckStore.removeDeck(_deck.id);
+    _removeDeckLocally(_deck.id);
     await tester.pumpAndSettle();
 
     expect(find.text('This deck no longer exists'), findsOneWidget);
   });
 
   testWidgets('renaming the deck elsewhere updates the open detail screen', (tester) async {
-    DeckStore.addCard(_card('a', MemoryStrength.learning));
+    _addCardLocally(_card('a', MemoryStrength.learning));
     await _pump(tester);
 
     expect(find.text('📗  Detail Deck'), findsOneWidget);
 
-    DeckStore.updateDeck(_deck.copyWith(name: 'Renamed Deck'));
+    _renameDeckLocally(_deck.id, 'Renamed Deck');
     await tester.pumpAndSettle();
 
     expect(find.text('📗  Renamed Deck'), findsOneWidget);

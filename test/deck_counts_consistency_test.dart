@@ -27,6 +27,13 @@ FlashCard _card(String id, MemoryStrength strength) => FlashCard(
       strength: strength,
     );
 
+/// These tests exercise DeckStore's pure derived getters (cardCountOf,
+/// dueCountOf, etc.), which read DeckStore.decks/.cards synchronously and
+/// never touch the API — so [_deck] is seeded straight into DeckStore.decks
+/// rather than through the now-async, API-backed DeckStore.addDeck. That
+/// also preserves the deliberately-dishonest stored cardCount/dueCount/
+/// masteryPercent above, which only a hand-built Deck (not one round-tripped
+/// through an API, which always starts a deck at 0) can carry.
 void main() {
   // Keep the library in memory: these tests exercise data rules, not disk.
   setUp(() async {
@@ -39,7 +46,8 @@ void main() {
   setUp(() {
     DeckStore.cards.removeWhere((c) => c.deckId == _deck.id);
     DeckStore.decks.removeWhere((d) => d.id == _deck.id);
-    DeckStore.addDeck(_deck);
+    DeckStore.decks.add(_deck);
+    DeckStore.revision.value++;
   });
 
   tearDown(() {
@@ -80,11 +88,14 @@ void main() {
   });
 
   test('counts follow a card as its strength changes', () {
-    DeckStore.addCard(_card('a', MemoryStrength.reviewDue));
+    DeckStore.cards.add(_card('a', MemoryStrength.reviewDue));
+    DeckStore.revision.value++;
     expect(DeckStore.dueCountOf(_deck.id), 1);
     expect(DeckStore.studyableCountOf(_deck.id), 1);
 
-    DeckStore.updateCard(_card('a', MemoryStrength.mastered));
+    final index = DeckStore.cards.indexWhere((c) => c.id == 'a');
+    DeckStore.cards[index] = DeckStore.cards[index].copyWith(strength: MemoryStrength.mastered);
+    DeckStore.revision.value++;
 
     expect(DeckStore.dueCountOf(_deck.id), 0);
     expect(DeckStore.studyableCountOf(_deck.id), 0);

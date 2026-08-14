@@ -105,7 +105,12 @@ void main() {
     await _pump(tester);
     expect(_shareIn(tester, 'breakdown-mastered'), '0%');
 
-    DeckStore.updateCard(_card('a', MemoryStrength.mastered));
+    // StatisticsScreen reads DeckStore.cards synchronously and never calls
+    // the API itself, so mutate the list directly rather than through the
+    // now-async, API-backed updateCard.
+    final index = DeckStore.cards.indexWhere((c) => c.id == 'a');
+    DeckStore.cards[index] = DeckStore.cards[index].copyWith(strength: MemoryStrength.mastered);
+    DeckStore.revision.value++;
     await tester.pumpAndSettle();
 
     expect(_shareIn(tester, 'breakdown-mastered'), '50%');

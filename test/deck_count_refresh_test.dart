@@ -36,7 +36,10 @@ void main() {
 
     expect(find.text('$startingCount cards'), findsOneWidget);
 
-    DeckStore.addCard(const FlashCard(
+    // DeckDashboardScreen reads DeckStore.cards synchronously and never
+    // calls the API itself, so seed straight into the list rather than
+    // through the now-async, API-backed addCard/removeCard.
+    DeckStore.cards.add(const FlashCard(
       id: 'refresh_probe',
       deckId: 'french_basics',
       term: 'Chat',
@@ -44,13 +47,15 @@ void main() {
       exampleSentence: 'Le chat dort.',
       strength: MemoryStrength.learning,
     ));
+    DeckStore.revision.value++;
     await tester.pump();
 
     expect(find.text('${startingCount + 1} cards'), findsOneWidget,
         reason: 'the deck tag must pick up the new card without a manual refresh');
     expect(find.text('$startingCount cards'), findsNothing);
 
-    DeckStore.removeCard('refresh_probe');
+    DeckStore.cards.removeWhere((c) => c.id == 'refresh_probe');
+    DeckStore.revision.value++;
     await tester.pump();
 
     expect(find.text('$startingCount cards'), findsOneWidget);
@@ -70,7 +75,7 @@ void main() {
     final totalDue = DeckStore.decks.fold<int>(0, (sum, d) => sum + DeckStore.dueCountOf(d.id));
     expect(find.text('$deckCount decks · $totalDue cards due today'), findsOneWidget);
 
-    DeckStore.addDeck(const Deck(
+    DeckStore.decks.add(const Deck(
       id: 'kitchen_vocab',
       name: 'Kitchen Vocab',
       description: 'Words you need to cook',
@@ -81,6 +86,7 @@ void main() {
       emoji: '📘',
       accentColor: Color(0xFF6C5CE7),
     ));
+    DeckStore.revision.value++;
     await tester.pump();
 
     expect(find.text('${deckCount + 1} decks · $totalDue cards due today'), findsOneWidget,

@@ -1,14 +1,37 @@
-import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:langigacards/data/api/deck_api.dart';
 import 'package:langigacards/data/library_storage.dart';
 import 'package:langigacards/data/deck_store.dart';
 import 'package:langigacards/data/mock_data.dart';
 import 'package:langigacards/data/starter_content.dart';
-import 'package:langigacards/models/app_models.dart';
+
+/// Mirrors MainShell._maybeCreateStarterContent's own build-then-apply loop
+/// (lib/screens/main_shell.dart): MockData.buildStarterContent (Task 8) only
+/// *builds* decks/cards, it doesn't persist them — the caller decides how.
+Future<void> _applyStarterContent({required String targetCode, required String targetName, required String nativeCode}) async {
+  final starter = MockData.buildStarterContent(targetCode: targetCode, targetName: targetName, nativeCode: nativeCode);
+  if (starter == null) return;
+
+  for (final deck in starter.decks) {
+    final created = await DeckStore.addDeck(title: deck.name, description: deck.description);
+    if (!created) continue;
+    final realDeckId = DeckStore.decks.last.id;
+    for (final card in starter.cards.where((c) => c.deckId == deck.id)) {
+      await DeckStore.addCard(
+        deckId: realDeckId,
+        term: card.term,
+        translation: card.translation,
+        exampleSentence: card.exampleSentence,
+        imageUrl: card.imageUrl,
+      );
+    }
+  }
+}
 
 void main() {
   setUp(() async {
     DeckStore.storage = InMemoryLibraryStorage();
+    DeckStore.api = FakeDeckApi();
     await DeckStore.clearLibrary();
   });
 
@@ -87,72 +110,45 @@ void main() {
   });
 
   group('applying starter content', () {
+    // Task 8 replaced MockData.applyStarterContent (which persisted directly
+    // and had its own replace-stale-decks/dedupe logic keyed off
+    // StarterContent.isStarterDeck) with MockData.buildStarterContent, a
+    // pure builder with no side effects and no bookkeeping at all. The
+    // "replace on language change" and "no duplicates on reapply" behaviors
+    // that used to live inside MockData now live entirely in
+    // MainShell._maybeCreateStarterContent (lib/screens/main_shell.dart),
+    // which only ever creates starter content once, when the learner's
+    // library is completely empty (`if (!mounted ||
+    // DeckStore.decks.isNotEmpty) return;`) — it never replaces or dedupes
+    // anything afterward. So three of the original tests here no longer
+    // have a real behavior to test:
+    //  - "changing target language replaces untouched sample decks" and
+    //    "the legacy French sample is treated as replaceable too" both
+    //    tested the old replace-stale-decks logic, which was dropped, not
+    //    ported — changing the target language later only changes the
+    //    pronunciation voice now, decks are untouched.
+    //  - "a deck the learner made is never thrown away" and "applying the
+    //    same language twice does not duplicate decks" both tested
+    //    behavior that is now MainShell's "only if empty" gate, not
+    //    MockData's — and that gate is already covered by
+    //    test/main_shell_test.dart's "a zero-deck account gets real starter
+    //    decks created via the API, exactly once" test. Re-testing it here
+    //    against a hand-rolled apply loop (this file's _applyStarterContent)
+    //    would only be testing this test file's own helper, not the app.
+    // Deleted rather than adapted, since there's no real invariant left
+    // in MockData/DeckStore for them to assert on.
     test('an empty library is filled in the chosen language', () async {
-      await MockData.applyStarterContent(targetCode: 'GB', targetName: 'English', nativeCode: 'TR');
+      await _applyStarterContent(targetCode: 'GB', targetName: 'English', nativeCode: 'TR');
 
       expect(DeckStore.decks, isNotEmpty);
       expect(DeckStore.decks.first.name, 'English Basics');
       expect(DeckStore.cards.any((c) => c.term == 'Hello'), isTrue);
     });
 
-    test('changing target language replaces untouched sample decks', () async {
-      await MockData.applyStarterContent(targetCode: 'FR', targetName: 'French', nativeCode: 'TR');
-      expect(DeckStore.decks.first.name, 'French Basics');
-
-      await MockData.applyStarterContent(targetCode: 'GB', targetName: 'English', nativeCode: 'TR');
-
-      expect(DeckStore.decks.every((d) => !d.name.contains('French')), isTrue,
-          reason: 'sample decks for the old language should not linger');
-      expect(DeckStore.decks.first.name, 'English Basics');
-    });
-
-    test('the legacy French sample is treated as replaceable too', () async {
-      await MockData.seedSampleLibrary();
-      expect(DeckStore.decks.any((d) => d.id == 'french_basics'), isTrue);
-
-      await MockData.applyStarterContent(targetCode: 'GB', targetName: 'English', nativeCode: 'TR');
-
-      expect(DeckStore.decks.any((d) => d.id == 'french_basics'), isFalse);
-      expect(DeckStore.decks.first.name, 'English Basics');
-    });
-
-    test('a deck the learner made is never thrown away', () async {
-      await MockData.applyStarterContent(targetCode: 'FR', targetName: 'French', nativeCode: 'TR');
-      // A genuinely user-created deck, with an id outside the starter range.
-      DeckStore.addDeck(_userDeck);
-
-      await MockData.applyStarterContent(targetCode: 'GB', targetName: 'English', nativeCode: 'TR');
-
-      expect(DeckStore.decks.any((d) => d.id == _userDeck.id), isTrue);
-      expect(DeckStore.decks.any((d) => d.name == 'English Basics'), isTrue,
-          reason: 'the new language is added alongside, not instead');
-    });
-
-    test('applying the same language twice does not duplicate decks', () async {
-      await MockData.applyStarterContent(targetCode: 'GB', targetName: 'English', nativeCode: 'TR');
-      final count = DeckStore.decks.length;
-
-      await MockData.applyStarterContent(targetCode: 'GB', targetName: 'English', nativeCode: 'TR');
-
-      expect(DeckStore.decks.length, count);
-    });
-
     test('an unknown language pair leaves the library alone', () async {
-      await MockData.applyStarterContent(targetCode: '', targetName: '', nativeCode: 'TR');
+      await _applyStarterContent(targetCode: '', targetName: '', nativeCode: 'TR');
 
       expect(DeckStore.decks, isEmpty);
     });
   });
 }
-
-const _userDeck = Deck(
-  id: 'my_own_deck',
-  name: 'My Own Deck',
-  description: 'made by the learner',
-  cardCount: 0,
-  dueCount: 0,
-  reviewCount: 0,
-  masteryPercent: 0,
-  emoji: '⭐',
-  accentColor: Color(0xFF10B981),
-);

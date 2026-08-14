@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:langigacards/data/api/deck_api.dart';
 import 'package:langigacards/data/library_storage.dart';
 import 'package:langigacards/data/deck_store.dart';
 import 'package:langigacards/data/mock_data.dart';
@@ -41,6 +42,7 @@ void main() {
   setUp(() async {
     storage = InMemoryLibraryStorage();
     DeckStore.storage = storage;
+    DeckStore.api = FakeDeckApi();
     await MockData.seedSampleLibrary();
   });
 
@@ -82,22 +84,31 @@ void main() {
   });
 
   group('library persistence', () {
+    // addDeck/addCard/removeCard/updateCard now go through DeckStore.api, so
+    // fixtures are created via those methods (rather than the fixed
+    // MockData.seedSampleLibrary ids, which the FakeDeckApi doesn't know
+    // about) so the mutation calls below actually succeed. Each mutation
+    // method already awaits its own persist() internally, so — unlike the
+    // old synchronous API — there's no need for a "let the fire-and-forget
+    // write land" delay anymore.
     test('a card added in one session is there in the next', () async {
-      DeckStore.addDeck(_deck);
-      DeckStore.addCard(_card);
-      // Let the fire-and-forget writes land.
-      await Future<void>.delayed(Duration.zero);
+      final ok = await DeckStore.addDeck(title: 'Persist Deck', description: 'fixture');
+      expect(ok, isTrue);
+      final deckId = DeckStore.decks.last.id;
+      await DeckStore.addCard(deckId: deckId, term: 'Chien', translation: 'Dog', exampleSentence: 'Le chien dort.');
+      final cardId = DeckStore.cards.last.id;
 
       final saved = await storage.load();
       expect(saved, isNotNull);
-      expect(saved!.cards.any((c) => c.id == 'persist_card'), isTrue);
-      expect(saved.decks.any((d) => d.id == 'persist_deck'), isTrue);
+      expect(saved!.cards.any((c) => c.id == cardId), isTrue);
+      expect(saved.decks.any((d) => d.id == deckId), isTrue);
     });
 
     test('reopening the app restores the saved library, not the samples', () async {
-      DeckStore.addDeck(_deck);
-      DeckStore.addCard(_card);
-      await Future<void>.delayed(Duration.zero);
+      await DeckStore.addDeck(title: 'Persist Deck', description: 'fixture');
+      final deckId = DeckStore.decks.last.id;
+      await DeckStore.addCard(deckId: deckId, term: 'Chien', translation: 'Dog', exampleSentence: 'Le chien dort.');
+      final cardId = DeckStore.cards.last.id;
       final savedSnapshot = await storage.load();
 
       // A fresh launch against storage that already holds the snapshot.
@@ -106,26 +117,38 @@ void main() {
       DeckStore.storage = freshStorage;
       await DeckStore.load();
 
-      expect(DeckStore.decks.any((d) => d.id == 'persist_deck'), isTrue);
-      expect(DeckStore.cards.any((c) => c.id == 'persist_card'), isTrue);
+      expect(DeckStore.decks.any((d) => d.id == deckId), isTrue);
+      expect(DeckStore.cards.any((c) => c.id == cardId), isTrue);
     });
 
     test('a deletion survives a restart too', () async {
-      DeckStore.removeCard('bonjour');
-      await Future<void>.delayed(Duration.zero);
+      await DeckStore.addDeck(title: 'Persist Deck', description: 'fixture');
+      final deckId = DeckStore.decks.last.id;
+      await DeckStore.addCard(deckId: deckId, term: 'Chien', translation: 'Dog', exampleSentence: 'Le chien dort.');
+      final cardId = DeckStore.cards.last.id;
+
+      await DeckStore.removeCard(cardId);
 
       final saved = await storage.load();
-      expect(saved!.cards.any((c) => c.id == 'bonjour'), isFalse);
+      expect(saved!.cards.any((c) => c.id == cardId), isFalse);
     });
 
     test('an edit survives a restart', () async {
-      DeckStore.updateCard(
-        DeckStore.cards.firstWhere((c) => c.id == 'merci').copyWith(translation: 'Cheers'),
+      await DeckStore.addDeck(title: 'Persist Deck', description: 'fixture');
+      final deckId = DeckStore.decks.last.id;
+      await DeckStore.addCard(deckId: deckId, term: 'Chien', translation: 'Dog', exampleSentence: 'Le chien dort.');
+      final cardId = DeckStore.cards.last.id;
+
+      await DeckStore.updateCard(
+        wordId: cardId,
+        deckId: deckId,
+        term: 'Chien',
+        translation: 'Cheers',
+        exampleSentence: 'Le chien dort.',
       );
-      await Future<void>.delayed(Duration.zero);
 
       final saved = await storage.load();
-      expect(saved!.cards.firstWhere((c) => c.id == 'merci').translation, 'Cheers');
+      expect(saved!.cards.firstWhere((c) => c.id == cardId).translation, 'Cheers');
     });
 
     test('a first launch starts empty, waiting for the learner\'s language', () async {
@@ -153,17 +176,17 @@ void main() {
       DeckStore.storage = _BrokenStorage();
 
       // The point: this must not throw.
-      DeckStore.addDeck(_deck);
-      await Future<void>.delayed(Duration.zero);
+      final ok = await DeckStore.addDeck(title: 'Persist Deck', description: 'fixture');
 
-      expect(DeckStore.decks.any((d) => d.id == 'persist_deck'), isTrue);
+      expect(ok, isTrue);
+      expect(DeckStore.decks.any((d) => d.name == 'Persist Deck'), isTrue);
     });
 
     test('resetting restores the sample library', () async {
-      DeckStore.addDeck(_deck);
+      await DeckStore.addDeck(title: 'Persist Deck', description: 'fixture');
       await _relaunch(storage);
 
-      expect(DeckStore.decks.any((d) => d.id == 'persist_deck'), isFalse);
+      expect(DeckStore.decks.any((d) => d.name == 'Persist Deck'), isFalse);
       expect(DeckStore.decks, isNotEmpty);
     });
   });
