@@ -155,6 +155,13 @@ abstract class UserApi {
 
 /// In-memory [UserApi] for tests: no plugins, no network, no disk.
 class FakeUserApi implements UserApi {
+  FakeUserApi({this.failProfile = false});
+
+  /// When true, [getProfile] returns a network error instead of the seeded
+  /// profile — lets tests drive MainShell's failed-profile-load path, which
+  /// otherwise nothing can reach since this fake always succeeds by default.
+  final bool failProfile;
+
   ProfileData _profile = const ProfileData(
     firstName: '',
     lastName: '',
@@ -186,7 +193,8 @@ class FakeUserApi implements UserApi {
   List<int> _myPurposeIds = [];
 
   @override
-  Future<ProfileResult> getProfile() async => ProfileResult.success(_profile);
+  Future<ProfileResult> getProfile() async =>
+      failProfile ? const ProfileResult.networkError() : ProfileResult.success(_profile);
 
   @override
   Future<ProfileResult> updateProfile({

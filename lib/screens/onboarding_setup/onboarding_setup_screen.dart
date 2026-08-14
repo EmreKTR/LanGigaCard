@@ -44,6 +44,12 @@ class _OnboardingSetupScreenState extends State<OnboardingSetupScreen> {
   List<CategoryData>? _availableCategories;
   List<LearningPurposeData>? _availablePurposes;
 
+  /// True when [_loadReferenceData] resolved but at least one list came
+  /// back empty — `UserApi.getCategories()`/`getLearningPurposes()` never
+  /// throw, so an empty list is how a fetch failure (as opposed to a
+  /// genuinely empty reference list) shows up here.
+  bool _referenceLoadFailed = false;
+
   String? _nativeLanguage;
   String? _nativeLanguageCode;
   String? _targetLanguage;
@@ -63,11 +69,21 @@ class _OnboardingSetupScreenState extends State<OnboardingSetupScreen> {
   }
 
   Future<void> _loadReferenceData() async {
+    setState(() => _referenceLoadFailed = false);
+
     final results = await Future.wait([userApi.getCategories(), userApi.getLearningPurposes()]);
     if (!mounted) return;
+
+    final categories = results[0] as List<CategoryData>;
+    final purposes = results[1] as List<LearningPurposeData>;
+    if (categories.isEmpty || purposes.isEmpty) {
+      setState(() => _referenceLoadFailed = true);
+      return;
+    }
+
     setState(() {
-      _availableCategories = results[0] as List<CategoryData>;
-      _availablePurposes = results[1] as List<LearningPurposeData>;
+      _availableCategories = categories;
+      _availablePurposes = purposes;
     });
   }
 
@@ -162,6 +178,10 @@ class _OnboardingSetupScreenState extends State<OnboardingSetupScreen> {
   @override
   Widget build(BuildContext context) {
     final colors = context.appColors;
+
+    if (_referenceLoadFailed) {
+      return _ReferenceLoadErrorView(onRetry: _loadReferenceData);
+    }
 
     if (_availableCategories == null || _availablePurposes == null) {
       return const Scaffold(body: Center(child: CircularProgressIndicator()));
@@ -320,5 +340,44 @@ class _OnboardingSetupScreenState extends State<OnboardingSetupScreen> {
           onSelected: (v) => setState(() => _dailyGoalMinutes = v),
         );
     }
+  }
+}
+
+/// Shown when the reference-list fetch (categories/learning purposes) fails
+/// or comes back empty — without this, the wizard used to render steps 3/5
+/// with nothing to select and a permanently-disabled Continue button, with
+/// no way out except abandoning onboarding. Same visual pattern as
+/// MainShell's profile-load error view.
+class _ReferenceLoadErrorView extends StatelessWidget {
+  const _ReferenceLoadErrorView({required this.onRetry});
+
+  final VoidCallback onRetry;
+
+  @override
+  Widget build(BuildContext context) {
+    final colors = context.appColors;
+    return Scaffold(
+      body: SafeArea(
+        child: Padding(
+          padding: const EdgeInsets.all(AppSpacing.xxl),
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Icon(Icons.cloud_off_rounded, size: 56, color: colors.textMuted),
+              const SizedBox(height: AppSpacing.lg),
+              Text("Couldn't load your setup options", style: Theme.of(context).textTheme.headlineMedium, textAlign: TextAlign.center),
+              const SizedBox(height: AppSpacing.sm),
+              Text(
+                "Check your connection and try again.",
+                textAlign: TextAlign.center,
+                style: TextStyle(color: colors.textMuted),
+              ),
+              const SizedBox(height: AppSpacing.xxl),
+              SizedBox(width: double.infinity, child: PrimaryButton(label: 'Try Again', onPressed: onRetry)),
+            ],
+          ),
+        ),
+      ),
+    );
   }
 }

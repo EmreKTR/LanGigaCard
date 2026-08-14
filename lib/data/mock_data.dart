@@ -136,35 +136,6 @@ class MockData {
     ('Turkish', 'TR'),
   ];
 
-  static const List<String> learningPurposes = [
-    'Travel',
-    'Business',
-    'Exam Prep',
-    'Academic',
-    'Culture',
-    'Relocation',
-    'Family',
-    'Just for Fun',
-  ];
-
-  static const List<LearningCategory> categories = [
-    LearningCategory(Icons.restaurant_rounded, 'Food', Color(0xFFF97316)),
-    LearningCategory(Icons.flight_rounded, 'Travel', Color(0xFF3B82F6)),
-    LearningCategory(Icons.work_rounded, 'Business', Color(0xFF6366F1)),
-    LearningCategory(Icons.laptop_mac_rounded, 'Technology', Color(0xFF06B6D4)),
-    LearningCategory(Icons.school_rounded, 'Education', Color(0xFF8B5CF6)),
-    LearningCategory(Icons.local_movies_rounded, 'Movies', Color(0xFFEC4899)),
-    LearningCategory(Icons.music_note_rounded, 'Music', Color(0xFFF43F5E)),
-    LearningCategory(Icons.sports_esports_rounded, 'Gaming', Color(0xFF10B981)),
-    LearningCategory(Icons.sports_soccer_rounded, 'Sports', Color(0xFF22C55E)),
-    LearningCategory(Icons.favorite_rounded, 'Health', Color(0xFFEF4444)),
-    LearningCategory(Icons.shopping_bag_rounded, 'Shopping', Color(0xFFF59E0B)),
-    LearningCategory(Icons.family_restroom_rounded, 'Family', Color(0xFF14B8A6)),
-    LearningCategory(Icons.park_rounded, 'Nature', Color(0xFF84CC16)),
-    LearningCategory(Icons.science_rounded, 'Science', Color(0xFF0EA5E9)),
-    LearningCategory(Icons.pets_rounded, 'Animals', Color(0xFFA855F7)),
-  ];
-
   static const List<int> dailyGoalOptions = [5, 10, 15, 20, 30];
 
   /// Fixed French sample used only by the test suite — see

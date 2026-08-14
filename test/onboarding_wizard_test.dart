@@ -137,6 +137,8 @@ void main() {
       expect(saved.profile!.firstName, 'Ada');
       expect(saved.profile!.nativeLanguage, 'English');
       expect(saved.profile!.targetLanguage, 'French');
+      expect(saved.profile!.dailyGoalMinutes, 10); // 'Regular'
+      expect(saved.profile!.targetProficiencyLevel, 'Beginner');
       expect(await userApi.getMyCategoryIds(), [firstCategory.first.id]);
       expect(await userApi.getMyLearningPurposeIds(), [firstPurpose.first.id]);
     });

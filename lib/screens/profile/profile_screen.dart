@@ -26,9 +26,20 @@ class ProfileScreen extends StatelessWidget {
   final UserProfile profile;
   final ValueChanged<UserProfile> onProfileChanged;
 
-  void _editCategories(BuildContext context) async {
+  Future<void> _editCategories(BuildContext context) async {
     final allCategories = await userApi.getCategories();
     if (!context.mounted) return;
+
+    // An empty list is indistinguishable from "the fetch failed" (the API
+    // never throws), so don't open a picker with nothing in it — opening it
+    // anyway would let Save silently wipe the real server-side selection.
+    if (allCategories.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text("Couldn't load categories. Check your connection and try again.")),
+      );
+      return;
+    }
+
     final myIds = await userApi.getMyCategoryIds();
     if (!context.mounted) return;
 
@@ -40,7 +51,16 @@ class ProfileScreen extends StatelessWidget {
         allCategories: allCategories,
         initial: myIds.toSet(),
         onSave: (categoryIds) async {
-          await userApi.updateMyCategories(categoryIds.toList());
+          final saved = await userApi.updateMyCategories(categoryIds.toList());
+          if (!context.mounted) return;
+
+          if (saved.length != categoryIds.length) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(content: Text("Couldn't save your categories. Please try again.")),
+            );
+            return;
+          }
+
           final categoryNames = allCategories.where((c) => categoryIds.contains(c.id)).map((c) => c.name).toList();
           onProfileChanged(profile.copyWith(categories: categoryNames));
         },
@@ -79,6 +99,16 @@ class ProfileScreen extends StatelessWidget {
   Future<void> _editPurposes(BuildContext context) async {
     final allPurposes = await userApi.getLearningPurposes();
     if (!context.mounted) return;
+
+    // Same rationale as _editCategories: an empty list means the fetch
+    // failed, not that there's genuinely nothing to pick from.
+    if (allPurposes.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text("Couldn't load learning purposes. Check your connection and try again.")),
+      );
+      return;
+    }
+
     final myIds = await userApi.getMyLearningPurposeIds();
     if (!context.mounted) return;
 
@@ -88,9 +118,18 @@ class ProfileScreen extends StatelessWidget {
       backgroundColor: Colors.transparent,
       builder: (_) => _PurposesSheet(allPurposes: allPurposes, initial: myIds.toSet()),
     );
-    if (picked == null) return;
+    if (picked == null || !context.mounted) return;
 
-    await userApi.updateMyLearningPurposes(picked.toList());
+    final saved = await userApi.updateMyLearningPurposes(picked.toList());
+    if (!context.mounted) return;
+
+    if (saved.length != picked.length) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text("Couldn't save your learning purposes. Please try again.")),
+      );
+      return;
+    }
+
     final purposeNames = allPurposes.where((p) => picked.contains(p.id)).map((p) => p.name).toList();
     onProfileChanged(profile.copyWith(learningPurposes: purposeNames));
   }
