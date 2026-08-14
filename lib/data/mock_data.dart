@@ -42,43 +42,19 @@ class MockData {
     await _persistDeckStore();
   }
 
-  /// Gives a learner starter decks in the language they are actually
-  /// learning.
-  ///
-  /// The sample library used to be French no matter what was chosen during
-  /// onboarding, so a Turkish speaker learning English opened the app to
-  /// "French Basics". Called once the profile is known — on first launch, and
-  /// again whenever the target language changes.
-  ///
-  /// Only replaces content the learner hasn't touched: if they have made a
-  /// deck of their own, the new starter decks are added alongside instead.
-  static Future<void> applyStarterContent({
+  /// Builds the starter decks/cards for a learner's language pair, or
+  /// returns null if starter content doesn't apply (blank codes, or nothing
+  /// to build for this pair). Does not persist anything — the caller
+  /// decides how (see [MainShell._maybeCreateStarterContent]).
+  static ({List<Deck> decks, List<FlashCard> cards})? buildStarterContent({
     required String targetCode,
     required String targetName,
     required String nativeCode,
-  }) async {
-    if (targetCode.isEmpty || nativeCode.isEmpty) return;
-
-    final starter = StarterContent.buildFor(
-      targetCode: targetCode,
-      targetName: targetName,
-      nativeCode: nativeCode,
-    );
-    if (starter.decks.isEmpty) return;
-
-    // Already present — nothing to do.
-    if (DeckStore.decks.any((d) => d.id == starter.decks.first.id)) return;
-
-    if (StarterContent.isUntouchedLibrary(DeckStore.decks)) {
-      // Nothing here but sample content for another language: swap it out.
-      DeckStore.decks.clear();
-      DeckStore.cards.clear();
-    }
-
-    DeckStore.decks.addAll(starter.decks);
-    DeckStore.cards.addAll(starter.cards);
-    DeckStore.revision.value++;
-    await _persistDeckStore();
+  }) {
+    if (targetCode.isEmpty || nativeCode.isEmpty) return null;
+    final starter = StarterContent.buildFor(targetCode: targetCode, targetName: targetName, nativeCode: nativeCode);
+    if (starter.decks.isEmpty) return null;
+    return starter;
   }
 
   static const List<(String name, String code)> languages = [

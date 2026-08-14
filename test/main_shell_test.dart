@@ -1,8 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:langigacards/app_controller.dart';
+import 'package:langigacards/data/api/deck_api.dart';
 import 'package:langigacards/data/api/user_api.dart';
+import 'package:langigacards/data/api/vocabgrid_deck_api.dart';
 import 'package:langigacards/data/api/vocabgrid_user_api.dart';
+import 'package:langigacards/data/deck_store.dart';
 import 'package:langigacards/screens/main_shell.dart';
 import 'package:langigacards/theme/app_theme.dart';
 
@@ -69,5 +72,28 @@ void main() {
     expect(find.text("Couldn't load your profile"), findsNothing);
     expect(find.text('Sarah Johnson'), findsNothing);
     expect(find.textContaining('Zara'), findsWidgets);
+  });
+
+  testWidgets('a zero-deck account gets real starter decks created via the API, exactly once', (tester) async {
+    await _seedRealProfile(userApi);
+    final fakeDeckApi = FakeDeckApi();
+    deckApi = fakeDeckApi;
+    DeckStore.api = fakeDeckApi;
+    DeckStore.decks.clear();
+    DeckStore.cards.clear();
+
+    await _pumpMainShell(tester);
+
+    final createdDecks = await fakeDeckApi.getDecks();
+    expect(createdDecks, isNotEmpty);
+    expect(createdDecks.map((d) => d.title), contains('French Basics'));
+
+    // A second MainShell mount for the same (now non-empty) account must not
+    // duplicate the starter decks.
+    await tester.pumpWidget(_wrap(const MainShell()));
+    await tester.pumpAndSettle();
+
+    final afterSecondMount = await fakeDeckApi.getDecks();
+    expect(afterSecondMount.length, createdDecks.length);
   });
 }

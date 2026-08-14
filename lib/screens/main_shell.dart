@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../data/api/vocabgrid_user_api.dart';
+import '../data/deck_store.dart';
 import '../data/mock_data.dart';
 import '../data/onboarding_store.dart';
 import '../data/pronunciation_service.dart';
@@ -41,12 +42,32 @@ class _MainShellState extends State<MainShell> {
   @override
   void initState() {
     super.initState();
+    DeckStore.onSyncDropped = _showSyncDroppedNotice;
+    _restoreAndFlushPendingWrites();
     if (widget.profile != null) {
       _profile = widget.profile;
       _applyProfile(widget.profile!);
     } else {
       _loadProfileAfterLogin();
     }
+  }
+
+  /// `DeckStore.writeQueue` only holds what's been enqueued in memory this
+  /// session — anything queued in a *previous* session (app closed with
+  /// pending offline writes never flushed) only exists on disk until
+  /// something calls `restore()`. This is that call: once, here, before the
+  /// first flush attempt each session, so a queue from a prior session
+  /// isn't silently orphaned.
+  Future<void> _restoreAndFlushPendingWrites() async {
+    await DeckStore.writeQueue.restore();
+    await DeckStore.flushPendingWrites();
+  }
+
+  void _showSyncDroppedNotice(int count) {
+    if (!mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text(count == 1 ? "1 change couldn't be saved and was discarded." : "$count changes couldn't be saved and were discarded.")),
+    );
   }
 
   Future<void> _loadProfileAfterLogin() async {
@@ -94,13 +115,38 @@ class _MainShellState extends State<MainShell> {
     // Cards are written in the language being learned, so that's the voice
     // the speaker buttons should use.
     PronunciationService.useLanguageCode(profile.targetLanguageCode);
-    // And the sample decks should be in that language too — they used to be
-    // French regardless of what the learner chose.
-    MockData.applyStarterContent(
+    _maybeCreateStarterContent(profile);
+  }
+
+  /// Creates the learner's starter decks for real via the API, but only
+  /// once — if they already have any decks (their own, or starter content
+  /// from a previous session on another device), nothing happens.
+  Future<void> _maybeCreateStarterContent(UserProfile profile) async {
+    await DeckStore.refresh();
+    if (!mounted || DeckStore.decks.isNotEmpty) return;
+
+    final starter = MockData.buildStarterContent(
       targetCode: profile.targetLanguageCode,
       targetName: profile.targetLanguage,
       nativeCode: profile.nativeLanguageCode,
     );
+    if (starter == null) return;
+
+    for (final deck in starter.decks) {
+      final created = await DeckStore.addDeck(title: deck.name, description: deck.description);
+      if (!created || !mounted) continue;
+      final realDeckId = DeckStore.decks.last.id;
+      for (final card in starter.cards.where((c) => c.deckId == deck.id)) {
+        await DeckStore.addCard(
+          deckId: realDeckId,
+          term: card.term,
+          translation: card.translation,
+          exampleSentence: card.exampleSentence,
+          imageUrl: card.imageUrl,
+        );
+        if (!mounted) return;
+      }
+    }
   }
 
   /// Profile edits can change the language pair, so re-apply when they do.
