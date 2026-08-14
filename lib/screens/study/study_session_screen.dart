@@ -32,6 +32,10 @@ class _StudySessionScreenState extends State<StudySessionScreen> {
   /// Null while the due-review queue is still loading from the API.
   List<FlashCard>? _queue;
 
+  /// Set when [_load] fails (e.g. the API call throws) so `build` can show a
+  /// retry view instead of spinning forever.
+  bool _loadFailed = false;
+
   int _index = 0;
   bool _exampleRevealed = false;
   bool _flipped = false;
@@ -54,9 +58,15 @@ class _StudySessionScreenState extends State<StudySessionScreen> {
   }
 
   Future<void> _load() async {
-    final queue = await DeckStore.dueReviews(deckId: widget.deck?.id, take: 50);
-    if (!mounted) return;
-    setState(() => _queue = queue);
+    setState(() => _loadFailed = false);
+    try {
+      final queue = await DeckStore.dueReviews(deckId: widget.deck?.id, take: 50);
+      if (!mounted) return;
+      setState(() => _queue = queue);
+    } catch (_) {
+      if (!mounted) return;
+      setState(() => _loadFailed = true);
+    }
   }
 
   FlashCard get _current => _queue![_index];
@@ -93,6 +103,9 @@ class _StudySessionScreenState extends State<StudySessionScreen> {
 
   @override
   Widget build(BuildContext context) {
+    if (_loadFailed) {
+      return _QueueLoadErrorView(onRetry: _load);
+    }
     final queue = _queue;
     if (queue == null) {
       return const Scaffold(body: Center(child: CircularProgressIndicator()));
@@ -221,6 +234,42 @@ class _NothingDueView extends StatelessWidget {
                   child: const Text('Back to Decks'),
                 ),
               ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+/// Shown when [_StudySessionScreenState._load] fails — e.g. the API call
+/// throws — so the screen never gets stuck on a spinner with no way out.
+class _QueueLoadErrorView extends StatelessWidget {
+  const _QueueLoadErrorView({required this.onRetry});
+
+  final VoidCallback onRetry;
+
+  @override
+  Widget build(BuildContext context) {
+    final colors = context.appColors;
+    return Scaffold(
+      body: SafeArea(
+        child: Padding(
+          padding: const EdgeInsets.all(AppSpacing.xxl),
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Icon(Icons.cloud_off_rounded, size: 56, color: colors.textMuted),
+              const SizedBox(height: AppSpacing.lg),
+              Text("Couldn't load your review queue", style: Theme.of(context).textTheme.headlineMedium, textAlign: TextAlign.center),
+              const SizedBox(height: AppSpacing.sm),
+              Text(
+                "Check your connection and try again.",
+                textAlign: TextAlign.center,
+                style: TextStyle(color: colors.textMuted),
+              ),
+              const SizedBox(height: AppSpacing.xxl),
+              SizedBox(width: double.infinity, child: PrimaryButton(label: 'Try Again', onPressed: onRetry)),
             ],
           ),
         ),

@@ -342,7 +342,7 @@ class DeckStore {
               term: r.term,
               translation: r.translation,
               exampleSentence: r.exampleSentence ?? '',
-              strength: deriveMemoryStrength(masteryLevel: r.masteryLevel, nextReviewDate: r.nextReviewDate),
+              strength: deriveMemoryStrength(masteryLevel: r.masteryLevel, reviewCount: r.reviewCount, nextReviewDate: r.nextReviewDate),
               reviewCount: r.reviewCount,
               imageUrl: r.imageUrl,
             ))
@@ -370,7 +370,11 @@ class DeckStore {
         SrsRating.easy => 5,
       };
       cards[index] = cards[index].copyWith(
-        strength: deriveMemoryStrength(masteryLevel: guessedMastery, nextReviewDate: DateTime.now().add(const Duration(days: 1))),
+        strength: deriveMemoryStrength(
+          masteryLevel: guessedMastery,
+          reviewCount: cards[index].reviewCount,
+          nextReviewDate: DateTime.now().add(const Duration(days: 1)),
+        ),
       );
     }
     writeQueue.enqueue(PendingWrite.submitReview(localId: wordId, rating: rating, durationSeconds: durationSeconds));
@@ -384,7 +388,7 @@ class DeckStore {
     final index = cards.indexWhere((c) => c.id == wordId);
     if (index == -1) return;
     cards[index] = cards[index].copyWith(
-      strength: deriveMemoryStrength(masteryLevel: result.masteryLevel, nextReviewDate: result.nextReviewDate),
+      strength: deriveMemoryStrength(masteryLevel: result.masteryLevel, reviewCount: result.reviewCount, nextReviewDate: result.nextReviewDate),
       reviewCount: result.reviewCount,
     );
   }

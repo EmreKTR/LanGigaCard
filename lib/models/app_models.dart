@@ -41,8 +41,8 @@ enum MemoryStrength { mastered, learning, reviewDue }
 /// Buckets a card's server-computed review state into the 3-way label the
 /// UI shows. Purely a display derivation — the real scheduling (interval
 /// days, ease factor) lives entirely server-side; the app never computes it.
-MemoryStrength deriveMemoryStrength({required int masteryLevel, required DateTime? nextReviewDate}) {
-  final neverReviewed = masteryLevel == 0 && nextReviewDate == null;
+MemoryStrength deriveMemoryStrength({required int masteryLevel, required int reviewCount, required DateTime? nextReviewDate}) {
+  final neverReviewed = masteryLevel == 0 && reviewCount == 0;
   if (neverReviewed || nextReviewDate == null || !nextReviewDate.isAfter(DateTime.now())) {
     return MemoryStrength.reviewDue;
   }
