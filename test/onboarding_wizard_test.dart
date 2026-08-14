@@ -1,9 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:langigacards/app_controller.dart';
-import 'package:langigacards/data/mock_data.dart';
+import 'package:langigacards/data/api/user_api.dart';
+import 'package:langigacards/data/api/vocabgrid_user_api.dart';
 import 'package:langigacards/data/onboarding_store.dart';
-import 'package:langigacards/models/app_models.dart';
+import 'package:langigacards/screens/main_shell.dart';
 import 'package:langigacards/screens/onboarding/app_language_select_screen.dart';
 import 'package:langigacards/screens/onboarding_setup/onboarding_setup_screen.dart';
 import 'package:langigacards/theme/app_theme.dart';
@@ -24,7 +25,10 @@ Future<void> _pumpWizard(WidgetTester tester) async {
 }
 
 void main() {
-  setUp(() => SharedPreferences.setMockInitialValues({}));
+  setUp(() {
+    SharedPreferences.setMockInitialValues({});
+    userApi = FakeUserApi();
+  });
 
   group('app language picker', () {
     testWidgets('Continue stays disabled until a language is chosen', (tester) async {
@@ -80,121 +84,95 @@ void main() {
           reason: '"English -> English" must not be selectable');
     });
 
-    testWidgets('the saved answers become the signed-in profile', (tester) async {
-      final data = OnboardingProfileData(
+    testWidgets('finishing the wizard saves to the API and reaches MainShell', (tester) async {
+      await _pumpWizard(tester);
+
+      // Native language.
+      await tester.tap(find.text('English'));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Continue'));
+      await tester.pumpAndSettle();
+
+      // Target language.
+      await tester.tap(find.text('French'));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Continue'));
+      await tester.pumpAndSettle();
+
+      // Target level.
+      await tester.tap(find.text('Beginner'));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Continue'));
+      await tester.pumpAndSettle();
+
+      // Learning purpose — pick whatever FakeUserApi's first seeded purpose is.
+      final firstPurpose = await userApi.getLearningPurposes();
+      await tester.tap(find.text(firstPurpose.first.name));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Continue'));
+      await tester.pumpAndSettle();
+
+      // Age range.
+      await tester.tap(find.text('25-34'));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Continue'));
+      await tester.pumpAndSettle();
+
+      // Topics — pick whatever FakeUserApi's first seeded category is.
+      final firstCategory = await userApi.getCategories();
+      await tester.tap(find.text(firstCategory.first.name));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Continue'));
+      await tester.pumpAndSettle();
+
+      // Daily goal.
+      await tester.tap(find.text('Regular'));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text("Let's Start Learning 🚀"));
+      await tester.pumpAndSettle();
+
+      expect(find.byType(MainShell), findsOneWidget);
+
+      final saved = await userApi.getProfile();
+      expect(saved.profile!.firstName, 'Ada');
+      expect(saved.profile!.nativeLanguage, 'English');
+      expect(saved.profile!.targetLanguage, 'French');
+      expect(await userApi.getMyCategoryIds(), [firstCategory.first.id]);
+      expect(await userApi.getMyLearningPurposeIds(), [firstPurpose.first.id]);
+    });
+  });
+
+  group('profileFromApiData', () {
+    test('builds a UserProfile from the API response plus resolved names', () {
+      const data = ProfileData(
         firstName: 'Ada',
         lastName: 'Lovelace',
         email: 'ada@example.com',
         nativeLanguage: 'Turkish',
-        nativeLanguageCode: 'TR',
         targetLanguage: 'German',
-        targetLanguageCode: 'DE',
-        targetLevel: 'Beginner',
-        learningPurposes: const ['Travel'],
-        ageRange: '25-34',
-        categories: const ['Food'],
+        nativeLanguageCode: 'tr',
+        targetLanguageCode: 'de',
+        targetProficiencyLevel: 'Beginner',
         dailyGoalMinutes: 20,
+        currentStreak: 3,
+        longestStreak: 5,
+        level: 2,
+        totalXp: 40,
+        isPremium: false,
       );
 
-      final profile = profileFromOnboarding(data, MockData.buildDemoProfile());
+      final profile = profileFromApiData(data, categoryNames: ['Food'], purposeNames: ['Travel']);
 
       expect(profile.name, 'Ada Lovelace');
       expect(profile.email, 'ada@example.com');
       expect(profile.nativeLanguage, 'Turkish');
       expect(profile.targetLanguage, 'German');
-      expect(profile.targetLanguageCode, 'DE');
+      expect(profile.targetLanguageCode, 'de');
       expect(profile.dailyGoalMinutes, 20);
       expect(profile.categories, ['Food']);
-      // Stats the wizard never asks about are carried over from the seed.
-      expect(profile.streakDays, MockData.buildDemoProfile().streakDays);
-      expect(profile.wordsLearned, MockData.buildDemoProfile().wordsLearned);
-    });
-
-    test('a brand-new signup starts with fresh stats, not the demo numbers', () {
-      const data = OnboardingProfileData(
-        firstName: 'Ada',
-        lastName: 'Lovelace',
-        email: 'ada@example.com',
-        nativeLanguage: 'Turkish',
-        nativeLanguageCode: 'TR',
-        targetLanguage: 'German',
-        targetLanguageCode: 'DE',
-        targetLevel: 'Beginner',
-        learningPurposes: ['Travel'],
-        ageRange: '25-34',
-        categories: ['Food'],
-        dailyGoalMinutes: 20,
-      );
-
-      // This mirrors what OnboardingSetupScreen._finish actually seeds with.
-      final profile = profileFromOnboarding(data, UserProfile.empty());
-
-      expect(profile.streakDays, 0);
-      expect(profile.level, 1);
-      expect(profile.wordsLearned, 0);
-      expect(profile.accuracyPercent, 0);
-      expect(profile.studyHours, 0);
-    });
-
-    test('a blank name falls back to the seed rather than showing an empty header', () {
-      const data = OnboardingProfileData(
-        firstName: '',
-        lastName: '',
-        email: '',
-        nativeLanguage: 'English',
-        nativeLanguageCode: 'GB',
-        targetLanguage: 'French',
-        targetLanguageCode: 'FR',
-        targetLevel: 'Beginner',
-        learningPurposes: [],
-        ageRange: '',
-        categories: [],
-        dailyGoalMinutes: 10,
-      );
-
-      final seed = MockData.buildDemoProfile();
-      final profile = profileFromOnboarding(data, seed);
-
-      expect(profile.name, seed.name);
-      expect(profile.email, seed.email);
-    });
-  });
-
-  group('OnboardingStore', () {
-    test('a saved profile round-trips', () async {
-      const data = OnboardingProfileData(
-        firstName: 'Ada',
-        lastName: 'Lovelace',
-        email: 'ada@example.com',
-        nativeLanguage: 'Turkish',
-        nativeLanguageCode: 'TR',
-        targetLanguage: 'German',
-        targetLanguageCode: 'DE',
-        targetLevel: 'Beginner',
-        learningPurposes: ['Travel', 'Business'],
-        ageRange: '25-34',
-        categories: ['Food', 'Travel'],
-        dailyGoalMinutes: 20,
-      );
-
-      await OnboardingStore.saveProfile(data);
-      final loaded = await OnboardingStore.loadProfile();
-
-      expect(loaded, isNotNull);
-      expect(loaded!.firstName, 'Ada');
-      expect(loaded.targetLanguage, 'German');
-      expect(loaded.learningPurposes, ['Travel', 'Business']);
-      expect(loaded.dailyGoalMinutes, 20);
-    });
-
-    test('corrupted storage degrades to "nothing saved"', () async {
-      SharedPreferences.setMockInitialValues({'onboarding_profile_v1': 'not json'});
-
-      expect(await OnboardingStore.loadProfile(), isNull);
-    });
-
-    test('nothing saved by default', () async {
-      expect(await OnboardingStore.loadProfile(), isNull);
+      expect(profile.learningPurposes, ['Travel']);
+      expect(profile.streakDays, 3);
+      expect(profile.level, 2);
     });
   });
 }

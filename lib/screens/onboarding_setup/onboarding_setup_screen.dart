@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import '../../data/api/user_api.dart';
 import '../../data/api/vocabgrid_user_api.dart';
 import '../../data/onboarding_store.dart';
-import '../../models/app_models.dart';
 import '../../theme/app_theme.dart';
 import '../../widgets/app_buttons.dart';
 import '../../widgets/language_search_list.dart';
