@@ -1,13 +1,16 @@
 import 'package:flutter/material.dart';
 import '../models/app_models.dart';
+import 'api/deck_api.dart';
+import 'api/vocabgrid_deck_api.dart';
 import 'library_storage.dart';
 import 'sqlite_library_storage.dart';
 
 /// The learner's decks and cards.
 ///
-/// Mutations write through to [storage], which is an interface precisely so
-/// the backing store can be swapped — JSON, SQLite, or (starting in a later
-/// task) the real API — without a single screen changing.
+/// Mutations write through to [api] first — decks/cards only change locally
+/// once the network call succeeds — and are cached via [storage], which is
+/// an interface precisely so the backing store can be swapped — JSON,
+/// SQLite, etc. — without a single screen changing.
 class DeckStore {
   DeckStore._();
 
@@ -21,6 +24,9 @@ class DeckStore {
 
   /// Where decks and cards are persisted. Replace in tests.
   static LibraryStorage storage = SqliteLibraryStorage();
+
+  /// Where decks/flashcards/reviews actually go. Replace in tests.
+  static DeckApi api = deckApi;
 
   /// Restores the saved library. Call once at startup, before the first
   /// screen reads [decks] or [cards].
@@ -41,6 +47,26 @@ class DeckStore {
       ..clear()
       ..addAll(snapshot.cards);
     revision.value++;
+  }
+
+  /// Fetches the learner's decks and cards from the API and replaces local
+  /// state with the result.
+  static Future<void> refresh() async {
+    final apiDecks = await api.getDecks();
+    final allCards = <FlashCard>[];
+    for (final deck in apiDecks) {
+      final apiCards = await api.getFlashcards(deck.id);
+      allCards.addAll(apiCards.map(_cardFromApi));
+    }
+
+    decks
+      ..clear()
+      ..addAll(apiDecks.map(_deckFromApi));
+    cards
+      ..clear()
+      ..addAll(allCards);
+    revision.value++;
+    await _persist();
   }
 
   static Future<void> _persist() async {
@@ -76,71 +102,100 @@ class DeckStore {
     return (mastered / total * 100).round();
   }
 
-  static void addDeck(Deck deck) {
-    decks.add(deck);
+  static Future<bool> addDeck({required String title, String? description}) async {
+    final result = await api.createDeck(title: title, description: description);
+    if (!result.isSuccess) return false;
+    decks.add(_deckFromApi(result.deck!));
     revision.value++;
-    _persist();
+    await _persist();
+    return true;
   }
 
-  static void updateDeck(Deck deck) {
-    final index = decks.indexWhere((d) => d.id == deck.id);
-    if (index == -1) return;
-    decks[index] = deck;
+  static Future<bool> updateDeck(String id, {required String title, String? description}) async {
+    final result = await api.updateDeck(id, title: title, description: description);
+    if (!result.isSuccess) return false;
+    final index = decks.indexWhere((d) => d.id == id);
+    if (index != -1) decks[index] = _deckFromApi(result.deck!);
     revision.value++;
-    _persist();
+    await _persist();
+    return true;
   }
 
-  static RemovedDeck? removeDeck(String deckId) {
-    final index = decks.indexWhere((d) => d.id == deckId);
-    if (index == -1) return null;
-
-    final deck = decks.removeAt(index);
-    final orphaned = cards.where((c) => c.deckId == deckId).toList();
+  static Future<bool> removeDeck(String deckId) async {
+    final ok = await api.deleteDeck(deckId);
+    if (!ok) return false;
+    decks.removeWhere((d) => d.id == deckId);
     cards.removeWhere((c) => c.deckId == deckId);
     revision.value++;
-    _persist();
-
-    return RemovedDeck(index: index, deck: deck, cards: orphaned);
+    await _persist();
+    return true;
   }
 
-  static void restoreDeck(RemovedDeck removed) {
-    decks.insert(removed.index.clamp(0, decks.length), removed.deck);
-    cards.addAll(removed.cards);
+  static Future<bool> addCard({
+    required String deckId,
+    required String term,
+    required String translation,
+    required String exampleSentence,
+    String? imageUrl,
+  }) async {
+    final result = await api.createFlashcard(
+      deckId: deckId,
+      term: term,
+      translation: translation,
+      exampleSentence: exampleSentence.isEmpty ? null : exampleSentence,
+      imageUrl: imageUrl,
+    );
+    if (!result.isSuccess) return false;
+    cards.add(_cardFromApi(result.card!));
+    _bumpDeckCardCount(deckId, 1);
     revision.value++;
-    _persist();
+    await _persist();
+    return true;
   }
 
-  static void addCard(FlashCard card) {
-    cards.add(card);
-    _bumpDeckCardCount(card.deckId, 1);
+  static Future<bool> updateCard({
+    required String wordId,
+    required String deckId,
+    required String term,
+    required String translation,
+    required String exampleSentence,
+    String? imageUrl,
+  }) async {
+    final result = await api.updateFlashcard(
+      wordId,
+      term: term,
+      translation: translation,
+      exampleSentence: exampleSentence.isEmpty ? null : exampleSentence,
+      imageUrl: imageUrl,
+    );
+    if (!result.isSuccess) return false;
+    final index = cards.indexWhere((c) => c.id == wordId);
+    if (index != -1) {
+      // Strength/reviewCount aren't part of a card edit — keep whatever the
+      // card already had, only the content fields change.
+      cards[index] = cards[index].copyWith(
+        term: result.card!.term,
+        translation: result.card!.translation,
+        exampleSentence: result.card!.exampleSentence ?? '',
+        imageUrl: result.card!.imageUrl,
+      );
+    }
     revision.value++;
-    _persist();
+    await _persist();
+    return true;
   }
 
-  static void restoreCard(int index, FlashCard card) {
-    cards.insert(index.clamp(0, cards.length), card);
-    _bumpDeckCardCount(card.deckId, 1);
-    revision.value++;
-    _persist();
-  }
-
-  static void updateCard(FlashCard card) {
-    final index = cards.indexWhere((c) => c.id == card.id);
-    if (index == -1) return;
-    cards[index] = card;
-    revision.value++;
-    _persist();
-  }
-
-  static int removeCard(String cardId) {
+  static Future<bool> removeCard(String cardId) async {
     final index = cards.indexWhere((c) => c.id == cardId);
-    if (index == -1) return -1;
+    if (index == -1) return false;
+    final ok = await api.deleteFlashcard(cardId);
+    if (!ok) return false;
     final deckId = cards[index].deckId;
     cards.removeAt(index);
     _bumpDeckCardCount(deckId, -1);
     revision.value++;
-    _persist();
-    return index;
+    await _persist();
+    return true;
   }
 
   static void _bumpDeckCardCount(String deckId, int delta) {
@@ -148,5 +203,34 @@ class DeckStore {
     if (deckIndex == -1) return;
     final deck = decks[deckIndex];
     decks[deckIndex] = deck.copyWith(cardCount: (deck.cardCount + delta).clamp(0, 1 << 30));
+  }
+
+  static Deck _deckFromApi(DeckData data) {
+    final existing = decks.where((d) => d.id == data.id).firstOrNull;
+    return Deck(
+      id: data.id,
+      name: data.title,
+      description: data.description.isEmpty ? 'No description yet' : data.description,
+      cardCount: data.cardCount,
+      dueCount: data.dueCount,
+      reviewCount: data.reviewsCount,
+      masteryPercent: data.masteryPercentage.round(),
+      emoji: existing?.emoji ?? '📘',
+      accentColor: existing?.accentColor ?? const Color(0xFF6C5CE7),
+    );
+  }
+
+  static FlashCard _cardFromApi(FlashcardData data) {
+    final existing = cards.where((c) => c.id == data.wordId).firstOrNull;
+    return FlashCard(
+      id: data.wordId,
+      deckId: data.deckId,
+      term: data.term,
+      translation: data.translation,
+      exampleSentence: data.exampleSentence ?? '',
+      strength: existing?.strength ?? MemoryStrength.reviewDue,
+      reviewCount: existing?.reviewCount ?? 0,
+      imageUrl: data.imageUrl,
+    );
   }
 }

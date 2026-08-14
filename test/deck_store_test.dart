@@ -1,5 +1,5 @@
-import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:langigacards/data/api/deck_api.dart';
 import 'package:langigacards/data/deck_store.dart';
 import 'package:langigacards/data/library_storage.dart';
 import 'package:langigacards/models/app_models.dart';
@@ -7,64 +7,52 @@ import 'package:langigacards/models/app_models.dart';
 void main() {
   setUp(() {
     DeckStore.storage = InMemoryLibraryStorage();
+    DeckStore.api = FakeDeckApi();
     DeckStore.decks.clear();
     DeckStore.cards.clear();
   });
 
-  test('addDeck adds to decks and bumps revision', () {
+  test('addDeck adds to decks and bumps revision', () async {
     final before = DeckStore.revision.value;
-    DeckStore.addDeck(const Deck(
-      id: 'd1', name: 'Test', description: 'desc', cardCount: 0, dueCount: 0,
-      reviewCount: 0, masteryPercent: 0, emoji: '📘', accentColor: Color(0xFF6C5CE7),
-    ));
+    final ok = await DeckStore.addDeck(title: 'Test', description: 'desc');
+    expect(ok, isTrue);
     expect(DeckStore.decks, hasLength(1));
     expect(DeckStore.revision.value, greaterThan(before));
   });
 
-  test('addCard adds to cards and bumps the deck cardCount via cardCountOf', () {
-    DeckStore.addDeck(const Deck(
-      id: 'd1', name: 'Test', description: 'desc', cardCount: 0, dueCount: 0,
-      reviewCount: 0, masteryPercent: 0, emoji: '📘', accentColor: Color(0xFF6C5CE7),
-    ));
-    DeckStore.addCard(const FlashCard(
-      id: 'c1', deckId: 'd1', term: 'a', translation: 'b', exampleSentence: '', strength: MemoryStrength.learning,
-    ));
-    expect(DeckStore.cardCountOf('d1'), 1);
+  test('addCard adds to cards and bumps the deck cardCount via cardCountOf', () async {
+    await DeckStore.addDeck(title: 'Test', description: 'desc');
+    final deckId = DeckStore.decks.first.id;
+
+    await DeckStore.addCard(deckId: deckId, term: 'a', translation: 'b', exampleSentence: '', imageUrl: null);
+
+    expect(DeckStore.cardCountOf(deckId), 1);
   });
 
-  test('removeDeck removes the deck and its cards, restoreDeck puts them back', () {
-    const deck = Deck(
-      id: 'd1', name: 'Test', description: 'desc', cardCount: 0, dueCount: 0,
-      reviewCount: 0, masteryPercent: 0, emoji: '📘', accentColor: Color(0xFF6C5CE7),
-    );
-    DeckStore.addDeck(deck);
-    DeckStore.addCard(const FlashCard(
-      id: 'c1', deckId: 'd1', term: 'a', translation: 'b', exampleSentence: '', strength: MemoryStrength.learning,
-    ));
+  test('removeDeck removes the deck and its cards', () async {
+    await DeckStore.addDeck(title: 'Test', description: 'desc');
+    final deckId = DeckStore.decks.first.id;
+    await DeckStore.addCard(deckId: deckId, term: 'a', translation: 'b', exampleSentence: '', imageUrl: null);
 
-    final removed = DeckStore.removeDeck('d1');
-    expect(removed, isNotNull);
+    final ok = await DeckStore.removeDeck(deckId);
+    expect(ok, isTrue);
     expect(DeckStore.decks, isEmpty);
     expect(DeckStore.cards, isEmpty);
-
-    DeckStore.restoreDeck(removed!);
-    expect(DeckStore.decks, hasLength(1));
-    expect(DeckStore.cards, hasLength(1));
   });
 
-  test('dueCountOf and studyableCountOf reflect card strength', () {
-    DeckStore.addDeck(const Deck(
-      id: 'd1', name: 'Test', description: 'desc', cardCount: 0, dueCount: 0,
-      reviewCount: 0, masteryPercent: 0, emoji: '📘', accentColor: Color(0xFF6C5CE7),
-    ));
-    DeckStore.addCard(const FlashCard(
-      id: 'c1', deckId: 'd1', term: 'a', translation: 'b', exampleSentence: '', strength: MemoryStrength.reviewDue,
-    ));
-    DeckStore.addCard(const FlashCard(
-      id: 'c2', deckId: 'd1', term: 'c', translation: 'd', exampleSentence: '', strength: MemoryStrength.mastered,
-    ));
+  test('dueCountOf and studyableCountOf reflect card strength', () async {
+    await DeckStore.addDeck(title: 'Test', description: 'desc');
+    final deckId = DeckStore.decks.first.id;
+    await DeckStore.addCard(deckId: deckId, term: 'a', translation: 'b', exampleSentence: '', imageUrl: null);
+    await DeckStore.addCard(deckId: deckId, term: 'c', translation: 'd', exampleSentence: '', imageUrl: null);
 
-    expect(DeckStore.dueCountOf('d1'), 1);
-    expect(DeckStore.studyableCountOf('d1'), 1);
+    // Cards created via addCard always start out reviewDue (Task 4 has no
+    // API path to a different strength yet — that's Task 7's job), so mark
+    // the second one mastered directly to exercise the strength filters.
+    final index = DeckStore.cards.indexWhere((c) => c.term == 'c');
+    DeckStore.cards[index] = DeckStore.cards[index].copyWith(strength: MemoryStrength.mastered);
+
+    expect(DeckStore.dueCountOf(deckId), 1);
+    expect(DeckStore.studyableCountOf(deckId), 1);
   });
 }
