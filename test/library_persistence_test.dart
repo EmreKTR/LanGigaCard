@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:langigacards/data/library_storage.dart';
+import 'package:langigacards/data/deck_store.dart';
 import 'package:langigacards/data/mock_data.dart';
 import 'package:langigacards/models/app_models.dart';
 
@@ -29,9 +30,9 @@ const _card = FlashCard(
 
 /// Simulates closing and reopening the app against the same storage.
 Future<void> _relaunch(LibraryStorage storage) async {
-  MockData.storage = storage;
+  DeckStore.storage = storage;
   await MockData.seedSampleLibrary();
-  await MockData.load();
+  await DeckStore.load();
 }
 
 void main() {
@@ -39,7 +40,7 @@ void main() {
 
   setUp(() async {
     storage = InMemoryLibraryStorage();
-    MockData.storage = storage;
+    DeckStore.storage = storage;
     await MockData.seedSampleLibrary();
   });
 
@@ -82,8 +83,8 @@ void main() {
 
   group('library persistence', () {
     test('a card added in one session is there in the next', () async {
-      MockData.addDeck(_deck);
-      MockData.addCard(_card);
+      DeckStore.addDeck(_deck);
+      DeckStore.addCard(_card);
       // Let the fire-and-forget writes land.
       await Future<void>.delayed(Duration.zero);
 
@@ -94,23 +95,23 @@ void main() {
     });
 
     test('reopening the app restores the saved library, not the samples', () async {
-      MockData.addDeck(_deck);
-      MockData.addCard(_card);
+      DeckStore.addDeck(_deck);
+      DeckStore.addCard(_card);
       await Future<void>.delayed(Duration.zero);
       final savedSnapshot = await storage.load();
 
       // A fresh launch against storage that already holds the snapshot.
       final freshStorage = InMemoryLibraryStorage();
       await freshStorage.save(savedSnapshot!);
-      MockData.storage = freshStorage;
-      await MockData.load();
+      DeckStore.storage = freshStorage;
+      await DeckStore.load();
 
-      expect(MockData.decks.any((d) => d.id == 'persist_deck'), isTrue);
-      expect(MockData.cards.any((c) => c.id == 'persist_card'), isTrue);
+      expect(DeckStore.decks.any((d) => d.id == 'persist_deck'), isTrue);
+      expect(DeckStore.cards.any((c) => c.id == 'persist_card'), isTrue);
     });
 
     test('a deletion survives a restart too', () async {
-      MockData.removeCard('bonjour');
+      DeckStore.removeCard('bonjour');
       await Future<void>.delayed(Duration.zero);
 
       final saved = await storage.load();
@@ -118,8 +119,8 @@ void main() {
     });
 
     test('an edit survives a restart', () async {
-      MockData.updateCard(
-        MockData.cards.firstWhere((c) => c.id == 'merci').copyWith(translation: 'Cheers'),
+      DeckStore.updateCard(
+        DeckStore.cards.firstWhere((c) => c.id == 'merci').copyWith(translation: 'Cheers'),
       );
       await Future<void>.delayed(Duration.zero);
 
@@ -129,41 +130,41 @@ void main() {
 
     test('a first launch starts empty, waiting for the learner\'s language', () async {
       final emptyStorage = InMemoryLibraryStorage();
-      MockData.storage = emptyStorage;
-      await MockData.clearLibrary();
-      await MockData.load();
+      DeckStore.storage = emptyStorage;
+      await DeckStore.clearLibrary();
+      await DeckStore.load();
 
       // Nothing is seeded until applyStarterContent knows which language to
       // seed — the app used to hand everyone French decks here.
-      expect(MockData.decks, isEmpty);
-      expect(MockData.cards, isEmpty);
+      expect(DeckStore.decks, isEmpty);
+      expect(DeckStore.cards, isEmpty);
     });
 
     test('unreadable storage leaves the app usable rather than crashing', () async {
-      MockData.storage = _BrokenStorage();
+      DeckStore.storage = _BrokenStorage();
 
       // The point: this must not throw.
-      await MockData.load();
+      await DeckStore.load();
 
-      expect(MockData.decks, isNotEmpty, reason: 'whatever was already loaded stays');
+      expect(DeckStore.decks, isNotEmpty, reason: 'whatever was already loaded stays');
     });
 
     test('a storage failure never breaks the edit in progress', () async {
-      MockData.storage = _BrokenStorage();
+      DeckStore.storage = _BrokenStorage();
 
       // The point: this must not throw.
-      MockData.addDeck(_deck);
+      DeckStore.addDeck(_deck);
       await Future<void>.delayed(Duration.zero);
 
-      expect(MockData.decks.any((d) => d.id == 'persist_deck'), isTrue);
+      expect(DeckStore.decks.any((d) => d.id == 'persist_deck'), isTrue);
     });
 
     test('resetting restores the sample library', () async {
-      MockData.addDeck(_deck);
+      DeckStore.addDeck(_deck);
       await _relaunch(storage);
 
-      expect(MockData.decks.any((d) => d.id == 'persist_deck'), isFalse);
-      expect(MockData.decks, isNotEmpty);
+      expect(DeckStore.decks.any((d) => d.id == 'persist_deck'), isFalse);
+      expect(DeckStore.decks, isNotEmpty);
     });
   });
 }

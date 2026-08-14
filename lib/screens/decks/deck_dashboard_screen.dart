@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import '../../data/mock_data.dart';
+import '../../data/deck_store.dart';
 import '../../models/app_models.dart';
 import '../../theme/app_theme.dart';
 import '../../widgets/app_buttons.dart';
@@ -44,7 +44,7 @@ class _DeckDashboardScreenState extends State<DeckDashboardScreen> {
 
   Future<void> _deleteDeck(Deck deck) async {
     final colors = context.appColors;
-    final cardCount = MockData.cards.where((c) => c.deckId == deck.id).length;
+    final cardCount = DeckStore.cards.where((c) => c.deckId == deck.id).length;
 
     final confirmed = await showDialog<bool>(
       context: context,
@@ -66,13 +66,13 @@ class _DeckDashboardScreenState extends State<DeckDashboardScreen> {
     );
     if (confirmed != true) return;
 
-    final removed = MockData.removeDeck(deck.id);
+    final removed = DeckStore.removeDeck(deck.id);
     if (removed == null || !mounted) return;
 
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
         content: Text('"${deck.name}" deleted'),
-        action: SnackBarAction(label: 'Undo', onPressed: () => MockData.restoreDeck(removed)),
+        action: SnackBarAction(label: 'Undo', onPressed: () => DeckStore.restoreDeck(removed)),
       ),
     );
   }
@@ -96,7 +96,7 @@ class _DeckDashboardScreenState extends State<DeckDashboardScreen> {
       body: SafeArea(
         top: false,
         child: ValueListenableBuilder<int>(
-          valueListenable: MockData.revision,
+          valueListenable: DeckStore.revision,
           builder: (context, _, __) => Refreshable(child: _buildDeckList(context)),
         ),
       ),
@@ -105,15 +105,15 @@ class _DeckDashboardScreenState extends State<DeckDashboardScreen> {
 
   Widget _buildDeckList(BuildContext context) {
     final colors = context.appColors;
-    final decks = MockData.decks.where((d) => d.name.toLowerCase().contains(_query.toLowerCase())).toList();
-    final totalDue = MockData.decks.fold<int>(0, (sum, d) => sum + MockData.dueCountOf(d.id));
+    final decks = DeckStore.decks.where((d) => d.name.toLowerCase().contains(_query.toLowerCase())).toList();
+    final totalDue = DeckStore.decks.fold<int>(0, (sum, d) => sum + DeckStore.dueCountOf(d.id));
 
     return ListView(
       // Keeps pull-to-refresh usable even when the list is short.
       physics: const AlwaysScrollableScrollPhysics(),
       padding: const EdgeInsets.all(AppSpacing.lg),
       children: [
-        Text('${MockData.decks.length} decks · $totalDue cards due today', style: TextStyle(color: colors.textMuted, fontSize: 13)),
+        Text('${DeckStore.decks.length} decks · $totalDue cards due today', style: TextStyle(color: colors.textMuted, fontSize: 13)),
         const SizedBox(height: AppSpacing.lg),
         InkWell(
           borderRadius: BorderRadius.circular(AppRadius.lg),
@@ -224,10 +224,10 @@ class _DeckCard extends StatelessWidget {
     final colors = context.appColors;
     // Counted from the cards themselves rather than the deck's stored
     // figures, which drifted as cards were added and rated.
-    final cardCount = MockData.cardCountOf(deck.id);
-    final dueCount = MockData.dueCountOf(deck.id);
-    final studyable = MockData.studyableCountOf(deck.id);
-    final mastery = MockData.masteryPercentOf(deck.id);
+    final cardCount = DeckStore.cardCountOf(deck.id);
+    final dueCount = DeckStore.dueCountOf(deck.id);
+    final studyable = DeckStore.studyableCountOf(deck.id);
+    final mastery = DeckStore.masteryPercentOf(deck.id);
 
     return Container(
       margin: const EdgeInsets.only(bottom: AppSpacing.lg),
@@ -401,12 +401,12 @@ class _DeckEditorSheetState extends State<_DeckEditorSheet> {
     final description = _descController.text.trim();
 
     if (_isEditing) {
-      MockData.updateDeck(widget.editing!.copyWith(
+      DeckStore.updateDeck(widget.editing!.copyWith(
         name: title,
         description: description.isEmpty ? _noDescription : description,
       ));
     } else {
-      MockData.addDeck(Deck(
+      DeckStore.addDeck(Deck(
         id: 'deck_${DateTime.now().microsecondsSinceEpoch}',
         name: title,
         description: description.isEmpty ? _noDescription : description,

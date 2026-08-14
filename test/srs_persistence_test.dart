@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:langigacards/data/library_storage.dart';
-import 'package:langigacards/data/mock_data.dart';
+import 'package:langigacards/data/deck_store.dart';
 import 'package:langigacards/data/srs_store.dart';
 import 'package:langigacards/models/app_models.dart';
 import 'package:langigacards/models/srs_state.dart';
@@ -33,9 +33,9 @@ FlashCard _card(String id, MemoryStrength strength) => FlashCard(
 Widget _wrap(Widget child) => MaterialApp(theme: AppTheme.dark(AccentColor.purple), home: child);
 
 void _cleanUp() {
-  MockData.cards.removeWhere((c) => c.deckId == _deck.id);
-  MockData.decks.removeWhere((d) => d.id == _deck.id);
-  MockData.revision.value++;
+  DeckStore.cards.removeWhere((c) => c.deckId == _deck.id);
+  DeckStore.decks.removeWhere((d) => d.id == _deck.id);
+  DeckStore.revision.value++;
 }
 
 /// A stored schedule due [days] from now, as the app would write it.
@@ -47,12 +47,12 @@ String _scheduleJson(String cardId, int days) {
 
 void main() {
   // Keep the library in memory: these tests exercise data rules, not disk.
-  setUp(() => MockData.storage = InMemoryLibraryStorage());
+  setUp(() => DeckStore.storage = InMemoryLibraryStorage());
 
   setUp(() {
     SharedPreferences.setMockInitialValues({});
     _cleanUp();
-    MockData.addDeck(_deck);
+    DeckStore.addDeck(_deck);
   });
 
   tearDown(_cleanUp);
@@ -120,7 +120,7 @@ void main() {
 
   group('study session', () {
     testWidgets('rating a card writes its next review date', (tester) async {
-      MockData.addCard(_card('persist_me', MemoryStrength.reviewDue));
+      DeckStore.addCard(_card('persist_me', MemoryStrength.reviewDue));
 
       await tester.pumpWidget(_wrap(const StudySessionScreen(deck: _deck)));
       await tester.pumpAndSettle();
@@ -138,7 +138,7 @@ void main() {
     });
 
     testWidgets('a card rated into the future is not queued again', (tester) async {
-      MockData.addCard(_card('done_for_now', MemoryStrength.reviewDue));
+      DeckStore.addCard(_card('done_for_now', MemoryStrength.reviewDue));
       SharedPreferences.setMockInitialValues({'srs_schedules_v2': _scheduleJson('done_for_now', 5)});
 
       await tester.pumpWidget(_wrap(const StudySessionScreen(deck: _deck)));
@@ -148,7 +148,7 @@ void main() {
     });
 
     testWidgets('a card past its stored date comes back even if seeded as mastered', (tester) async {
-      MockData.addCard(_card('lapsed', MemoryStrength.mastered));
+      DeckStore.addCard(_card('lapsed', MemoryStrength.mastered));
       SharedPreferences.setMockInitialValues({'srs_schedules_v2': _scheduleJson('lapsed', -2)});
 
       await tester.pumpWidget(_wrap(const StudySessionScreen(deck: _deck)));
@@ -159,7 +159,7 @@ void main() {
     });
 
     testWidgets('the rating buttons advertise the real next interval', (tester) async {
-      MockData.addCard(_card('preview_me', MemoryStrength.reviewDue));
+      DeckStore.addCard(_card('preview_me', MemoryStrength.reviewDue));
 
       await tester.pumpWidget(_wrap(const StudySessionScreen(deck: _deck)));
       await tester.pumpAndSettle();

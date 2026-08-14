@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import '../../data/mock_data.dart';
+import '../../data/deck_store.dart';
 import '../../models/app_models.dart';
 import '../../theme/app_theme.dart';
 import '../../widgets/app_buttons.dart';
@@ -22,7 +22,7 @@ class _AddWordScreenState extends State<AddWordScreen> {
   late final _backController = TextEditingController(text: widget.editingCard?.translation);
   late final _exampleController = TextEditingController(text: widget.editingCard?.exampleSentence);
   late final _imageUrlController = TextEditingController(text: widget.editingCard?.imageUrl);
-  late String _deckId = widget.editingCard?.deckId ?? widget.initialDeckId ?? MockData.decks.first.id;
+  late String _deckId = widget.editingCard?.deckId ?? widget.initialDeckId ?? DeckStore.decks.first.id;
 
   bool get _isEditing => widget.editingCard != null;
 
@@ -54,7 +54,7 @@ class _AddWordScreenState extends State<AddWordScreen> {
 
   void _submit() {
     if (_isEditing) {
-      MockData.updateCard(
+      DeckStore.updateCard(
         FlashCard(
           id: widget.editingCard!.id,
           deckId: _deckId,
@@ -67,7 +67,7 @@ class _AddWordScreenState extends State<AddWordScreen> {
         ),
       );
     } else {
-      MockData.addCard(
+      DeckStore.addCard(
         FlashCard(
           id: 'card_${DateTime.now().microsecondsSinceEpoch}',
           deckId: _deckId,
@@ -101,7 +101,7 @@ class _AddWordScreenState extends State<AddWordScreen> {
               const SizedBox(height: AppSpacing.sm),
               DropdownButtonFormField<String>(
                 initialValue: _deckId,
-                items: [for (final d in MockData.decks) DropdownMenuItem(value: d.id, child: Text(d.name))],
+                items: [for (final d in DeckStore.decks) DropdownMenuItem(value: d.id, child: Text(d.name))],
                 onChanged: (v) => setState(() => _deckId = v ?? _deckId),
               ),
               const SizedBox(height: AppSpacing.lg),

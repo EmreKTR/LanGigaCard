@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import '../../data/mock_data.dart';
+import '../../data/deck_store.dart';
 import '../../models/app_models.dart';
 import '../../theme/app_theme.dart';
 import '../../widgets/progress_ring.dart';
@@ -41,7 +41,7 @@ class HomeScreen extends StatelessWidget {
     return Scaffold(
       body: SafeArea(
         child: ValueListenableBuilder<int>(
-          valueListenable: MockData.revision,
+          valueListenable: DeckStore.revision,
           builder: (context, _, __) => Refreshable(child: _buildContent(context)),
         ),
       ),
@@ -49,12 +49,12 @@ class HomeScreen extends StatelessWidget {
   }
 
   Widget _buildContent(BuildContext context) {
-    final recentCards = MockData.cards.take(5).toList();
+    final recentCards = DeckStore.cards.take(5).toList();
     // Empty when the signed-in account hasn't completed onboarding yet (no
     // language pair selected server-side, so applyStarterContent had
     // nothing to seed) — must be handled, not assumed non-empty, now that a
     // real account with no local demo-fallback can reach this screen.
-    final deck = MockData.decks.isEmpty ? null : MockData.decks.first;
+    final deck = DeckStore.decks.isEmpty ? null : DeckStore.decks.first;
 
     return CustomScrollView(
       physics: const AlwaysScrollableScrollPhysics(),
@@ -198,7 +198,7 @@ class _GradientHeader extends StatelessWidget {
                             spacing: AppSpacing.sm,
                             runSpacing: 4,
                             children: [
-                              _headerChip('${MockData.dueCountOf(deck!.id)} cards due'),
+                              _headerChip('${DeckStore.dueCountOf(deck!.id)} cards due'),
                               _headerChip('🔥 ${profile.dailyGoalMinutes} min goal'),
                             ],
                           ),

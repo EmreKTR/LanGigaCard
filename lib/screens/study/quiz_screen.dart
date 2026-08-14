@@ -1,7 +1,7 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import '../../data/mock_data.dart';
+import '../../data/deck_store.dart';
 import '../../data/quiz_builder.dart';
 import '../../models/app_models.dart';
 import '../../theme/app_theme.dart';
@@ -46,8 +46,8 @@ class _QuizScreenState extends State<QuizScreen> {
   List<QuizQuestion> _generate() {
     final deck = widget.deck;
     final pool = deck == null
-        ? MockData.cards
-        : MockData.cards.where((c) => c.deckId == deck.id).toList();
+        ? DeckStore.cards
+        : DeckStore.cards.where((c) => c.deckId == deck.id).toList();
     return buildQuiz(pool);
   }
 

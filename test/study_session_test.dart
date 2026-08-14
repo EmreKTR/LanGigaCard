@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:langigacards/data/library_storage.dart';
-import 'package:langigacards/data/mock_data.dart';
+import 'package:langigacards/data/deck_store.dart';
 import 'package:langigacards/models/app_models.dart';
 import 'package:langigacards/screens/study/study_session_screen.dart';
 import 'package:langigacards/theme/app_theme.dart';
@@ -31,25 +31,25 @@ FlashCard _card(String id, MemoryStrength strength) => FlashCard(
 Widget _wrap(Widget child) => MaterialApp(theme: AppTheme.dark(AccentColor.purple), home: child);
 
 void _cleanUp() {
-  MockData.cards.removeWhere((c) => c.deckId == _testDeck.id);
-  MockData.decks.removeWhere((d) => d.id == _testDeck.id);
-  MockData.revision.value++;
+  DeckStore.cards.removeWhere((c) => c.deckId == _testDeck.id);
+  DeckStore.decks.removeWhere((d) => d.id == _testDeck.id);
+  DeckStore.revision.value++;
 }
 
 void main() {
   // Keep the library in memory: these tests exercise data rules, not disk.
-  setUp(() => MockData.storage = InMemoryLibraryStorage());
+  setUp(() => DeckStore.storage = InMemoryLibraryStorage());
 
   setUp(() {
     SharedPreferences.setMockInitialValues({});
     _cleanUp();
-    MockData.addDeck(_testDeck);
+    DeckStore.addDeck(_testDeck);
   });
 
   tearDown(_cleanUp);
 
   testWidgets('a deck with nothing left to review shows an empty state, not a fake summary', (tester) async {
-    MockData.addCard(_card('mastered_only', MemoryStrength.mastered));
+    DeckStore.addCard(_card('mastered_only', MemoryStrength.mastered));
 
     await tester.pumpWidget(_wrap(const StudySessionScreen(deck: _testDeck)));
     await tester.pumpAndSettle();
@@ -61,8 +61,8 @@ void main() {
   });
 
   testWidgets('studying a deck skips mastered cards', (tester) async {
-    MockData.addCard(_card('done', MemoryStrength.mastered));
-    MockData.addCard(_card('todo', MemoryStrength.reviewDue));
+    DeckStore.addCard(_card('done', MemoryStrength.mastered));
+    DeckStore.addCard(_card('todo', MemoryStrength.reviewDue));
 
     await tester.pumpWidget(_wrap(const StudySessionScreen(deck: _testDeck)));
     await tester.pumpAndSettle();
@@ -74,8 +74,8 @@ void main() {
   });
 
   testWidgets('the queue leads with overdue cards', (tester) async {
-    MockData.addCard(_card('learning_one', MemoryStrength.learning));
-    MockData.addCard(_card('overdue_one', MemoryStrength.reviewDue));
+    DeckStore.addCard(_card('learning_one', MemoryStrength.learning));
+    DeckStore.addCard(_card('overdue_one', MemoryStrength.reviewDue));
 
     await tester.pumpWidget(_wrap(const StudySessionScreen(deck: _testDeck)));
     await tester.pumpAndSettle();
@@ -85,8 +85,8 @@ void main() {
   });
 
   testWidgets('the overdue banner reflects the real queue instead of a hardcoded 4 days', (tester) async {
-    MockData.addCard(_card('overdue_a', MemoryStrength.reviewDue));
-    MockData.addCard(_card('overdue_b', MemoryStrength.reviewDue));
+    DeckStore.addCard(_card('overdue_a', MemoryStrength.reviewDue));
+    DeckStore.addCard(_card('overdue_b', MemoryStrength.reviewDue));
 
     await tester.pumpWidget(_wrap(const StudySessionScreen(deck: _testDeck)));
     await tester.pumpAndSettle();
@@ -96,7 +96,7 @@ void main() {
   });
 
   testWidgets('no overdue banner when only learning cards are queued', (tester) async {
-    MockData.addCard(_card('learning_only', MemoryStrength.learning));
+    DeckStore.addCard(_card('learning_only', MemoryStrength.learning));
 
     await tester.pumpWidget(_wrap(const StudySessionScreen(deck: _testDeck)));
     await tester.pumpAndSettle();
@@ -105,7 +105,7 @@ void main() {
   });
 
   testWidgets('rating a card updates its stored strength', (tester) async {
-    MockData.addCard(_card('rate_me', MemoryStrength.reviewDue));
+    DeckStore.addCard(_card('rate_me', MemoryStrength.reviewDue));
 
     await tester.pumpWidget(_wrap(const StudySessionScreen(deck: _testDeck)));
     await tester.pumpAndSettle();
@@ -116,14 +116,14 @@ void main() {
     await tester.tap(find.text('Easy'));
     await tester.pumpAndSettle();
 
-    final rated = MockData.cards.firstWhere((c) => c.id == 'rate_me');
+    final rated = DeckStore.cards.firstWhere((c) => c.id == 'rate_me');
     expect(rated.strength, MemoryStrength.mastered,
         reason: 'a session must actually change the card, not just tally counts');
   });
 
   testWidgets('swiping past a revealed card skips it without rating', (tester) async {
-    MockData.addCard(_card('skip_me', MemoryStrength.reviewDue));
-    MockData.addCard(_card('second', MemoryStrength.reviewDue));
+    DeckStore.addCard(_card('skip_me', MemoryStrength.reviewDue));
+    DeckStore.addCard(_card('second', MemoryStrength.reviewDue));
 
     await tester.pumpWidget(_wrap(const StudySessionScreen(deck: _testDeck)));
     await tester.pumpAndSettle();
@@ -137,11 +137,11 @@ void main() {
     // The next card is shown, but the skipped one is untouched — a swipe
     // must never write a rating the way the 4 buttons below the card do.
     expect(find.text('term-second'), findsOneWidget);
-    expect(MockData.cards.firstWhere((c) => c.id == 'skip_me').strength, MemoryStrength.reviewDue);
+    expect(DeckStore.cards.firstWhere((c) => c.id == 'skip_me').strength, MemoryStrength.reviewDue);
   });
 
   testWidgets('rating "Again" pushes a card back to Review Due', (tester) async {
-    MockData.addCard(_card('forgot', MemoryStrength.learning));
+    DeckStore.addCard(_card('forgot', MemoryStrength.learning));
 
     await tester.pumpWidget(_wrap(const StudySessionScreen(deck: _testDeck)));
     await tester.pumpAndSettle();
@@ -151,11 +151,11 @@ void main() {
     await tester.tap(find.text('Again'));
     await tester.pumpAndSettle();
 
-    expect(MockData.cards.firstWhere((c) => c.id == 'forgot').strength, MemoryStrength.reviewDue);
+    expect(DeckStore.cards.firstWhere((c) => c.id == 'forgot').strength, MemoryStrength.reviewDue);
   });
 
   testWidgets('finishing every card lands on the results summary', (tester) async {
-    MockData.addCard(_card('only', MemoryStrength.learning));
+    DeckStore.addCard(_card('only', MemoryStrength.learning));
 
     await tester.pumpWidget(_wrap(const StudySessionScreen(deck: _testDeck)));
     await tester.pumpAndSettle();

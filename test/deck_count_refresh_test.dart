@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:langigacards/data/library_storage.dart';
+import 'package:langigacards/data/deck_store.dart';
 import 'package:langigacards/data/mock_data.dart';
 import 'package:langigacards/models/app_models.dart';
 import 'package:langigacards/screens/decks/deck_dashboard_screen.dart';
@@ -13,7 +14,7 @@ import 'package:langigacards/theme/app_theme.dart';
 void main() {
   // Keep the library in memory: these tests exercise data rules, not disk.
   setUp(() async {
-    MockData.storage = InMemoryLibraryStorage();
+    DeckStore.storage = InMemoryLibraryStorage();
     // The app now starts empty and seeds by language; these tests assert
     // against the fixed sample library, so install it explicitly.
     await MockData.seedSampleLibrary();
@@ -22,20 +23,20 @@ void main() {
   testWidgets('deck card count refreshes when a card is added elsewhere', (tester) async {
     // Counted from the cards themselves — the tile no longer prints the
     // deck's stored cardCount, which drifted from the real library.
-    final startingCount = MockData.cardCountOf('french_basics');
+    final startingCount = DeckStore.cardCountOf('french_basics');
 
     await tester.pumpWidget(
       MaterialApp(
         theme: AppTheme.dark(AccentColor.purple),
         // `const` on purpose: this is exactly what MainShell does, and it is
-        // what made the screen skip rebuilding before MockData.revision.
+        // what made the screen skip rebuilding before DeckStore.revision.
         home: const DeckDashboardScreen(),
       ),
     );
 
     expect(find.text('$startingCount cards'), findsOneWidget);
 
-    MockData.addCard(const FlashCard(
+    DeckStore.addCard(const FlashCard(
       id: 'refresh_probe',
       deckId: 'french_basics',
       term: 'Chat',
@@ -49,7 +50,7 @@ void main() {
         reason: 'the deck tag must pick up the new card without a manual refresh');
     expect(find.text('$startingCount cards'), findsNothing);
 
-    MockData.removeCard('refresh_probe');
+    DeckStore.removeCard('refresh_probe');
     await tester.pump();
 
     expect(find.text('$startingCount cards'), findsOneWidget);
@@ -65,11 +66,11 @@ void main() {
 
     // The deck cards themselves scroll off the test viewport, so assert on the
     // always-visible summary line at the top instead.
-    final deckCount = MockData.decks.length;
-    final totalDue = MockData.decks.fold<int>(0, (sum, d) => sum + MockData.dueCountOf(d.id));
+    final deckCount = DeckStore.decks.length;
+    final totalDue = DeckStore.decks.fold<int>(0, (sum, d) => sum + DeckStore.dueCountOf(d.id));
     expect(find.text('$deckCount decks · $totalDue cards due today'), findsOneWidget);
 
-    MockData.addDeck(const Deck(
+    DeckStore.addDeck(const Deck(
       id: 'kitchen_vocab',
       name: 'Kitchen Vocab',
       description: 'Words you need to cook',
@@ -89,8 +90,8 @@ void main() {
     await tester.scrollUntilVisible(find.text('Kitchen Vocab'), 300, scrollable: find.byType(Scrollable).first);
     expect(find.text('Kitchen Vocab'), findsOneWidget);
 
-    MockData.decks.removeWhere((d) => d.id == 'kitchen_vocab');
-    MockData.revision.value++;
+    DeckStore.decks.removeWhere((d) => d.id == 'kitchen_vocab');
+    DeckStore.revision.value++;
     await tester.pump();
   });
 }

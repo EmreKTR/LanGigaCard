@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import '../../data/mock_data.dart';
+import '../../data/deck_store.dart';
 import '../../data/pronunciation_service.dart';
 import '../../data/review_log.dart';
 import '../../data/srs_scheduler.dart';
@@ -61,7 +61,7 @@ class _StudySessionScreenState extends State<StudySessionScreen> {
 
   List<FlashCard> _buildQueue(Map<String, SrsCardState> schedules, DateTime now) {
     final deck = widget.deck;
-    final pool = MockData.cards.where((c) {
+    final pool = DeckStore.cards.where((c) {
       final inDeck = deck == null || c.deckId == deck.id;
       return inDeck && SrsStore.isDue(c, schedules, now);
     }).toList();
@@ -108,7 +108,7 @@ class _StudySessionScreenState extends State<StudySessionScreen> {
     // immediately, and the SM-2 schedule is written to disk so the queue
     // still respects it after a restart.
     final now = DateTime.now();
-    MockData.updateCard(card.copyWith(strength: _strengthAfter(card.strength, rating)));
+    DeckStore.updateCard(card.copyWith(strength: _strengthAfter(card.strength, rating)));
     SrsStore.recordReview(card.id, rating, now);
     // Logged separately from the schedule: the schedule says when a card
     // returns, the log says what the learner has been doing, which is what

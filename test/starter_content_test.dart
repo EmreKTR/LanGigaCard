@@ -1,14 +1,15 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:langigacards/data/library_storage.dart';
+import 'package:langigacards/data/deck_store.dart';
 import 'package:langigacards/data/mock_data.dart';
 import 'package:langigacards/data/starter_content.dart';
 import 'package:langigacards/models/app_models.dart';
 
 void main() {
   setUp(() async {
-    MockData.storage = InMemoryLibraryStorage();
-    await MockData.clearLibrary();
+    DeckStore.storage = InMemoryLibraryStorage();
+    await DeckStore.clearLibrary();
   });
 
   group('starter content follows the language pair', () {
@@ -89,57 +90,57 @@ void main() {
     test('an empty library is filled in the chosen language', () async {
       await MockData.applyStarterContent(targetCode: 'GB', targetName: 'English', nativeCode: 'TR');
 
-      expect(MockData.decks, isNotEmpty);
-      expect(MockData.decks.first.name, 'English Basics');
-      expect(MockData.cards.any((c) => c.term == 'Hello'), isTrue);
+      expect(DeckStore.decks, isNotEmpty);
+      expect(DeckStore.decks.first.name, 'English Basics');
+      expect(DeckStore.cards.any((c) => c.term == 'Hello'), isTrue);
     });
 
     test('changing target language replaces untouched sample decks', () async {
       await MockData.applyStarterContent(targetCode: 'FR', targetName: 'French', nativeCode: 'TR');
-      expect(MockData.decks.first.name, 'French Basics');
+      expect(DeckStore.decks.first.name, 'French Basics');
 
       await MockData.applyStarterContent(targetCode: 'GB', targetName: 'English', nativeCode: 'TR');
 
-      expect(MockData.decks.every((d) => !d.name.contains('French')), isTrue,
+      expect(DeckStore.decks.every((d) => !d.name.contains('French')), isTrue,
           reason: 'sample decks for the old language should not linger');
-      expect(MockData.decks.first.name, 'English Basics');
+      expect(DeckStore.decks.first.name, 'English Basics');
     });
 
     test('the legacy French sample is treated as replaceable too', () async {
       await MockData.seedSampleLibrary();
-      expect(MockData.decks.any((d) => d.id == 'french_basics'), isTrue);
+      expect(DeckStore.decks.any((d) => d.id == 'french_basics'), isTrue);
 
       await MockData.applyStarterContent(targetCode: 'GB', targetName: 'English', nativeCode: 'TR');
 
-      expect(MockData.decks.any((d) => d.id == 'french_basics'), isFalse);
-      expect(MockData.decks.first.name, 'English Basics');
+      expect(DeckStore.decks.any((d) => d.id == 'french_basics'), isFalse);
+      expect(DeckStore.decks.first.name, 'English Basics');
     });
 
     test('a deck the learner made is never thrown away', () async {
       await MockData.applyStarterContent(targetCode: 'FR', targetName: 'French', nativeCode: 'TR');
       // A genuinely user-created deck, with an id outside the starter range.
-      MockData.addDeck(_userDeck);
+      DeckStore.addDeck(_userDeck);
 
       await MockData.applyStarterContent(targetCode: 'GB', targetName: 'English', nativeCode: 'TR');
 
-      expect(MockData.decks.any((d) => d.id == _userDeck.id), isTrue);
-      expect(MockData.decks.any((d) => d.name == 'English Basics'), isTrue,
+      expect(DeckStore.decks.any((d) => d.id == _userDeck.id), isTrue);
+      expect(DeckStore.decks.any((d) => d.name == 'English Basics'), isTrue,
           reason: 'the new language is added alongside, not instead');
     });
 
     test('applying the same language twice does not duplicate decks', () async {
       await MockData.applyStarterContent(targetCode: 'GB', targetName: 'English', nativeCode: 'TR');
-      final count = MockData.decks.length;
+      final count = DeckStore.decks.length;
 
       await MockData.applyStarterContent(targetCode: 'GB', targetName: 'English', nativeCode: 'TR');
 
-      expect(MockData.decks.length, count);
+      expect(DeckStore.decks.length, count);
     });
 
     test('an unknown language pair leaves the library alone', () async {
       await MockData.applyStarterContent(targetCode: '', targetName: '', nativeCode: 'TR');
 
-      expect(MockData.decks, isEmpty);
+      expect(DeckStore.decks, isEmpty);
     });
   });
 }

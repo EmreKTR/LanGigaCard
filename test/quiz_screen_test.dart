@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:langigacards/data/library_storage.dart';
+import 'package:langigacards/data/deck_store.dart';
 import 'package:langigacards/data/mock_data.dart';
 import 'package:langigacards/data/quiz_builder.dart';
 import 'package:langigacards/models/app_models.dart';
@@ -23,7 +24,7 @@ String _currentTerm(WidgetTester tester) {
 
 /// The four answer options currently rendered.
 List<String> _currentOptions(WidgetTester tester) {
-  final translations = MockData.cards.map((c) => c.translation).toSet();
+  final translations = DeckStore.cards.map((c) => c.translation).toSet();
   return tester
       .widgetList<Text>(find.byType(Text))
       .map((t) => t.data)
@@ -36,7 +37,7 @@ List<String> _currentOptions(WidgetTester tester) {
 /// given was the correct one.
 Future<bool> _answerAndAdvance(WidgetTester tester, {required bool correctly, required bool isLast}) async {
   final term = _currentTerm(tester);
-  final correct = MockData.cards.firstWhere((c) => c.term == term).translation;
+  final correct = DeckStore.cards.firstWhere((c) => c.term == term).translation;
 
   final choice = correctly ? correct : _currentOptions(tester).firstWhere((o) => o != correct);
   await tester.tap(find.text(choice).last);
@@ -64,7 +65,7 @@ Future<int> _playThrough(WidgetTester tester, {int wrongAnswers = 0}) async {
 void main() {
   // Keep the library in memory: these tests exercise data rules, not disk.
   setUp(() async {
-    MockData.storage = InMemoryLibraryStorage();
+    DeckStore.storage = InMemoryLibraryStorage();
     // The app now starts empty and seeds by language; these tests assert
     // against the fixed sample library, so install it explicitly.
     await MockData.seedSampleLibrary();
@@ -74,7 +75,7 @@ void main() {
     await tester.pumpWidget(_wrap(const QuizScreen()));
 
     final term = _currentTerm(tester);
-    expect(MockData.cards.any((c) => c.term == term), isTrue,
+    expect(DeckStore.cards.any((c) => c.term == term), isTrue,
         reason: 'the quiz should ask about a card that actually exists');
     expect(find.text('Q1 of 5'), findsOneWidget);
   });
@@ -121,12 +122,12 @@ void main() {
   });
 
   testWidgets('a deck-scoped quiz only asks about that deck', (tester) async {
-    final deck = MockData.decks.firstWhere((d) => d.id == 'french_basics');
+    final deck = DeckStore.decks.firstWhere((d) => d.id == 'french_basics');
     await tester.pumpWidget(_wrap(QuizScreen(deck: deck)));
 
     for (var i = 0; i < 5; i++) {
       final term = _currentTerm(tester);
-      expect(MockData.cards.firstWhere((c) => c.term == term).deckId, 'french_basics');
+      expect(DeckStore.cards.firstWhere((c) => c.term == term).deckId, 'french_basics');
       await _answerAndAdvance(tester, correctly: true, isLast: i == 4);
     }
     await tester.pumpAndSettle();
@@ -144,13 +145,13 @@ void main() {
       emoji: '📘',
       accentColor: Color(0xFF6C5CE7),
     );
-    MockData.addDeck(thinDeck);
+    DeckStore.addDeck(thinDeck);
     addTearDown(() {
-      MockData.cards.removeWhere((c) => c.deckId == thinDeck.id);
-      MockData.decks.removeWhere((d) => d.id == thinDeck.id);
+      DeckStore.cards.removeWhere((c) => c.deckId == thinDeck.id);
+      DeckStore.decks.removeWhere((d) => d.id == thinDeck.id);
     });
 
-    MockData.addCard(const FlashCard(
+    DeckStore.addCard(const FlashCard(
       id: 'thin_1',
       deckId: 'thin_deck',
       term: 'Un',

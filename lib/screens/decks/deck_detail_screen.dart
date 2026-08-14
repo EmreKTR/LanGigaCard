@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import '../../data/mock_data.dart';
+import '../../data/deck_store.dart';
 import '../../models/app_models.dart';
 import '../../theme/app_theme.dart';
 import '../../widgets/app_buttons.dart';
@@ -27,9 +27,9 @@ class DeckDetailScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return ValueListenableBuilder<int>(
-      valueListenable: MockData.revision,
+      valueListenable: DeckStore.revision,
       builder: (context, _, __) {
-        final deck = MockData.decks.where((d) => d.id == deckId).firstOrNull;
+        final deck = DeckStore.decks.where((d) => d.id == deckId).firstOrNull;
         // The deck can be deleted from underneath this screen (undo snackbar
         // on the previous page), so degrade instead of throwing.
         if (deck == null) return const _DeckGoneView();
@@ -77,7 +77,7 @@ class _DeckDetailBody extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final colors = context.appColors;
-    final cards = MockData.cards.where((c) => c.deckId == deck.id).toList();
+    final cards = DeckStore.cards.where((c) => c.deckId == deck.id).toList();
 
     final mastered = cards.where((c) => c.strength == MemoryStrength.mastered).length;
     final learning = cards.where((c) => c.strength == MemoryStrength.learning).length;

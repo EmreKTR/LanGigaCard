@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:langigacards/data/library_storage.dart';
-import 'package:langigacards/data/mock_data.dart';
+import 'package:langigacards/data/deck_store.dart';
 import 'package:langigacards/models/app_models.dart';
 import 'package:langigacards/screens/decks/deck_detail_screen.dart';
 import 'package:langigacards/theme/app_theme.dart';
@@ -28,9 +28,9 @@ FlashCard _card(String id, MemoryStrength strength) => FlashCard(
     );
 
 void _cleanUp() {
-  MockData.cards.removeWhere((c) => c.deckId == _deck.id);
-  MockData.decks.removeWhere((d) => d.id == _deck.id);
-  MockData.revision.value++;
+  DeckStore.cards.removeWhere((c) => c.deckId == _deck.id);
+  DeckStore.decks.removeWhere((d) => d.id == _deck.id);
+  DeckStore.revision.value++;
 }
 
 Future<void> _pump(WidgetTester tester) async {
@@ -46,20 +46,20 @@ Future<void> _pump(WidgetTester tester) async {
 
 void main() {
   // Keep the library in memory: these tests exercise data rules, not disk.
-  setUp(() => MockData.storage = InMemoryLibraryStorage());
+  setUp(() => DeckStore.storage = InMemoryLibraryStorage());
 
   setUp(() {
     _cleanUp();
-    MockData.addDeck(_deck);
+    DeckStore.addDeck(_deck);
   });
 
   tearDown(_cleanUp);
 
   testWidgets('mastery is computed from the cards, not the stored percentage', (tester) async {
-    MockData.addCard(_card('a', MemoryStrength.mastered));
-    MockData.addCard(_card('b', MemoryStrength.learning));
-    MockData.addCard(_card('c', MemoryStrength.reviewDue));
-    MockData.addCard(_card('d', MemoryStrength.mastered));
+    DeckStore.addCard(_card('a', MemoryStrength.mastered));
+    DeckStore.addCard(_card('b', MemoryStrength.learning));
+    DeckStore.addCard(_card('c', MemoryStrength.reviewDue));
+    DeckStore.addCard(_card('d', MemoryStrength.mastered));
 
     await _pump(tester);
 
@@ -69,10 +69,10 @@ void main() {
   });
 
   testWidgets('the strength breakdown counts each bucket', (tester) async {
-    MockData.addCard(_card('a', MemoryStrength.mastered));
-    MockData.addCard(_card('b', MemoryStrength.learning));
-    MockData.addCard(_card('c', MemoryStrength.learning));
-    MockData.addCard(_card('d', MemoryStrength.reviewDue));
+    DeckStore.addCard(_card('a', MemoryStrength.mastered));
+    DeckStore.addCard(_card('b', MemoryStrength.learning));
+    DeckStore.addCard(_card('c', MemoryStrength.learning));
+    DeckStore.addCard(_card('d', MemoryStrength.reviewDue));
 
     await _pump(tester);
 
@@ -90,9 +90,9 @@ void main() {
   });
 
   testWidgets('the study button counts only cards that still need work', (tester) async {
-    MockData.addCard(_card('a', MemoryStrength.mastered));
-    MockData.addCard(_card('b', MemoryStrength.learning));
-    MockData.addCard(_card('c', MemoryStrength.reviewDue));
+    DeckStore.addCard(_card('a', MemoryStrength.mastered));
+    DeckStore.addCard(_card('b', MemoryStrength.learning));
+    DeckStore.addCard(_card('c', MemoryStrength.reviewDue));
 
     await _pump(tester);
 
@@ -100,8 +100,8 @@ void main() {
   });
 
   testWidgets('a fully mastered deck disables studying', (tester) async {
-    MockData.addCard(_card('a', MemoryStrength.mastered));
-    MockData.addCard(_card('b', MemoryStrength.mastered));
+    DeckStore.addCard(_card('a', MemoryStrength.mastered));
+    DeckStore.addCard(_card('b', MemoryStrength.mastered));
 
     await _pump(tester);
 
@@ -118,24 +118,24 @@ void main() {
   });
 
   testWidgets('the screen survives its deck being deleted underneath it', (tester) async {
-    MockData.addCard(_card('a', MemoryStrength.learning));
+    DeckStore.addCard(_card('a', MemoryStrength.learning));
     await _pump(tester);
 
     expect(find.text('Detail Deck'), findsNothing, reason: 'name renders with its emoji prefix');
 
-    MockData.removeDeck(_deck.id);
+    DeckStore.removeDeck(_deck.id);
     await tester.pumpAndSettle();
 
     expect(find.text('This deck no longer exists'), findsOneWidget);
   });
 
   testWidgets('renaming the deck elsewhere updates the open detail screen', (tester) async {
-    MockData.addCard(_card('a', MemoryStrength.learning));
+    DeckStore.addCard(_card('a', MemoryStrength.learning));
     await _pump(tester);
 
     expect(find.text('📗  Detail Deck'), findsOneWidget);
 
-    MockData.updateDeck(_deck.copyWith(name: 'Renamed Deck'));
+    DeckStore.updateDeck(_deck.copyWith(name: 'Renamed Deck'));
     await tester.pumpAndSettle();
 
     expect(find.text('📗  Renamed Deck'), findsOneWidget);
