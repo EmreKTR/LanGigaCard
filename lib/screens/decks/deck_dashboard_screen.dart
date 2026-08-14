@@ -66,14 +66,17 @@ class _DeckDashboardScreenState extends State<DeckDashboardScreen> {
     );
     if (confirmed != true) return;
 
-    final removed = DeckStore.removeDeck(deck.id);
-    if (removed == null || !mounted) return;
+    final ok = await DeckStore.removeDeck(deck.id);
+    if (!mounted) return;
+    if (!ok) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text("Couldn't delete the deck. Please try again.")),
+      );
+      return;
+    }
 
     ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text('"${deck.name}" deleted'),
-        action: SnackBarAction(label: 'Undo', onPressed: () => DeckStore.restoreDeck(removed)),
-      ),
+      SnackBar(content: Text('"${deck.name}" deleted')),
     );
   }
 
@@ -396,27 +399,20 @@ class _DeckEditorSheetState extends State<_DeckEditorSheet> {
     super.dispose();
   }
 
-  void _save() {
+  void _save() async {
     final title = _titleController.text.trim();
     final description = _descController.text.trim();
 
-    if (_isEditing) {
-      DeckStore.updateDeck(widget.editing!.copyWith(
-        name: title,
-        description: description.isEmpty ? _noDescription : description,
-      ));
-    } else {
-      DeckStore.addDeck(Deck(
-        id: 'deck_${DateTime.now().microsecondsSinceEpoch}',
-        name: title,
-        description: description.isEmpty ? _noDescription : description,
-        cardCount: 0,
-        dueCount: 0,
-        reviewCount: 0,
-        masteryPercent: 0,
-        emoji: '📘',
-        accentColor: context.appColors.primary,
-      ));
+    final ok = _isEditing
+        ? await DeckStore.updateDeck(widget.editing!.id, title: title, description: description)
+        : await DeckStore.addDeck(title: title, description: description);
+
+    if (!mounted) return;
+    if (!ok) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(_isEditing ? "Couldn't save changes. Please try again." : "Couldn't create the deck. Please try again.")),
+      );
+      return;
     }
     Navigator.of(context).pop(true);
   }

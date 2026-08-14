@@ -52,32 +52,30 @@ class _AddWordScreenState extends State<AddWordScreen> {
     super.dispose();
   }
 
-  void _submit() {
-    if (_isEditing) {
-      DeckStore.updateCard(
-        FlashCard(
-          id: widget.editingCard!.id,
-          deckId: _deckId,
-          term: _frontController.text.trim(),
-          translation: _backController.text.trim(),
-          exampleSentence: _exampleController.text.trim(),
-          strength: widget.editingCard!.strength,
-          reviewCount: widget.editingCard!.reviewCount,
-          imageUrl: _imageUrlValue,
-        ),
+  Future<void> _submit() async {
+    final ok = _isEditing
+        ? await DeckStore.updateCard(
+            wordId: widget.editingCard!.id,
+            deckId: _deckId,
+            term: _frontController.text.trim(),
+            translation: _backController.text.trim(),
+            exampleSentence: _exampleController.text.trim(),
+            imageUrl: _imageUrlValue,
+          )
+        : await DeckStore.addCard(
+            deckId: _deckId,
+            term: _frontController.text.trim(),
+            translation: _backController.text.trim(),
+            exampleSentence: _exampleController.text.trim(),
+            imageUrl: _imageUrlValue,
+          );
+
+    if (!mounted) return;
+    if (!ok) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(_isEditing ? "Couldn't save changes. Please try again." : "Couldn't add the card. Please try again.")),
       );
-    } else {
-      DeckStore.addCard(
-        FlashCard(
-          id: 'card_${DateTime.now().microsecondsSinceEpoch}',
-          deckId: _deckId,
-          term: _frontController.text.trim(),
-          translation: _backController.text.trim(),
-          exampleSentence: _exampleController.text.trim(),
-          strength: MemoryStrength.learning,
-          imageUrl: _imageUrlValue,
-        ),
-      );
+      return;
     }
     Navigator.of(context).pop(true);
   }

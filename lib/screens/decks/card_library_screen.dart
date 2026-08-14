@@ -50,17 +50,17 @@ class _CardLibraryScreenState extends State<CardLibraryScreen> {
     );
     if (confirmed != true) return;
 
-    final index = DeckStore.removeCard(card.id);
-    if (index == -1 || !mounted) return;
+    final ok = await DeckStore.removeCard(card.id);
+    if (!mounted) return;
+    if (!ok) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text("Couldn't delete the card. Please try again.")),
+      );
+      return;
+    }
 
     ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text('"${card.term}" deleted'),
-        action: SnackBarAction(
-          label: 'Undo',
-          onPressed: () => DeckStore.restoreCard(index, card),
-        ),
-      ),
+      SnackBar(content: Text('"${card.term}" deleted')),
     );
   }
 
