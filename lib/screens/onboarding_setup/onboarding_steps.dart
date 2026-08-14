@@ -1,12 +1,14 @@
 import 'package:flutter/material.dart';
-import '../../data/mock_data.dart';
+import '../../data/api/user_api.dart';
 import '../../theme/app_theme.dart';
+import '../../theme/category_icons.dart';
 
 const _learningPurposeIcons = {
   'Travel': Icons.flight_rounded,
   'Business': Icons.work_rounded,
   'Exam Prep': Icons.edit_note_rounded,
   'Academic': Icons.school_rounded,
+  'Daily Conversation': Icons.chat_bubble_outline_rounded,
   'Culture': Icons.theater_comedy_rounded,
   'Relocation': Icons.home_work_rounded,
   'Family': Icons.family_restroom_rounded,
@@ -69,12 +71,15 @@ class TargetLevelStep extends StatelessWidget {
   }
 }
 
-/// Step 4: unchanged from the previous design, still "Step 4 of 7" now.
+/// Step 4: fetched from the API, not a fixed local list — every purpose
+/// carries a real id so the wizard can save the selection via
+/// UserApi.updateMyLearningPurposes.
 class LearningPurposeStep extends StatelessWidget {
-  const LearningPurposeStep({super.key, required this.selected, required this.onToggle});
+  const LearningPurposeStep({super.key, required this.purposes, required this.selected, required this.onToggle});
 
-  final Set<String> selected;
-  final ValueChanged<String> onToggle;
+  final List<LearningPurposeData> purposes;
+  final Set<int> selected;
+  final ValueChanged<int> onToggle;
 
   @override
   Widget build(BuildContext context) {
@@ -93,12 +98,12 @@ class LearningPurposeStep extends StatelessWidget {
           crossAxisSpacing: AppSpacing.sm,
           childAspectRatio: 1.6,
           children: [
-            for (final purpose in MockData.learningPurposes)
+            for (final purpose in purposes)
               _OptionCard(
-                label: purpose,
-                icon: _learningPurposeIcons[purpose] ?? Icons.star_rounded,
-                selected: selected.contains(purpose),
-                onTap: () => onToggle(purpose),
+                label: purpose.name,
+                icon: _learningPurposeIcons[purpose.name] ?? Icons.star_rounded,
+                selected: selected.contains(purpose.id),
+                onTap: () => onToggle(purpose.id),
               ),
           ],
         ),
@@ -173,12 +178,15 @@ class AgeRangeStep extends StatelessWidget {
   }
 }
 
-/// Step 6: unchanged — same category grid used by [CategoryPickerSheet].
+/// Step 6: fetched from the API, not a fixed local list. Icon/color come
+/// from the server's iconName/colorHex, translated via
+/// lib/theme/category_icons.dart.
 class TopicsStep extends StatelessWidget {
-  const TopicsStep({super.key, required this.selected, required this.onToggle});
+  const TopicsStep({super.key, required this.categories, required this.selected, required this.onToggle});
 
-  final Set<String> selected;
-  final ValueChanged<String> onToggle;
+  final List<CategoryData> categories;
+  final Set<int> selected;
+  final ValueChanged<int> onToggle;
 
   @override
   Widget build(BuildContext context) {
@@ -198,13 +206,13 @@ class TopicsStep extends StatelessWidget {
           crossAxisSpacing: AppSpacing.sm,
           childAspectRatio: 1,
           children: [
-            for (final category in MockData.categories)
+            for (final category in categories)
               _OptionCard(
-                label: category.label,
-                icon: category.icon,
-                iconColor: category.color,
-                selected: selected.contains(category.label),
-                onTap: () => onToggle(category.label),
+                label: category.name,
+                icon: iconForCategory(category.iconName),
+                iconColor: _colorFromHex(category.colorHex),
+                selected: selected.contains(category.id),
+                onTap: () => onToggle(category.id),
                 dense: true,
               ),
           ],
@@ -212,6 +220,15 @@ class TopicsStep extends StatelessWidget {
       ],
     );
   }
+}
+
+/// Parses "#RRGGBB" from the API into a [Color]. Falls back to a neutral
+/// gray if the server ever sends something unparseable, rather than
+/// throwing mid-build.
+Color _colorFromHex(String hex) {
+  final cleaned = hex.replaceFirst('#', '');
+  final value = int.tryParse(cleaned, radix: 16);
+  return value == null ? const Color(0xFF9E9E9E) : Color(0xFF000000 | value);
 }
 
 /// Step 7: unchanged from the previous design.

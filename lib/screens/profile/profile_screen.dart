@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import '../../app_controller.dart';
+import '../../data/api/user_api.dart';
+import '../../data/api/vocabgrid_user_api.dart';
 import '../../data/auth_store.dart';
 import '../../data/mock_data.dart';
 import '../../models/app_models.dart';
@@ -16,6 +18,16 @@ import '../home/home_screen.dart' show initialsFor;
 import 'help_support_screen.dart';
 import 'privacy_security_screen.dart';
 
+/// Splits a display name ("Ada Lovelace") into the firstName/lastName pair
+/// the API's updateProfile requires. Everything after the first word joins
+/// into lastName, so "Ada Countess Lovelace" -> ("Ada", "Countess Lovelace").
+(String firstName, String lastName) _splitName(String name) {
+  final parts = name.trim().split(RegExp(r'\s+')).where((p) => p.isNotEmpty).toList();
+  if (parts.isEmpty) return ('', '');
+  if (parts.length == 1) return (parts.first, '');
+  return (parts.first, parts.skip(1).join(' '));
+}
+
 /// Profile: gradient identity header, editable Language Pair card, and
 /// Study Preferences / App Preferences / Account settings groups.
 class ProfileScreen extends StatelessWidget {
@@ -24,20 +36,61 @@ class ProfileScreen extends StatelessWidget {
   final UserProfile profile;
   final ValueChanged<UserProfile> onProfileChanged;
 
-  void _editCategories(BuildContext context) {
+  Future<void> _editCategories(BuildContext context) async {
+    final allCategories = await userApi.getCategories();
+    if (!context.mounted) return;
+
+    // An empty list is indistinguishable from "the fetch failed" (the API
+    // never throws), so don't open a picker with nothing in it — opening it
+    // anyway would let Save silently wipe the real server-side selection.
+    if (allCategories.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text("Couldn't load categories. Check your connection and try again.")),
+      );
+      return;
+    }
+
+    final myIds = await userApi.getMyCategoryIds();
+    if (!context.mounted) return;
+
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
       builder: (_) => CategoryPickerSheet(
-        initial: profile.categories.toSet(),
-        onSave: (categories) => onProfileChanged(profile.copyWith(categories: categories.toList())),
+        allCategories: allCategories,
+        initial: myIds.toSet(),
+        onSave: (categoryIds) async {
+          final saved = await userApi.updateMyCategories(categoryIds.toList());
+          if (!context.mounted) return;
+
+          if (saved.length != categoryIds.length) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(content: Text("Couldn't save your categories. Please try again.")),
+            );
+            return;
+          }
+
+          final categoryNames = allCategories.where((c) => categoryIds.contains(c.id)).map((c) => c.name).toList();
+          onProfileChanged(profile.copyWith(categories: categoryNames));
+        },
       ),
     );
   }
 
-  void _adjustGoal(int delta) {
+  Future<void> _adjustGoal(BuildContext context, int delta) async {
     final next = (profile.dailyGoalMinutes + delta).clamp(5, 120);
+    final (firstName, lastName) = _splitName(profile.name);
+    final result = await userApi.updateProfile(firstName: firstName, lastName: lastName, dailyGoalMinutes: next);
+    if (!context.mounted) return;
+
+    if (!result.isSuccess) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text("Couldn't save your daily goal. Please try again.")),
+      );
+      return;
+    }
+
     onProfileChanged(profile.copyWith(dailyGoalMinutes: next));
   }
 
@@ -55,7 +108,27 @@ class ProfileScreen extends StatelessWidget {
         unavailableNote: isNative ? "you're learning this" : 'you speak this',
       ),
     );
-    if (picked == null) return;
+    if (picked == null || !context.mounted) return;
+
+    final (firstName, lastName) = _splitName(profile.name);
+    final result = await userApi.updateProfile(
+      firstName: firstName,
+      lastName: lastName,
+      nativeLanguage: isNative ? picked.$1 : null,
+      nativeLanguageCode: isNative ? picked.$2 : null,
+      targetLanguage: isNative ? null : picked.$1,
+      targetLanguageCode: isNative ? null : picked.$2,
+    );
+    if (!context.mounted) return;
+
+    if (!result.isSuccess) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(result.outcome == ProfileOutcome.networkError
+            ? "Couldn't reach the server. Check your connection and try again."
+            : (result.message ?? "Couldn't save your language. Please try again."))),
+      );
+      return;
+    }
 
     onProfileChanged(
       isNative
@@ -65,14 +138,41 @@ class ProfileScreen extends StatelessWidget {
   }
 
   Future<void> _editPurposes(BuildContext context) async {
-    final picked = await showModalBottomSheet<Set<String>>(
+    final allPurposes = await userApi.getLearningPurposes();
+    if (!context.mounted) return;
+
+    // Same rationale as _editCategories: an empty list means the fetch
+    // failed, not that there's genuinely nothing to pick from.
+    if (allPurposes.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text("Couldn't load learning purposes. Check your connection and try again.")),
+      );
+      return;
+    }
+
+    final myIds = await userApi.getMyLearningPurposeIds();
+    if (!context.mounted) return;
+
+    final picked = await showModalBottomSheet<Set<int>>(
       context: context,
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
-      builder: (_) => _PurposesSheet(initial: profile.learningPurposes.toSet()),
+      builder: (_) => _PurposesSheet(allPurposes: allPurposes, initial: myIds.toSet()),
     );
-    if (picked == null) return;
-    onProfileChanged(profile.copyWith(learningPurposes: picked.toList()));
+    if (picked == null || !context.mounted) return;
+
+    final saved = await userApi.updateMyLearningPurposes(picked.toList());
+    if (!context.mounted) return;
+
+    if (saved.length != picked.length) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text("Couldn't save your learning purposes. Please try again.")),
+      );
+      return;
+    }
+
+    final purposeNames = allPurposes.where((p) => picked.contains(p.id)).map((p) => p.name).toList();
+    onProfileChanged(profile.copyWith(learningPurposes: purposeNames));
   }
 
   Future<void> _editProfile(BuildContext context) async {
@@ -82,7 +182,24 @@ class ProfileScreen extends StatelessWidget {
       backgroundColor: Colors.transparent,
       builder: (_) => _EditProfileSheet(name: profile.name, email: profile.email),
     );
-    if (updated == null) return;
+    if (updated == null || !context.mounted) return;
+
+    final (firstName, lastName) = _splitName(updated.name);
+    final result = await userApi.updateProfile(firstName: firstName, lastName: lastName);
+    if (!context.mounted) return;
+
+    if (!result.isSuccess) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(result.outcome == ProfileOutcome.networkError
+            ? "Couldn't reach the server. Check your connection and try again."
+            : (result.message ?? "Couldn't save your name. Please try again."))),
+      );
+      return;
+    }
+
+    // Email isn't part of the API's update contract (PUT /api/User/profile
+    // has no email field) — updating it here only changes what's shown on
+    // this device, not the account's real email on the server.
     onProfileChanged(profile.copyWith(name: updated.name, email: updated.email));
   }
 
@@ -151,7 +268,7 @@ class ProfileScreen extends StatelessWidget {
                             IconButton(
                               tooltip: 'Decrease daily goal',
                               visualDensity: VisualDensity.compact,
-                              onPressed: profile.dailyGoalMinutes <= 5 ? null : () => _adjustGoal(-5),
+                              onPressed: profile.dailyGoalMinutes <= 5 ? null : () => _adjustGoal(context, -5),
                               icon: const Icon(Icons.remove_circle_outline_rounded, size: 22),
                               color: colors.textSecondary,
                             ),
@@ -159,7 +276,7 @@ class ProfileScreen extends StatelessWidget {
                             IconButton(
                               tooltip: 'Increase daily goal',
                               visualDensity: VisualDensity.compact,
-                              onPressed: profile.dailyGoalMinutes >= 120 ? null : () => _adjustGoal(5),
+                              onPressed: profile.dailyGoalMinutes >= 120 ? null : () => _adjustGoal(context, 5),
                               icon: const Icon(Icons.add_circle_outline_rounded, size: 22),
                               color: colors.textSecondary,
                             ),
@@ -558,18 +675,19 @@ class _LanguageSheet extends StatelessWidget {
   }
 }
 
-/// Multi-select for "Learning Purpose", backed by [MockData.learningPurposes].
+/// Multi-select for "Learning Purpose", backed by the API's reference list.
 class _PurposesSheet extends StatefulWidget {
-  const _PurposesSheet({required this.initial});
+  const _PurposesSheet({required this.allPurposes, required this.initial});
 
-  final Set<String> initial;
+  final List<LearningPurposeData> allPurposes;
+  final Set<int> initial;
 
   @override
   State<_PurposesSheet> createState() => _PurposesSheetState();
 }
 
 class _PurposesSheetState extends State<_PurposesSheet> {
-  late final Set<String> _selected = Set.of(widget.initial);
+  late final Set<int> _selected = Set.of(widget.initial);
 
   @override
   Widget build(BuildContext context) {
@@ -589,12 +707,12 @@ class _PurposesSheetState extends State<_PurposesSheet> {
             Wrap(
               spacing: AppSpacing.sm,
               runSpacing: AppSpacing.sm,
-              children: MockData.learningPurposes
+              children: widget.allPurposes
                   .map((purpose) => ChoiceChipButton(
-                        label: purpose,
-                        selected: _selected.contains(purpose),
+                        label: purpose.name,
+                        selected: _selected.contains(purpose.id),
                         onTap: () => setState(() =>
-                            _selected.contains(purpose) ? _selected.remove(purpose) : _selected.add(purpose)),
+                            _selected.contains(purpose.id) ? _selected.remove(purpose.id) : _selected.add(purpose.id)),
                       ))
                   .toList(),
             ),

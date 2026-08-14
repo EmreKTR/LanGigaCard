@@ -1,6 +1,23 @@
 import 'package:flutter/material.dart';
 import '../models/app_models.dart';
 
+/// [MockData.languages] keys its codes by country/flag (English is 'GB',
+/// Japanese is 'JP') rather than by ISO 639-1 language code. The backend
+/// defaults a never-onboarded account's language fields to ISO-style codes
+/// ("en"), which don't otherwise match anything in this table — silently
+/// producing zero starter content instead of an error. Normalizing the
+/// handful of codes where the two schemes actually diverge means starter
+/// content still builds correctly for those accounts too, not just ones
+/// that explicitly picked a language through this app's own pickers (which
+/// always send a code already in [MockData.languages], so this is a no-op
+/// for them).
+const _isoToFlagCode = {'EN': 'GB', 'JA': 'JP', 'KO': 'KR', 'ZH': 'CN'};
+
+String _normalizeLanguageCode(String code) {
+  final upper = code.toUpperCase();
+  return _isoToFlagCode[upper] ?? upper;
+}
+
 /// One concept expressed in every language the app offers.
 ///
 /// Holding the vocabulary this way — rather than as a fixed list of French
@@ -13,7 +30,7 @@ class _Word {
   /// Keyed by the two-letter code used in [MockData.languages].
   final Map<String, String> byLanguage;
 
-  String? of(String code) => byLanguage[code.toUpperCase()];
+  String? of(String code) => byLanguage[_normalizeLanguageCode(code)];
 }
 
 /// Greetings and courtesy — the first deck.
@@ -114,7 +131,7 @@ class StarterContent {
       required Color color,
       required List<_Word> words,
     }) {
-      final deckId = '$idPrefix${slug}_${targetCode.toUpperCase()}';
+      final deckId = '$idPrefix${slug}_${_normalizeLanguageCode(targetCode)}';
       final deckCards = <FlashCard>[];
 
       for (var i = 0; i < words.length; i++) {

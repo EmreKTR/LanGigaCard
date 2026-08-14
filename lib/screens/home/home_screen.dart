@@ -50,7 +50,11 @@ class HomeScreen extends StatelessWidget {
 
   Widget _buildContent(BuildContext context) {
     final recentCards = MockData.cards.take(5).toList();
-    final deck = MockData.decks.first;
+    // Empty when the signed-in account hasn't completed onboarding yet (no
+    // language pair selected server-side, so applyStarterContent had
+    // nothing to seed) — must be handled, not assumed non-empty, now that a
+    // real account with no local demo-fallback can reach this screen.
+    final deck = MockData.decks.isEmpty ? null : MockData.decks.first;
 
     return CustomScrollView(
       physics: const AlwaysScrollableScrollPhysics(),
@@ -96,7 +100,7 @@ class _GradientHeader extends StatelessWidget {
   const _GradientHeader({required this.profile, required this.deck, required this.onStudyTap, required this.onProfileTap});
 
   final UserProfile profile;
-  final Deck deck;
+  final Deck? deck;
   final VoidCallback onStudyTap;
   final VoidCallback onProfileTap;
 
@@ -151,10 +155,70 @@ class _GradientHeader extends StatelessWidget {
             ],
           ),
           const SizedBox(height: AppSpacing.lg),
-          InkWell(
-            onTap: onStudyTap,
-            borderRadius: BorderRadius.circular(AppRadius.lg),
-            child: Container(
+          if (deck != null)
+            InkWell(
+              onTap: onStudyTap,
+              borderRadius: BorderRadius.circular(AppRadius.lg),
+              child: Container(
+                width: double.infinity,
+                padding: const EdgeInsets.all(AppSpacing.lg),
+                decoration: BoxDecoration(
+                  color: Colors.white.withValues(alpha: 0.14),
+                  borderRadius: BorderRadius.circular(AppRadius.lg),
+                  border: Border.all(color: Colors.white.withValues(alpha: 0.16)),
+                ),
+                child: Row(
+                  children: [
+                    ProgressRing(
+                      progress: progress,
+                      size: 64,
+                      strokeWidth: 6,
+                      trackColor: Colors.white.withValues(alpha: 0.2),
+                      progressColor: Colors.white,
+                      child: Text('$progressPercent%', style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w700, fontSize: 13)),
+                    ),
+                    const SizedBox(width: AppSpacing.lg),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text('CONTINUE LEARNING', style: TextStyle(color: Colors.white.withValues(alpha: 0.7), fontSize: 10, letterSpacing: 1)),
+                          const SizedBox(height: 2),
+                          // The deck's own name — this used to strip the word
+                          // "French" out and append "Vocabulary", which only
+                          // ever made sense for the French sample library.
+                          Text(deck!.name,
+                              style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w700, fontSize: 15),
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis),
+                          Text('${profile.nativeLanguage} → ${profile.targetLanguage}',
+                              style: TextStyle(color: Colors.white.withValues(alpha: 0.75), fontSize: 12)),
+                          const SizedBox(height: AppSpacing.sm),
+                          Wrap(
+                            spacing: AppSpacing.sm,
+                            runSpacing: 4,
+                            children: [
+                              _headerChip('${MockData.dueCountOf(deck!.id)} cards due'),
+                              _headerChip('🔥 ${profile.dailyGoalMinutes} min goal'),
+                            ],
+                          ),
+                        ],
+                      ),
+                    ),
+                    const Padding(
+                      padding: EdgeInsets.all(6),
+                      child: Icon(Icons.arrow_forward_rounded, color: Colors.white),
+                    ),
+                  ],
+                ),
+              ),
+            )
+          else
+            // No starter/sample content yet — the account hasn't completed
+            // onboarding server-side (empty language pair), so there's
+            // nothing to "continue learning" with. A short prompt instead
+            // of the hero card, rather than crashing on an empty deck list.
+            Container(
               width: double.infinity,
               padding: const EdgeInsets.all(AppSpacing.lg),
               decoration: BoxDecoration(
@@ -162,52 +226,19 @@ class _GradientHeader extends StatelessWidget {
                 borderRadius: BorderRadius.circular(AppRadius.lg),
                 border: Border.all(color: Colors.white.withValues(alpha: 0.16)),
               ),
-              child: Row(
+              child: const Row(
                 children: [
-                  ProgressRing(
-                    progress: progress,
-                    size: 64,
-                    strokeWidth: 6,
-                    trackColor: Colors.white.withValues(alpha: 0.2),
-                    progressColor: Colors.white,
-                    child: Text('$progressPercent%', style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w700, fontSize: 13)),
-                  ),
-                  const SizedBox(width: AppSpacing.lg),
+                  Icon(Icons.auto_stories_rounded, color: Colors.white),
+                  SizedBox(width: AppSpacing.md),
                   Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text('CONTINUE LEARNING', style: TextStyle(color: Colors.white.withValues(alpha: 0.7), fontSize: 10, letterSpacing: 1)),
-                        const SizedBox(height: 2),
-                        // The deck's own name — this used to strip the word
-                        // "French" out and append "Vocabulary", which only
-                        // ever made sense for the French sample library.
-                        Text(deck.name,
-                            style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w700, fontSize: 15),
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis),
-                        Text('${profile.nativeLanguage} → ${profile.targetLanguage}',
-                            style: TextStyle(color: Colors.white.withValues(alpha: 0.75), fontSize: 12)),
-                        const SizedBox(height: AppSpacing.sm),
-                        Wrap(
-                          spacing: AppSpacing.sm,
-                          runSpacing: 4,
-                          children: [
-                            _headerChip('${MockData.dueCountOf(deck.id)} cards due'),
-                            _headerChip('🔥 ${profile.dailyGoalMinutes} min goal'),
-                          ],
-                        ),
-                      ],
+                    child: Text(
+                      'Finish setting up your profile to get your first deck.',
+                      style: TextStyle(color: Colors.white, fontSize: 13),
                     ),
-                  ),
-                  const Padding(
-                    padding: EdgeInsets.all(6),
-                    child: Icon(Icons.arrow_forward_rounded, color: Colors.white),
                   ),
                 ],
               ),
             ),
-          ),
           const SizedBox(height: AppSpacing.lg),
           Row(
             children: [

@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:langigacards/app_controller.dart';
+import 'package:langigacards/data/api/user_api.dart';
+import 'package:langigacards/data/api/vocabgrid_user_api.dart';
 import 'package:langigacards/data/mock_data.dart';
 import 'package:langigacards/models/app_models.dart';
 import 'package:langigacards/screens/profile/profile_screen.dart';
@@ -30,6 +32,10 @@ Future<UserProfile Function()> _pumpProfile(WidgetTester tester) async {
 }
 
 void main() {
+  setUp(() {
+    userApi = FakeUserApi();
+  });
+
   testWidgets('Native Language opens a picker and applies the choice', (tester) async {
     final profile = await _pumpProfile(tester);
     expect(profile().nativeLanguage, 'English');
@@ -63,6 +69,11 @@ void main() {
   });
 
   testWidgets('Learning Purpose is a real multi-select', (tester) async {
+    // Seed the server-side selection (FakeUserApi's reference list is Travel/Business
+    // only) independently of the locally-displayed MockData profile below — the sheet's
+    // initial selection now comes from userApi, not from profile.learningPurposes.
+    await userApi.updateMyLearningPurposes([1]); // 'Travel'
+
     final profile = await _pumpProfile(tester);
     expect(profile().learningPurposes, ['Travel', 'Culture']);
 
@@ -74,8 +85,8 @@ void main() {
     await tester.tap(find.text('Save'));
     await tester.pumpAndSettle();
 
-    expect(profile().learningPurposes, contains('Business'));
-    expect(profile().learningPurposes.length, 3);
+    expect(profile().learningPurposes, containsAll(['Travel', 'Business']));
+    expect(profile().learningPurposes.length, 2);
   });
 
   testWidgets('Edit Profile updates the name and email', (tester) async {

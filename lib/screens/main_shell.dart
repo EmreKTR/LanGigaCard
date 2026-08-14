@@ -1,9 +1,12 @@
 import 'package:flutter/material.dart';
+import '../data/api/vocabgrid_user_api.dart';
 import '../data/mock_data.dart';
 import '../data/onboarding_store.dart';
 import '../data/pronunciation_service.dart';
 import '../models/app_models.dart';
+import '../theme/app_theme.dart';
 import '../widgets/app_bottom_nav.dart';
+import '../widgets/app_buttons.dart';
 import 'decks/deck_dashboard_screen.dart';
 import 'home/home_screen.dart';
 import 'profile/profile_screen.dart';
@@ -18,8 +21,8 @@ class MainShell extends StatefulWidget {
   const MainShell({super.key, this.profile});
 
   /// Profile to start with. Registration passes the details the user just
-  /// entered; signing in with the demo account falls back to the sample
-  /// profile.
+  /// entered. Signing in has no profile handed to it — [MainShell] fetches
+  /// the real one from the API itself.
   final UserProfile? profile;
 
   @override
@@ -28,26 +31,61 @@ class MainShell extends StatefulWidget {
 
 class _MainShellState extends State<MainShell> {
   int _tabIndex = 0;
-  late UserProfile _profile = widget.profile ?? MockData.buildDemoProfile();
+  UserProfile? _profile;
+
+  /// Non-null only when a post-login profile fetch failed. There is
+  /// deliberately no demo-profile fallback for this path — that fallback
+  /// is exactly the bug this rework exists to fix.
+  bool _profileLoadFailed = false;
 
   @override
   void initState() {
     super.initState();
-    _applyProfile(_profile);
-    // Signing back in has no profile handed to it, so recover whatever the
-    // onboarding wizard saved last time rather than showing the demo account.
-    if (widget.profile == null) _restoreSavedProfile();
+    if (widget.profile != null) {
+      _profile = widget.profile;
+      _applyProfile(widget.profile!);
+    } else {
+      _loadProfileAfterLogin();
+    }
   }
 
-  Future<void> _restoreSavedProfile() async {
-    final saved = await OnboardingStore.loadProfile();
-    if (saved == null || !mounted) return;
-    // Seeded fresh, not from the demo profile still sitting in `_profile` —
-    // there's nowhere yet that persists a returning learner's real stats, so
-    // the honest thing to show is 0, not the sample content's numbers.
-    final restored = profileFromOnboarding(saved, UserProfile.empty());
-    setState(() => _profile = restored);
-    _applyProfile(restored);
+  Future<void> _loadProfileAfterLogin() async {
+    setState(() => _profileLoadFailed = false);
+
+    final result = await userApi.getProfile();
+    if (!mounted) return;
+
+    if (!result.isSuccess) {
+      setState(() => _profileLoadFailed = true);
+      return;
+    }
+
+    final categoryIdsFuture = userApi.getMyCategoryIds();
+    final purposeIdsFuture = userApi.getMyLearningPurposeIds();
+    final allCategoriesFuture = userApi.getCategories();
+    final allPurposesFuture = userApi.getLearningPurposes();
+
+    final UserProfile profile;
+    try {
+      final myCategoryIds = await categoryIdsFuture;
+      final myPurposeIds = await purposeIdsFuture;
+      final allCategories = await allCategoriesFuture;
+      final allPurposes = await allPurposesFuture;
+      if (!mounted) return;
+
+      profile = profileFromApiData(
+        result.profile!,
+        categoryNames: allCategories.where((c) => myCategoryIds.contains(c.id)).map((c) => c.name).toList(),
+        purposeNames: allPurposes.where((p) => myPurposeIds.contains(p.id)).map((p) => p.name).toList(),
+      );
+    } catch (_) {
+      if (!mounted) return;
+      setState(() => _profileLoadFailed = true);
+      return;
+    }
+
+    setState(() => _profile = profile);
+    _applyProfile(profile);
   }
 
   /// Brings everything that depends on the language pair in line with
@@ -67,8 +105,8 @@ class _MainShellState extends State<MainShell> {
 
   /// Profile edits can change the language pair, so re-apply when they do.
   void _onProfileChanged(UserProfile updated) {
-    final languageChanged = updated.targetLanguageCode != _profile.targetLanguageCode ||
-        updated.nativeLanguageCode != _profile.nativeLanguageCode;
+    final languageChanged = updated.targetLanguageCode != _profile?.targetLanguageCode ||
+        updated.nativeLanguageCode != _profile?.nativeLanguageCode;
     setState(() => _profile = updated);
     if (languageChanged) _applyProfile(updated);
   }
@@ -79,11 +117,20 @@ class _MainShellState extends State<MainShell> {
 
   @override
   Widget build(BuildContext context) {
+    if (_profileLoadFailed) {
+      return _ProfileLoadErrorView(onRetry: _loadProfileAfterLogin);
+    }
+
+    final profile = _profile;
+    if (profile == null) {
+      return const Scaffold(body: Center(child: CircularProgressIndicator()));
+    }
+
     final tabs = [
-      HomeScreen(profile: _profile, onStudyTap: _startStudySession, onProfileTap: () => setState(() => _tabIndex = 3)),
+      HomeScreen(profile: profile, onStudyTap: _startStudySession, onProfileTap: () => setState(() => _tabIndex = 3)),
       const DeckDashboardScreen(),
-      StatisticsScreen(profile: _profile),
-      ProfileScreen(profile: _profile, onProfileChanged: _onProfileChanged),
+      StatisticsScreen(profile: profile),
+      ProfileScreen(profile: profile, onProfileChanged: _onProfileChanged),
     ];
 
     return Scaffold(
@@ -95,6 +142,43 @@ class _MainShellState extends State<MainShell> {
         currentIndex: _tabIndex >= 2 ? _tabIndex + 1 : _tabIndex,
         onQuizTap: () => Navigator.of(context).push(MaterialPageRoute(builder: (_) => const QuizScreen())),
         onTabSelected: (i) => setState(() => _tabIndex = i > 2 ? i - 1 : i),
+      ),
+    );
+  }
+}
+
+/// Shown when the post-login profile fetch fails — deliberately not a
+/// silent fallback to demo data, since that's the exact bug this screen
+/// used to have.
+class _ProfileLoadErrorView extends StatelessWidget {
+  const _ProfileLoadErrorView({required this.onRetry});
+
+  final VoidCallback onRetry;
+
+  @override
+  Widget build(BuildContext context) {
+    final colors = context.appColors;
+    return Scaffold(
+      body: SafeArea(
+        child: Padding(
+          padding: const EdgeInsets.all(AppSpacing.xxl),
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Icon(Icons.cloud_off_rounded, size: 56, color: colors.textMuted),
+              const SizedBox(height: AppSpacing.lg),
+              Text("Couldn't load your profile", style: Theme.of(context).textTheme.headlineMedium, textAlign: TextAlign.center),
+              const SizedBox(height: AppSpacing.sm),
+              Text(
+                "Check your connection and try again.",
+                textAlign: TextAlign.center,
+                style: TextStyle(color: colors.textMuted),
+              ),
+              const SizedBox(height: AppSpacing.xxl),
+              SizedBox(width: double.infinity, child: PrimaryButton(label: 'Try Again', onPressed: onRetry)),
+            ],
+          ),
+        ),
       ),
     );
   }
