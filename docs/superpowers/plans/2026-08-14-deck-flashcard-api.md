@@ -2596,38 +2596,56 @@ git commit -m "MainShell: create starter decks via the API on first login, flush
 
 ---
 
-### Task 9: Update remaining tests for the API-backed study flow
+### Task 9: Update every remaining test for the API-backed `DeckStore`/study flow
 
 **Files:**
 - Modify: `test/study_session_test.dart`
 - Modify: `test/swipe_to_rate_test.dart`
+- Modify: `test/deck_detail_test.dart`
+- Modify: `test/mock_data_test.dart`
+- Modify: `test/deck_management_test.dart`
+- Modify: `test/library_persistence_test.dart`
+- Modify: `test/deck_counts_consistency_test.dart`
+- Modify: `test/quiz_screen_test.dart`
+- Modify: `test/deck_count_refresh_test.dart`
+- Modify: `test/statistics_breakdown_test.dart`
+- Modify: `test/starter_content_test.dart`
 
 **Interfaces:**
 - Consumes: `FakeDeckApi` (Task 1), `DeckStore` (Tasks 3–8)
 
-- [ ] **Step 1: Read both files in full before editing**
+**Note on scope:** this list grew from the plan's original two files. Task 4's implementer ran the full suite after changing `DeckStore`'s mutation signatures and found 9 more test files call the old synchronous, positional-argument API directly (`addDeck`/`addCard`/`updateCard`/`removeCard`/`removeDeck`/`restoreDeck`/`restoreCard`) and fail to compile — a real gap in the plan's original task list, not something these files' own tests did wrong. `test/srs_persistence_test.dart` is *not* in this list despite also erroring in that same `flutter analyze` run — it's deleted outright in Task 7, so it needs no fix here, only to still exist until Task 7 runs.
 
-Run: `cat test/study_session_test.dart test/swipe_to_rate_test.dart` (or open them) — both currently seed `MockData`/`SrsStore` state directly and pump `StudySessionScreen`. Identify every such seed call.
+- [ ] **Step 1: Read every file in full before editing**
 
-- [ ] **Step 2: Update each test's setup**
+Run: `cat test/study_session_test.dart test/swipe_to_rate_test.dart test/deck_detail_test.dart test/mock_data_test.dart test/deck_management_test.dart test/library_persistence_test.dart test/deck_counts_consistency_test.dart test/quiz_screen_test.dart test/deck_count_refresh_test.dart test/statistics_breakdown_test.dart test/starter_content_test.dart` (or open them one at a time). Each currently seeds `MockData`/`DeckStore` state directly via the old synchronous calls (`MockData.addDeck(deck)`, `DeckStore.addCard(card)`, etc. — positional `Deck`/`FlashCard` objects, no `await`) and/or `SrsStore`/`SrsCardState` directly. Identify every such call in each file before changing anything — the exact call shape varies file to file, this is not a single mechanical find-replace.
 
-For every test in both files: replace any `MockData.decks`/`MockData.cards` seeding with `DeckStore.decks`/`DeckStore.cards` (matching Task 3's rename), and replace any direct `SrsStore`/`SrsCardState` seeding with pre-seeding a `FakeDeckApi` instance instead — create decks/cards via `FakeDeckApi.createDeck`/`createFlashcard` in `setUp`, assign `DeckStore.api = fakeApi;`, and call `await DeckStore.refresh();` before pumping `StudySessionScreen`, so the screen's `DeckStore.dueReviews` call (Task 7) has real fake-API-backed data to return. Where a test needs a card to already be at a specific `MemoryStrength` (e.g. "mastered", to verify it's excluded from the queue), call `fakeApi.submitReview(cardId, rating: SrsRating.easy, ...)` enough times to reach that state (checking `deriveMemoryStrength`'s thresholds from Task 7 — `masteryLevel >= 4` for mastered) rather than trying to set the field directly, since `FlashCard.strength` is no longer directly settable via a card constructor call outside of API-driven results.
+- [ ] **Step 2: Update each file's setup**
 
-- [ ] **Step 3: Run both test files**
+Apply this pattern file by file (adapting to what Step 1 actually found in each — not every file necessarily has every kind of seed call):
 
-Run: `flutter test test/study_session_test.dart test/swipe_to_rate_test.dart`
-Expected: all pass. If a specific assertion no longer makes sense given the new architecture (e.g. one that asserted an exact fixed interval string that the approximate preview labels from Task 7 don't produce), update the assertion to match the new, documented behavior — don't weaken the test to make it pass without understanding why it changed.
+- Any `MockData.decks`/`MockData.cards`/`MockData.revision` reference still present (pre-dating Task 3's rename, if any survived elsewhere) → `DeckStore.` equivalent.
+- Any direct construction-and-list-mutation of decks/cards (`MockData.addDeck(Deck(...))`, `DeckStore.addCard(FlashCard(...))` with a positional object) → the new named-parameter, API-backed calls: `await DeckStore.addDeck(title: ..., description: ...)`, `await DeckStore.addCard(deckId: ..., term: ..., translation: ..., exampleSentence: ..., imageUrl: ...)`, etc. (see Tasks 4/5 for the exact current signatures). Every one of these is now `async` — the enclosing test/`setUp` becomes `async` too if it wasn't already, and the call needs `await`.
+- Any direct `SrsStore`/`SrsCardState` seeding (pre-dating Task 7's deletion of those files) → pre-seed a `FakeDeckApi` instance instead: create decks/cards via `FakeDeckApi.createDeck`/`createFlashcard` in `setUp`, assign `DeckStore.api = fakeApi;`, and call `await DeckStore.refresh();` before pumping the widget under test, so `DeckStore.dueReviews` (Task 7) has real fake-API-backed data to return.
+- Any call to the now-deleted `restoreDeck`/`restoreCard` (Task 4 removed both — a delete round-trips through the API and can't be locally undone) → remove that test case's undo assertion entirely; if the test's whole point was verifying undo, delete the test and note in your report why (matches the same "Undo" UX removal already applied to the screens in Task 5).
+- Where a test needs a card to already be at a specific `MemoryStrength` (e.g. "mastered", to verify it's excluded from a due-review queue), call `fakeApi.submitReview(cardId, rating: SrsRating.easy, ...)` enough times to reach that state (checking `deriveMemoryStrength`'s thresholds from Task 7 — `masteryLevel >= 4` for mastered) rather than trying to set the field directly, since `FlashCard.strength` is no longer settable via a plain constructor call outside of API-driven results.
+- `test/mock_data_test.dart` and `test/deck_management_test.dart`: per Task 3's review, these files' test *group descriptions* still say "MockData" even though Task 3 already repointed their bodies at `DeckStore` — rename the group descriptions to say `DeckStore` while you're in these files (cheap, and you're already touching them).
+
+- [ ] **Step 3: Run every touched file**
+
+Run: `flutter test test/study_session_test.dart test/swipe_to_rate_test.dart test/deck_detail_test.dart test/mock_data_test.dart test/deck_management_test.dart test/library_persistence_test.dart test/deck_counts_consistency_test.dart test/quiz_screen_test.dart test/deck_count_refresh_test.dart test/statistics_breakdown_test.dart test/starter_content_test.dart`
+Expected: all pass. If a specific assertion no longer makes sense given the new architecture (e.g. one that asserted an exact fixed interval string that the approximate preview labels from Task 7 don't produce, or one that asserted stats computed from `Deck.cardCount`/`dueCount` that are now server-computed rather than locally recounted), update the assertion to match the new, documented behavior — don't weaken the test to make it pass without understanding why it changed. If a test's entire premise no longer applies (e.g. it specifically tested local-only persistence behavior that the API-backed store no longer has), it's fine to delete that individual test case — note which and why in your report.
 
 - [ ] **Step 4: Confirm the whole project analyzes clean**
 
 Run: `flutter analyze`
-Expected: `No issues found!`
+Expected: `No issues found!` (or errors confined only to files Task 7 is about to delete, if you're running this before Task 7 — confirm which).
 
 - [ ] **Step 5: Commit**
 
 ```bash
-git add test/study_session_test.dart test/swipe_to_rate_test.dart
-git commit -m "Update study session tests for the API-backed queue and FakeDeckApi"
+git add test/study_session_test.dart test/swipe_to_rate_test.dart test/deck_detail_test.dart test/mock_data_test.dart test/deck_management_test.dart test/library_persistence_test.dart test/deck_counts_consistency_test.dart test/quiz_screen_test.dart test/deck_count_refresh_test.dart test/statistics_breakdown_test.dart test/starter_content_test.dart
+git commit -m "Update all remaining tests for the API-backed DeckStore and study flow"
 ```
 
 ---
