@@ -2451,7 +2451,7 @@ git commit -m "Retire the local SM-2 scheduler; drive studying through DeckApi"
 - Modify: `lib/data/mock_data.dart`
 
 **Interfaces:**
-- Consumes: `DeckStore.refresh`, `DeckStore.addDeck`, `DeckStore.addCard`, `DeckStore.decks`, `DeckStore.flushPendingWrites`, `DeckStore.onSyncDropped` (Tasks 6–7), `StarterContent.buildFor` (existing, unchanged)
+- Consumes: `DeckStore.refresh`, `DeckStore.addDeck`, `DeckStore.addCard`, `DeckStore.decks`, `DeckStore.flushPendingWrites`, `DeckStore.onSyncDropped`, `DeckStore.writeQueue.restore` (Task 6), `StarterContent.buildFor` (existing, unchanged)
 
 - [ ] **Step 1: Change `MockData.applyStarterContent` to build-only (no longer mutates `DeckStore` directly)**
 
@@ -2520,20 +2520,31 @@ Delete the old `applyStarterContent` method and its `DeckStore`-mutating body en
 
 Add `import '../data/deck_store.dart';` to `main_shell.dart`; remove `import '../data/mock_data.dart';` if `grep -n "MockData\." lib/screens/main_shell.dart` shows nothing left referencing it (only `buildStarterContent` should remain, called via `MockData.buildStarterContent`, so keep the import — confirm with the grep rather than assuming).
 
-Add a queue-flush trigger in `initState` (alongside the existing profile-load call) and wire `DeckStore.onSyncDropped` to a `ScaffoldMessenger` notice — add near the top of `_MainShellState`:
+Add a queue-restore-then-flush trigger in `initState` (alongside the existing profile-load call) and wire `DeckStore.onSyncDropped` to a `ScaffoldMessenger` notice — add near the top of `_MainShellState`:
 
 ```dart
   @override
   void initState() {
     super.initState();
     DeckStore.onSyncDropped = _showSyncDroppedNotice;
-    DeckStore.flushPendingWrites();
+    _restoreAndFlushPendingWrites();
     if (widget.profile != null) {
       _profile = widget.profile;
       _applyProfile(widget.profile!);
     } else {
       _loadProfileAfterLogin();
     }
+  }
+
+  /// `DeckStore.writeQueue` only holds what's been enqueued in memory this
+  /// session — anything queued in a *previous* session (app closed with
+  /// pending offline writes never flushed) only exists on disk until
+  /// something calls `restore()`. This is that call: once, here, before the
+  /// first flush attempt each session, so a queue from a prior session
+  /// isn't silently orphaned.
+  Future<void> _restoreAndFlushPendingWrites() async {
+    await DeckStore.writeQueue.restore();
+    await DeckStore.flushPendingWrites();
   }
 
   void _showSyncDroppedNotice(int count) {
@@ -2544,7 +2555,7 @@ Add a queue-flush trigger in `initState` (alongside the existing profile-load ca
   }
 ```
 
-(This replaces the existing `initState` body — merge carefully with what's already there rather than duplicating the `if (widget.profile != null)` branch.)
+(This replaces the existing `initState` body — merge carefully with what's already there rather than duplicating the `if (widget.profile != null)` branch. Note `_restoreAndFlushPendingWrites()` is deliberately not awaited from `initState` itself, matching Flutter's convention that `initState` can't be `async` — it fires and completes in the background, same as the existing profile-load calls already do.)
 
 - [ ] **Step 3: Write the failing test for starter-content creation firing exactly once**
 
