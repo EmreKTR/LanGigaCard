@@ -161,13 +161,7 @@ class VocabGridDeckApi implements DeckApi {
         nextReviewDate: body['nextReviewDate'] == null ? null : DateTime.parse(body['nextReviewDate'] as String),
       );
     } on DioException catch (e) {
-      if (e.response?.statusCode == 400) {
-        final body = e.response?.data;
-        if (body is String && body.isNotEmpty) {
-          return ReviewResult.validationError(body);
-        }
-      }
-      return const ReviewResult.networkError();
+      return _reviewErrorFrom(e);
     } catch (_) {
       return const ReviewResult.networkError();
     }
@@ -222,6 +216,27 @@ class VocabGridDeckApi implements DeckApi {
     return const FlashcardResult.networkError();
   }
 
+  ReviewResult _reviewErrorFrom(DioException e) {
+    if (e.response?.statusCode == 400 || e.response?.statusCode == 404) {
+      final body = e.response?.data;
+      if (body is Map && body['errors'] is Map) {
+        try {
+          final errors = (body['errors'] as Map)
+              .values
+              .expand((messages) => (messages as List).cast<String>())
+              .join(' ');
+          return ReviewResult.validationError(errors.isEmpty ? 'Invalid request.' : errors);
+        } catch (_) {
+          return const ReviewResult.networkError();
+        }
+      }
+      if (body is String && body.isNotEmpty) {
+        return ReviewResult.validationError(body);
+      }
+    }
+    return const ReviewResult.networkError();
+  }
+
   DeckData _deckFromJson(Map<String, dynamic> json) => DeckData(
         id: '${json['id']}',
         title: json['title'] as String,
@@ -245,7 +260,7 @@ class VocabGridDeckApi implements DeckApi {
 
   ReviewCardData _reviewCardFromJson(Map<String, dynamic> json) => ReviewCardData(
         wordId: '${json['wordId']}',
-        deckId: '${json['deckId']}',
+        deckId: json['deckId'] == null ? '' : '${json['deckId']}',
         term: json['term'] as String,
         translation: json['translation'] as String,
         exampleSentence: json['exampleSentence'] as String?,
