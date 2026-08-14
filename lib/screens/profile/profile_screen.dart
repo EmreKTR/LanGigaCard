@@ -18,6 +18,16 @@ import '../home/home_screen.dart' show initialsFor;
 import 'help_support_screen.dart';
 import 'privacy_security_screen.dart';
 
+/// Splits a display name ("Ada Lovelace") into the firstName/lastName pair
+/// the API's updateProfile requires. Everything after the first word joins
+/// into lastName, so "Ada Countess Lovelace" -> ("Ada", "Countess Lovelace").
+(String firstName, String lastName) _splitName(String name) {
+  final parts = name.trim().split(RegExp(r'\s+')).where((p) => p.isNotEmpty).toList();
+  if (parts.isEmpty) return ('', '');
+  if (parts.length == 1) return (parts.first, '');
+  return (parts.first, parts.skip(1).join(' '));
+}
+
 /// Profile: gradient identity header, editable Language Pair card, and
 /// Study Preferences / App Preferences / Account settings groups.
 class ProfileScreen extends StatelessWidget {
@@ -68,8 +78,19 @@ class ProfileScreen extends StatelessWidget {
     );
   }
 
-  void _adjustGoal(int delta) {
+  Future<void> _adjustGoal(BuildContext context, int delta) async {
     final next = (profile.dailyGoalMinutes + delta).clamp(5, 120);
+    final (firstName, lastName) = _splitName(profile.name);
+    final result = await userApi.updateProfile(firstName: firstName, lastName: lastName, dailyGoalMinutes: next);
+    if (!context.mounted) return;
+
+    if (!result.isSuccess) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text("Couldn't save your daily goal. Please try again.")),
+      );
+      return;
+    }
+
     onProfileChanged(profile.copyWith(dailyGoalMinutes: next));
   }
 
@@ -87,7 +108,27 @@ class ProfileScreen extends StatelessWidget {
         unavailableNote: isNative ? "you're learning this" : 'you speak this',
       ),
     );
-    if (picked == null) return;
+    if (picked == null || !context.mounted) return;
+
+    final (firstName, lastName) = _splitName(profile.name);
+    final result = await userApi.updateProfile(
+      firstName: firstName,
+      lastName: lastName,
+      nativeLanguage: isNative ? picked.$1 : null,
+      nativeLanguageCode: isNative ? picked.$2 : null,
+      targetLanguage: isNative ? null : picked.$1,
+      targetLanguageCode: isNative ? null : picked.$2,
+    );
+    if (!context.mounted) return;
+
+    if (!result.isSuccess) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(result.outcome == ProfileOutcome.networkError
+            ? "Couldn't reach the server. Check your connection and try again."
+            : (result.message ?? "Couldn't save your language. Please try again."))),
+      );
+      return;
+    }
 
     onProfileChanged(
       isNative
@@ -141,7 +182,24 @@ class ProfileScreen extends StatelessWidget {
       backgroundColor: Colors.transparent,
       builder: (_) => _EditProfileSheet(name: profile.name, email: profile.email),
     );
-    if (updated == null) return;
+    if (updated == null || !context.mounted) return;
+
+    final (firstName, lastName) = _splitName(updated.name);
+    final result = await userApi.updateProfile(firstName: firstName, lastName: lastName);
+    if (!context.mounted) return;
+
+    if (!result.isSuccess) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(result.outcome == ProfileOutcome.networkError
+            ? "Couldn't reach the server. Check your connection and try again."
+            : (result.message ?? "Couldn't save your name. Please try again."))),
+      );
+      return;
+    }
+
+    // Email isn't part of the API's update contract (PUT /api/User/profile
+    // has no email field) — updating it here only changes what's shown on
+    // this device, not the account's real email on the server.
     onProfileChanged(profile.copyWith(name: updated.name, email: updated.email));
   }
 
@@ -210,7 +268,7 @@ class ProfileScreen extends StatelessWidget {
                             IconButton(
                               tooltip: 'Decrease daily goal',
                               visualDensity: VisualDensity.compact,
-                              onPressed: profile.dailyGoalMinutes <= 5 ? null : () => _adjustGoal(-5),
+                              onPressed: profile.dailyGoalMinutes <= 5 ? null : () => _adjustGoal(context, -5),
                               icon: const Icon(Icons.remove_circle_outline_rounded, size: 22),
                               color: colors.textSecondary,
                             ),
@@ -218,7 +276,7 @@ class ProfileScreen extends StatelessWidget {
                             IconButton(
                               tooltip: 'Increase daily goal',
                               visualDensity: VisualDensity.compact,
-                              onPressed: profile.dailyGoalMinutes >= 120 ? null : () => _adjustGoal(5),
+                              onPressed: profile.dailyGoalMinutes >= 120 ? null : () => _adjustGoal(context, 5),
                               icon: const Icon(Icons.add_circle_outline_rounded, size: 22),
                               color: colors.textSecondary,
                             ),
