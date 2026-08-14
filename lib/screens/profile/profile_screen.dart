@@ -5,6 +5,7 @@ import '../../data/api/vocabgrid_user_api.dart';
 import '../../data/auth_store.dart';
 import '../../data/deck_store.dart';
 import '../../data/mock_data.dart';
+import '../../data/review_log.dart';
 import '../../models/app_models.dart';
 import '../../models/text_size_option.dart';
 import '../../theme/app_theme.dart';
@@ -446,6 +447,7 @@ class ProfileScreen extends StatelessWidget {
     // flush straight into the next account.
     await DeckStore.writeQueue.clear();
     await DeckStore.clearLibrary();
+    await ReviewLog.clear();
     if (!context.mounted) return;
 
     Navigator.of(context).pushAndRemoveUntil(

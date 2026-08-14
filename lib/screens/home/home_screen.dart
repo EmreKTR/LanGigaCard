@@ -51,9 +51,11 @@ class HomeScreen extends StatelessWidget {
   Widget _buildContent(BuildContext context) {
     final recentCards = DeckStore.cards.take(5).toList();
     // Empty when the signed-in account hasn't completed onboarding yet (no
-    // language pair selected server-side, so applyStarterContent had
-    // nothing to seed) — must be handled, not assumed non-empty, now that a
-    // real account with no local demo-fallback can reach this screen.
+    // language pair selected server-side, so MainShell._maybeCreateStarterContent
+    // had nothing for MockData.buildStarterContent to build, and so nothing
+    // to seed via DeckStore.addDeck/addCard) — must be handled, not assumed
+    // non-empty, now that a real account with no local demo-fallback can
+    // reach this screen.
     final deck = DeckStore.decks.isEmpty ? null : DeckStore.decks.first;
 
     return CustomScrollView(
@@ -198,7 +200,7 @@ class _GradientHeader extends StatelessWidget {
                             spacing: AppSpacing.sm,
                             runSpacing: 4,
                             children: [
-                              _headerChip('${DeckStore.dueCountOf(deck!.id)} cards due'),
+                              _headerChip('${deck!.dueCount} cards due'),
                               _headerChip('🔥 ${profile.dailyGoalMinutes} min goal'),
                             ],
                           ),

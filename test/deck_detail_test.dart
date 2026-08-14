@@ -31,9 +31,11 @@ FlashCard _card(String id, MemoryStrength strength) => FlashCard(
 /// calls the API itself, so fixtures are seeded straight into those lists
 /// rather than through DeckStore's now-async, API-backed
 /// addDeck/addCard/updateDeck/removeDeck. That also preserves the
-/// deliberately-wrong reviewCount/masteryPercent on [_deck] above, which
-/// only a hand-built Deck (not one round-tripped through a FakeDeckApi,
-/// which always starts a deck at 0) can carry.
+/// deliberately non-default reviewCount/masteryPercent on [_deck] above --
+/// distinctive, server-supplied figures that the screen is expected to
+/// display verbatim (see the "mastery ring" test below) -- which only a
+/// hand-built Deck (not one round-tripped through a FakeDeckApi, which
+/// always starts a deck at 0) can carry.
 void _addDeckLocally(Deck deck) {
   DeckStore.decks.add(deck);
   DeckStore.revision.value++;

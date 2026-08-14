@@ -109,7 +109,7 @@ class _DeckDashboardScreenState extends State<DeckDashboardScreen> {
   Widget _buildDeckList(BuildContext context) {
     final colors = context.appColors;
     final decks = DeckStore.decks.where((d) => d.name.toLowerCase().contains(_query.toLowerCase())).toList();
-    final totalDue = DeckStore.decks.fold<int>(0, (sum, d) => sum + DeckStore.dueCountOf(d.id));
+    final totalDue = DeckStore.decks.fold<int>(0, (sum, d) => sum + d.dueCount);
 
     return ListView(
       // Keeps pull-to-refresh usable even when the list is short.

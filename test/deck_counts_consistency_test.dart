@@ -9,7 +9,14 @@ const _deck = Deck(
   id: 'counts_deck',
   name: 'Counts Deck',
   description: 'fixture',
-  // Deliberately dishonest stored figures: nothing user-facing may use them.
+  // Deliberately dishonest stored figures. NOT a claim that nothing
+  // user-facing reads them -- deck tiles, the dashboard banner, and the
+  // Home hero card all intentionally read Deck.dueCount/masteryPercent
+  // directly now (the server-authoritative figures). What's still true, and
+  // what this file actually verifies, is narrower: DeckStore's pure derived
+  // getters below (cardCountOf/dueCountOf/studyableCountOf/masteryPercentOf)
+  // ignore these stored figures and always recompute from the cards
+  // themselves.
   cardCount: 999,
   dueCount: 888,
   reviewCount: 0,

@@ -72,7 +72,15 @@ void main() {
     // The deck cards themselves scroll off the test viewport, so assert on the
     // always-visible summary line at the top instead.
     final deckCount = DeckStore.decks.length;
-    final totalDue = DeckStore.decks.fold<int>(0, (sum, d) => sum + DeckStore.dueCountOf(d.id));
+    // The banner must sum the server-authoritative Deck.dueCount, not
+    // recompute from locally-cached card strength (DeckStore.dueCountOf) --
+    // card review-progress isn't part of the flashcard-list response, so the
+    // local figure is wrong on a fresh login. To prove the banner actually
+    // reads d.dueCount and not the local formula, the deck added below gets
+    // no real FlashCard entries in DeckStore.cards (so DeckStore.dueCountOf
+    // would compute 0 for it) but is given a nonzero server dueCount. Only
+    // the correct (server-figure) implementation reflects that +3.
+    final totalDue = DeckStore.decks.fold<int>(0, (sum, d) => sum + d.dueCount);
     expect(find.text('$deckCount decks · $totalDue cards due today'), findsOneWidget);
 
     DeckStore.decks.add(const Deck(
@@ -80,7 +88,7 @@ void main() {
       name: 'Kitchen Vocab',
       description: 'Words you need to cook',
       cardCount: 0,
-      dueCount: 0,
+      dueCount: 3,
       reviewCount: 0,
       masteryPercent: 0,
       emoji: '📘',
@@ -89,8 +97,9 @@ void main() {
     DeckStore.revision.value++;
     await tester.pump();
 
-    expect(find.text('${deckCount + 1} decks · $totalDue cards due today'), findsOneWidget,
-        reason: 'creating a deck must show up without a manual refresh');
+    expect(find.text('${deckCount + 1} decks · ${totalDue + 3} cards due today'), findsOneWidget,
+        reason: 'creating a deck must show up without a manual refresh, using its server-provided '
+            'dueCount even though it has no locally-cached cards to compute one from');
 
     // ...and it is really in the list, once scrolled into view.
     await tester.scrollUntilVisible(find.text('Kitchen Vocab'), 300, scrollable: find.byType(Scrollable).first);

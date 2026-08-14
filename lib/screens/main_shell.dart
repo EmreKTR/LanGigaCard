@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../data/api/deck_api.dart';
 import '../data/api/vocabgrid_user_api.dart';
 import '../data/deck_store.dart';
 import '../data/mock_data.dart';
@@ -124,6 +125,21 @@ class _MainShellState extends State<MainShell> {
   Future<void> _maybeCreateStarterContent(UserProfile profile) async {
     await DeckStore.refresh();
     if (!mounted || DeckStore.decks.isNotEmpty) return;
+
+    // DeckStore.decks being empty here is ambiguous -- refresh() swallows a
+    // fetch failure and just leaves the cache as it was, so an empty cache
+    // could mean "genuinely a new account" or "the fetch just failed" (e.g.
+    // right after logout, which now always leaves the cache empty). Confirm
+    // directly against the API before concluding "new account" -- getting
+    // this wrong duplicates the entire starter set once the real decks
+    // reappear on a later successful refresh.
+    final List<DeckData> freshDecks;
+    try {
+      freshDecks = await DeckStore.api.getDecks();
+    } catch (_) {
+      return; // Fetch failed -- don't guess, skip starter content this time.
+    }
+    if (!mounted || freshDecks.isNotEmpty) return;
 
     final starter = MockData.buildStarterContent(
       targetCode: profile.targetLanguageCode,
