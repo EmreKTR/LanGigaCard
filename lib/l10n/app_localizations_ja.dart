@@ -1203,4 +1203,84 @@ class AppLocalizationsJa extends AppLocalizations {
 
   @override
   String get privacyAccountDeletion => 'アカウントの削除';
+
+  @override
+  String get categoriesEditTitle => 'テーマを編集';
+
+  @override
+  String get categoriesSearchHint => 'テーマを検索...';
+
+  @override
+  String get languagesSearchHint => '言語を検索...';
+
+  @override
+  String get languagesPopular => '人気';
+
+  @override
+  String get reminderPermissionNeeded => 'リマインダーには通知の許可が必要です。システム設定で有効にしてください。';
+
+  @override
+  String reminderSetFor(String time) {
+    return '毎日のリマインダーを$timeに設定しました';
+  }
+
+  @override
+  String get reminderPickTime => '通知する時刻';
+
+  @override
+  String get wizardPurposeQuestion => 'この言語を学ぶ理由は何ですか？';
+
+  @override
+  String get wizardSelectAllThatApply => '当てはまるものをすべて選んでください';
+
+  @override
+  String get wizardAgeQuestion => '年齢層を教えてください';
+
+  @override
+  String get wizardTopicsQuestion => '最初にどのテーマを学びたいですか？';
+
+  @override
+  String get wizardAgeNote => '年齢はアクセシビリティ設定と学習体験の最適化に使用します。';
+
+  @override
+  String get studyAllUpToDate => '学習中のカードはすべて最新です。新しい単語を追加するか、復習の時期に戻ってきてください。';
+
+  @override
+  String studyDeckMastered(String deck) {
+    return '$deckの内容はすべて習得済みです。続けるには新しい単語を追加してください。';
+  }
+
+  @override
+  String get ttsVoiceMissingUnknown => 'この言語の音声はまだ端末にインストールされていません。';
+
+  @override
+  String ttsVoiceMissing(String language) {
+    return '$languageの音声がまだインストールされていません。端末の音声読み上げ設定から追加してください。';
+  }
+
+  @override
+  String get ttsUnavailable => 'この端末には利用可能な音声読み上げエンジンがありません。';
+
+  @override
+  String get ttsPlay => '発音を再生';
+
+  @override
+  String get ttsNothing => '読み上げる内容がありません';
+
+  @override
+  String ttsPlayOf(String text) {
+    return '$text の発音を再生';
+  }
+
+  @override
+  String get reminderNotificationTitle => '復習の時間です';
+
+  @override
+  String get reminderNotificationBody => 'カードが待っています。数分で連続記録を守れます。';
+
+  @override
+  String get splashTagline => 'どんな言語も学べる';
+
+  @override
+  String get profileLearningLabel => '学習中';
 }

@@ -1,4 +1,4 @@
-﻿import 'package:flutter/material.dart';
+import 'package:flutter/material.dart';
 import '../../data/api/user_api.dart';
 import '../../l10n/app_localizations.dart';
 import '../../theme/app_theme.dart';
@@ -88,12 +88,13 @@ class LearningPurposeStep extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text('Why are you learning this language?', style: Theme.of(context).textTheme.headlineMedium),
+        Text(l10n.wizardPurposeQuestion, style: Theme.of(context).textTheme.headlineMedium),
         const SizedBox(height: AppSpacing.xs),
-        Text('Select all that apply', style: Theme.of(context).textTheme.bodyLarge),
+        Text(l10n.wizardSelectAllThatApply, style: Theme.of(context).textTheme.bodyLarge),
         const SizedBox(height: AppSpacing.xl),
         GridView.count(
           crossAxisCount: 2,
@@ -129,10 +130,11 @@ class AgeRangeStep extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final colors = context.appColors;
+    final l10n = AppLocalizations.of(context);
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text('What is your age range?', style: Theme.of(context).textTheme.headlineMedium),
+        Text(l10n.wizardAgeQuestion, style: Theme.of(context).textTheme.headlineMedium),
         const SizedBox(height: AppSpacing.xl),
         for (final range in _ageRanges)
           Padding(
@@ -171,7 +173,7 @@ class AgeRangeStep extends StatelessWidget {
               const SizedBox(width: AppSpacing.sm),
               Expanded(
                 child: Text(
-                  'We use your age to optimize accessibility settings and learning experience.',
+                  l10n.wizardAgeNote,
                   style: TextStyle(color: colors.textMuted, fontSize: 12),
                 ),
               ),
@@ -200,7 +202,7 @@ class TopicsStep extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text('What topics would you like to study first?', style: Theme.of(context).textTheme.headlineMedium),
+        Text(l10n.wizardTopicsQuestion, style: Theme.of(context).textTheme.headlineMedium),
         const SizedBox(height: AppSpacing.xs),
         Text(l10n.wizardSelectedHint(selected.length), style: TextStyle(color: colors.textMuted, fontSize: 13)),
         const SizedBox(height: AppSpacing.xl),

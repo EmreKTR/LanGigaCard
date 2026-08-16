@@ -1,4 +1,4 @@
-﻿{
+{
   "@@locale": "it",
 
   "appLanguageTitle": "Scegli la lingua dell'app",
@@ -380,5 +380,32 @@
   "privacyChangingPassword": "Il cambio della password",
   "privacySessionManagement": "La gestione delle sessioni",
   "privacyExportingDecks": "L'esportazione dei mazzi",
-  "privacyAccountDeletion": "L'eliminazione dell'account"
+  "privacyAccountDeletion": "L'eliminazione dell'account",
+
+  "categoriesEditTitle": "Modifica temi",
+  "categoriesSearchHint": "Cerca temi...",
+  "languagesSearchHint": "Cerca lingue...",
+  "languagesPopular": "POPOLARI",
+  "reminderPermissionNeeded": "I promemoria richiedono il permesso per le notifiche. Attivalo nelle impostazioni di sistema.",
+  "reminderSetFor": "Promemoria giornaliero impostato per le {time}",
+  "reminderPickTime": "Ricordamelo alle",
+  "wizardPurposeQuestion": "Perché stai imparando questa lingua?",
+  "wizardSelectAllThatApply": "Scegli tutte le opzioni che valgono",
+  "wizardAgeQuestion": "Qual è la tua fascia d'età?",
+  "wizardTopicsQuestion": "Quali temi vuoi studiare per primi?",
+
+  "wizardAgeNote": "Usiamo la tua età per ottimizzare le impostazioni di accessibilità e l'esperienza di studio.",
+  "studyAllUpToDate": "Tutte le tue carte sono in pari. Aggiungi nuove parole o torna quando ci saranno ripassi.",
+  "studyDeckMastered": "Hai imparato tutto in {deck}. Aggiungi nuove parole per continuare.",
+  "ttsVoiceMissingUnknown": "La voce per questa lingua non è ancora installata sul dispositivo.",
+  "ttsVoiceMissing": "La voce {language} non è ancora installata. Aggiungila nelle impostazioni di sintesi vocale del sistema.",
+  "ttsUnavailable": "Questo dispositivo non ha un motore di sintesi vocale disponibile.",
+  "ttsPlay": "Ascolta la pronuncia",
+  "ttsNothing": "Niente da pronunciare",
+  "ttsPlayOf": "Ascolta la pronuncia di {text}",
+  "reminderNotificationTitle": "È ora di ripassare",
+  "reminderNotificationBody": "Le tue carte ti aspettano: bastano pochi minuti per mantenere la serie.",
+
+  "splashTagline": "IMPARA QUALSIASI LINGUA",
+  "profileLearningLabel": "impara"
 }

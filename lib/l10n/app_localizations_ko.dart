@@ -1207,4 +1207,87 @@ class AppLocalizationsKo extends AppLocalizations {
 
   @override
   String get privacyAccountDeletion => '계정 삭제';
+
+  @override
+  String get categoriesEditTitle => '주제 편집';
+
+  @override
+  String get categoriesSearchHint => '주제 검색...';
+
+  @override
+  String get languagesSearchHint => '언어 검색...';
+
+  @override
+  String get languagesPopular => '인기';
+
+  @override
+  String get reminderPermissionNeeded =>
+      '알림 권한이 있어야 리마인더를 사용할 수 있습니다. 시스템 설정에서 허용해 주세요.';
+
+  @override
+  String reminderSetFor(String time) {
+    return '매일 알림이 $time으로 설정되었습니다';
+  }
+
+  @override
+  String get reminderPickTime => '알림 시각';
+
+  @override
+  String get wizardPurposeQuestion => '이 언어를 배우는 이유는 무엇인가요?';
+
+  @override
+  String get wizardSelectAllThatApply => '해당하는 항목을 모두 선택하세요';
+
+  @override
+  String get wizardAgeQuestion => '연령대가 어떻게 되시나요?';
+
+  @override
+  String get wizardTopicsQuestion => '어떤 주제부터 공부하고 싶으신가요?';
+
+  @override
+  String get wizardAgeNote => '연령 정보는 접근성 설정과 학습 경험을 최적화하는 데 사용됩니다.';
+
+  @override
+  String get studyAllUpToDate =>
+      '학습 중인 카드가 모두 최신입니다. 새 단어를 추가하거나 복습 시기에 다시 오세요.';
+
+  @override
+  String studyDeckMastered(String deck) {
+    return '$deck의 모든 내용을 익히셨습니다. 계속하려면 새 단어를 추가하세요.';
+  }
+
+  @override
+  String get ttsVoiceMissingUnknown => '이 언어의 음성이 아직 기기에 설치되어 있지 않습니다.';
+
+  @override
+  String ttsVoiceMissing(String language) {
+    return '$language 음성이 아직 설치되어 있지 않습니다. 시스템 음성 변환 설정에서 추가해 주세요.';
+  }
+
+  @override
+  String get ttsUnavailable => '이 기기에는 사용할 수 있는 음성 변환 엔진이 없습니다.';
+
+  @override
+  String get ttsPlay => '발음 재생';
+
+  @override
+  String get ttsNothing => '읽을 내용이 없습니다';
+
+  @override
+  String ttsPlayOf(String text) {
+    return '$text 발음 재생';
+  }
+
+  @override
+  String get reminderNotificationTitle => '복습할 시간입니다';
+
+  @override
+  String get reminderNotificationBody =>
+      '카드가 기다리고 있어요. 몇 분이면 연속 기록을 지킬 수 있습니다.';
+
+  @override
+  String get splashTagline => '어떤 언어든 배우세요';
+
+  @override
+  String get profileLearningLabel => '학습 중';
 }

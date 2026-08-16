@@ -1,4 +1,4 @@
-﻿import 'package:flutter/material.dart';
+import 'package:flutter/material.dart';
 import '../../data/deck_store.dart';
 import '../../models/app_models.dart';
 import '../../l10n/app_localizations.dart';
@@ -172,7 +172,7 @@ class _DeckDetailBody extends StatelessWidget {
                     Expanded(
                       flex: 2,
                       child: PrimaryButton(
-                        label: studyable > 0 ? 'Study $studyable card${studyable == 1 ? '' : 's'}' : 'All caught up',
+                        label: studyable > 0 ? 'Study $studyable card${studyable == 1 ? '' : 's'}' : l10n.decksAllCaughtUp,
                         icon: Icons.style_rounded,
                         onPressed: studyable == 0
                             ? null

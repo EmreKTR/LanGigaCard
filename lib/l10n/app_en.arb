@@ -1,4 +1,4 @@
-﻿{
+{
   "@@locale": "en",
 
   "appLanguageTitle": "Choose Your App Language",
@@ -425,5 +425,36 @@
   "privacyChangingPassword": "Changing your password",
   "privacySessionManagement": "Session management",
   "privacyExportingDecks": "Exporting your decks",
-  "privacyAccountDeletion": "Account deletion"
+  "privacyAccountDeletion": "Account deletion",
+
+  "categoriesEditTitle": "Edit Categories",
+  "categoriesSearchHint": "Search categories...",
+  "languagesSearchHint": "Search languages...",
+  "languagesPopular": "POPULAR",
+  "reminderPermissionNeeded": "Reminders need notification permission. Enable it in your system settings.",
+  "reminderSetFor": "Daily reminder set for {time}",
+  "@reminderSetFor": { "placeholders": { "time": { "type": "String" } } },
+  "reminderPickTime": "Remind me at",
+  "wizardPurposeQuestion": "Why are you learning this language?",
+  "wizardSelectAllThatApply": "Select all that apply",
+  "wizardAgeQuestion": "What is your age range?",
+  "wizardTopicsQuestion": "What topics would you like to study first?",
+
+  "wizardAgeNote": "We use your age to optimize accessibility settings and learning experience.",
+  "studyAllUpToDate": "Every card you're learning is up to date. Add new words or come back when reviews are due.",
+  "studyDeckMastered": "You've mastered everything in {deck}. Add new words to keep going.",
+  "@studyDeckMastered": { "placeholders": { "deck": { "type": "String" } } },
+  "ttsVoiceMissingUnknown": "This language's voice isn't installed on your device yet.",
+  "ttsVoiceMissing": "{language} speech isn't installed on your device yet. Add it in your system text-to-speech settings.",
+  "@ttsVoiceMissing": { "placeholders": { "language": { "type": "String" } } },
+  "ttsUnavailable": "This device doesn't have a text-to-speech engine available.",
+  "ttsPlay": "Play pronunciation",
+  "ttsNothing": "Nothing to pronounce",
+  "ttsPlayOf": "Play pronunciation of {text}",
+  "@ttsPlayOf": { "placeholders": { "text": { "type": "String" } } },
+  "reminderNotificationTitle": "Time to review",
+  "reminderNotificationBody": "Your cards are waiting — a few minutes keeps the streak alive.",
+
+  "splashTagline": "LEARN ANY LANGUAGE",
+  "profileLearningLabel": "learning"
 }

@@ -1246,4 +1246,90 @@ class AppLocalizationsEs extends AppLocalizations {
 
   @override
   String get privacyAccountDeletion => 'Eliminar la cuenta';
+
+  @override
+  String get categoriesEditTitle => 'Editar temas';
+
+  @override
+  String get categoriesSearchHint => 'Buscar temas...';
+
+  @override
+  String get languagesSearchHint => 'Buscar idiomas...';
+
+  @override
+  String get languagesPopular => 'POPULARES';
+
+  @override
+  String get reminderPermissionNeeded =>
+      'Los recordatorios necesitan permiso de notificaciones. Actívalo en los ajustes del sistema.';
+
+  @override
+  String reminderSetFor(String time) {
+    return 'Recordatorio diario fijado para las $time';
+  }
+
+  @override
+  String get reminderPickTime => 'Recordarme a las';
+
+  @override
+  String get wizardPurposeQuestion => '¿Por qué estás aprendiendo este idioma?';
+
+  @override
+  String get wizardSelectAllThatApply => 'Elige todas las que apliquen';
+
+  @override
+  String get wizardAgeQuestion => '¿Cuál es tu rango de edad?';
+
+  @override
+  String get wizardTopicsQuestion => '¿Qué temas te gustaría estudiar primero?';
+
+  @override
+  String get wizardAgeNote =>
+      'Usamos tu edad para optimizar los ajustes de accesibilidad y la experiencia de aprendizaje.';
+
+  @override
+  String get studyAllUpToDate =>
+      'Todas tus tarjetas están al día. Añade palabras nuevas o vuelve cuando toque repasar.';
+
+  @override
+  String studyDeckMastered(String deck) {
+    return 'Has dominado todo en $deck. Añade palabras nuevas para seguir.';
+  }
+
+  @override
+  String get ttsVoiceMissingUnknown =>
+      'La voz de este idioma aún no está instalada en tu dispositivo.';
+
+  @override
+  String ttsVoiceMissing(String language) {
+    return 'La voz de $language aún no está instalada. Añádela en los ajustes de texto a voz del sistema.';
+  }
+
+  @override
+  String get ttsUnavailable =>
+      'Este dispositivo no tiene un motor de texto a voz disponible.';
+
+  @override
+  String get ttsPlay => 'Reproducir pronunciación';
+
+  @override
+  String get ttsNothing => 'Nada que pronunciar';
+
+  @override
+  String ttsPlayOf(String text) {
+    return 'Reproducir la pronunciación de $text';
+  }
+
+  @override
+  String get reminderNotificationTitle => 'Hora de repasar';
+
+  @override
+  String get reminderNotificationBody =>
+      'Tus tarjetas te esperan: unos minutos mantienen viva la racha.';
+
+  @override
+  String get splashTagline => 'APRENDE CUALQUIER IDIOMA';
+
+  @override
+  String get profileLearningLabel => 'aprendiendo';
 }

@@ -1,4 +1,4 @@
-﻿import 'package:flutter/material.dart';
+import 'package:flutter/material.dart';
 import '../../data/deck_store.dart';
 import '../../data/pronunciation_service.dart';
 import '../../data/review_log.dart';
@@ -225,8 +225,8 @@ class _NothingDueView extends StatelessWidget {
               const SizedBox(height: AppSpacing.sm),
               Text(
                 deckName == null
-                    ? 'Every card you\'re learning is up to date. Add new words or come back when reviews are due.'
-                    : 'You\'ve mastered everything in $deckName. Add new words to keep going.',
+                    ? l10n.studyAllUpToDate
+                    : l10n.studyDeckMastered(deckName!),
                 textAlign: TextAlign.center,
                 style: TextStyle(color: colors.textMuted),
               ),
@@ -563,7 +563,7 @@ class _ResultsView extends StatelessWidget {
               Row(
                 children: [
                   Expanded(
-                    child: OutlinedButton(onPressed: () => Navigator.of(context).maybePop(), child: const Text('Back to Decks')),
+                    child: OutlinedButton(onPressed: () => Navigator.of(context).maybePop(), child: Text(l10n.studyBackToDecks)),
                   ),
                   const SizedBox(width: AppSpacing.md),
                   Expanded(

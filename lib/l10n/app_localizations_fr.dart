@@ -1252,4 +1252,91 @@ class AppLocalizationsFr extends AppLocalizations {
 
   @override
   String get privacyAccountDeletion => 'La suppression du compte';
+
+  @override
+  String get categoriesEditTitle => 'Modifier les thèmes';
+
+  @override
+  String get categoriesSearchHint => 'Rechercher des thèmes...';
+
+  @override
+  String get languagesSearchHint => 'Rechercher des langues...';
+
+  @override
+  String get languagesPopular => 'POPULAIRES';
+
+  @override
+  String get reminderPermissionNeeded =>
+      'Les rappels nécessitent l\'autorisation de notification. Activez-la dans les réglages du système.';
+
+  @override
+  String reminderSetFor(String time) {
+    return 'Rappel quotidien réglé sur $time';
+  }
+
+  @override
+  String get reminderPickTime => 'Me rappeler à';
+
+  @override
+  String get wizardPurposeQuestion => 'Pourquoi apprenez-vous cette langue ?';
+
+  @override
+  String get wizardSelectAllThatApply => 'Choisissez tout ce qui s\'applique';
+
+  @override
+  String get wizardAgeQuestion => 'Quelle est votre tranche d\'âge ?';
+
+  @override
+  String get wizardTopicsQuestion =>
+      'Quels thèmes voulez-vous étudier en premier ?';
+
+  @override
+  String get wizardAgeNote =>
+      'Nous utilisons votre âge pour ajuster l\'accessibilité et l\'expérience d\'apprentissage.';
+
+  @override
+  String get studyAllUpToDate =>
+      'Toutes vos cartes sont à jour. Ajoutez de nouveaux mots ou revenez quand des révisions seront dues.';
+
+  @override
+  String studyDeckMastered(String deck) {
+    return 'Vous maîtrisez tout dans $deck. Ajoutez de nouveaux mots pour continuer.';
+  }
+
+  @override
+  String get ttsVoiceMissingUnknown =>
+      'La voix de cette langue n\'est pas encore installée sur votre appareil.';
+
+  @override
+  String ttsVoiceMissing(String language) {
+    return 'La voix $language n\'est pas encore installée. Ajoutez-la dans les réglages de synthèse vocale du système.';
+  }
+
+  @override
+  String get ttsUnavailable =>
+      'Cet appareil ne dispose pas de moteur de synthèse vocale.';
+
+  @override
+  String get ttsPlay => 'Écouter la prononciation';
+
+  @override
+  String get ttsNothing => 'Rien à prononcer';
+
+  @override
+  String ttsPlayOf(String text) {
+    return 'Écouter la prononciation de $text';
+  }
+
+  @override
+  String get reminderNotificationTitle => 'C\'est l\'heure de réviser';
+
+  @override
+  String get reminderNotificationBody =>
+      'Vos cartes vous attendent — quelques minutes suffisent pour garder la série.';
+
+  @override
+  String get splashTagline => 'APPRENEZ TOUTE LANGUE';
+
+  @override
+  String get profileLearningLabel => 'apprend';
 }

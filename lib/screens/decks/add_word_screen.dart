@@ -1,4 +1,4 @@
-﻿import 'package:flutter/material.dart';
+import 'package:flutter/material.dart';
 import '../../data/deck_store.dart';
 import '../../models/app_models.dart';
 import '../../l10n/app_localizations.dart';

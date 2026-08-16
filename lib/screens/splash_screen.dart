@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../data/onboarding_store.dart';
+import '../l10n/app_localizations.dart';
 import '../theme/app_theme.dart';
 import 'auth/login_screen.dart';
 import 'onboarding/app_language_select_screen.dart';
@@ -91,7 +92,7 @@ class _SplashScreenState extends State<SplashScreen> {
                 ),
               ),
               const SizedBox(height: 6),
-              Text('LEARN ANY LANGUAGE', style: TextStyle(color: Colors.white.withValues(alpha: 0.75), fontSize: 12, letterSpacing: 2)),
+              Text(AppLocalizations.of(context).splashTagline, style: TextStyle(color: Colors.white.withValues(alpha: 0.75), fontSize: 12, letterSpacing: 2)),
               const Spacer(flex: 2),
               const _LoadingDots(),
               const SizedBox(height: AppSpacing.lg),

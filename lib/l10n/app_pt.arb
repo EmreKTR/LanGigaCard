@@ -1,4 +1,4 @@
-﻿{
+{
   "@@locale": "pt",
 
   "appLanguageTitle": "Escolha o idioma do app",
@@ -380,5 +380,32 @@
   "privacyChangingPassword": "Alterar sua senha",
   "privacySessionManagement": "O gerenciamento de sessões",
   "privacyExportingDecks": "Exportar seus baralhos",
-  "privacyAccountDeletion": "A exclusão da conta"
+  "privacyAccountDeletion": "A exclusão da conta",
+
+  "categoriesEditTitle": "Editar temas",
+  "categoriesSearchHint": "Buscar temas...",
+  "languagesSearchHint": "Buscar idiomas...",
+  "languagesPopular": "POPULARES",
+  "reminderPermissionNeeded": "Os lembretes precisam de permissão de notificação. Ative nas configurações do sistema.",
+  "reminderSetFor": "Lembrete diário definido para {time}",
+  "reminderPickTime": "Lembrar-me às",
+  "wizardPurposeQuestion": "Por que você está aprendendo este idioma?",
+  "wizardSelectAllThatApply": "Escolha quantos quiser",
+  "wizardAgeQuestion": "Qual é a sua faixa etária?",
+  "wizardTopicsQuestion": "Quais temas você quer estudar primeiro?",
+
+  "wizardAgeNote": "Usamos sua idade para ajustar a acessibilidade e a experiência de aprendizado.",
+  "studyAllUpToDate": "Todos os seus cartões estão em dia. Adicione novas palavras ou volte quando houver revisões.",
+  "studyDeckMastered": "Você dominou tudo em {deck}. Adicione novas palavras para continuar.",
+  "ttsVoiceMissingUnknown": "A voz deste idioma ainda não está instalada no seu dispositivo.",
+  "ttsVoiceMissing": "A voz de {language} ainda não está instalada. Adicione nas configurações de conversão de texto em fala do sistema.",
+  "ttsUnavailable": "Este dispositivo não tem um mecanismo de conversão de texto em fala disponível.",
+  "ttsPlay": "Reproduzir pronúncia",
+  "ttsNothing": "Nada para pronunciar",
+  "ttsPlayOf": "Reproduzir a pronúncia de {text}",
+  "reminderNotificationTitle": "Hora de revisar",
+  "reminderNotificationBody": "Seus cartões estão esperando — alguns minutos mantêm a sequência viva.",
+
+  "splashTagline": "APRENDA QUALQUER IDIOMA",
+  "profileLearningLabel": "aprendendo"
 }

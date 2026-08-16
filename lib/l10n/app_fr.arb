@@ -1,4 +1,4 @@
-﻿{
+{
   "@@locale": "fr",
 
   "appLanguageTitle": "Choisissez la langue de l'application",
@@ -380,5 +380,32 @@
   "privacyChangingPassword": "Changer votre mot de passe",
   "privacySessionManagement": "La gestion des sessions",
   "privacyExportingDecks": "Exporter vos paquets",
-  "privacyAccountDeletion": "La suppression du compte"
+  "privacyAccountDeletion": "La suppression du compte",
+
+  "categoriesEditTitle": "Modifier les thèmes",
+  "categoriesSearchHint": "Rechercher des thèmes...",
+  "languagesSearchHint": "Rechercher des langues...",
+  "languagesPopular": "POPULAIRES",
+  "reminderPermissionNeeded": "Les rappels nécessitent l'autorisation de notification. Activez-la dans les réglages du système.",
+  "reminderSetFor": "Rappel quotidien réglé sur {time}",
+  "reminderPickTime": "Me rappeler à",
+  "wizardPurposeQuestion": "Pourquoi apprenez-vous cette langue ?",
+  "wizardSelectAllThatApply": "Choisissez tout ce qui s'applique",
+  "wizardAgeQuestion": "Quelle est votre tranche d'âge ?",
+  "wizardTopicsQuestion": "Quels thèmes voulez-vous étudier en premier ?",
+
+  "wizardAgeNote": "Nous utilisons votre âge pour ajuster l'accessibilité et l'expérience d'apprentissage.",
+  "studyAllUpToDate": "Toutes vos cartes sont à jour. Ajoutez de nouveaux mots ou revenez quand des révisions seront dues.",
+  "studyDeckMastered": "Vous maîtrisez tout dans {deck}. Ajoutez de nouveaux mots pour continuer.",
+  "ttsVoiceMissingUnknown": "La voix de cette langue n'est pas encore installée sur votre appareil.",
+  "ttsVoiceMissing": "La voix {language} n'est pas encore installée. Ajoutez-la dans les réglages de synthèse vocale du système.",
+  "ttsUnavailable": "Cet appareil ne dispose pas de moteur de synthèse vocale.",
+  "ttsPlay": "Écouter la prononciation",
+  "ttsNothing": "Rien à prononcer",
+  "ttsPlayOf": "Écouter la prononciation de {text}",
+  "reminderNotificationTitle": "C'est l'heure de réviser",
+  "reminderNotificationBody": "Vos cartes vous attendent — quelques minutes suffisent pour garder la série.",
+
+  "splashTagline": "APPRENEZ TOUTE LANGUE",
+  "profileLearningLabel": "apprend"
 }

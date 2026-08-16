@@ -1,4 +1,4 @@
-﻿import 'package:flutter/material.dart';
+import 'package:flutter/material.dart';
 import '../../data/api/auth_api.dart';
 import '../../data/auth_store.dart';
 import '../../l10n/app_localizations.dart';

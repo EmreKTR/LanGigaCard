@@ -1239,4 +1239,90 @@ class AppLocalizationsTr extends AppLocalizations {
 
   @override
   String get privacyAccountDeletion => 'Hesap silme';
+
+  @override
+  String get categoriesEditTitle => 'Konuları Düzenle';
+
+  @override
+  String get categoriesSearchHint => 'Konularda ara...';
+
+  @override
+  String get languagesSearchHint => 'Dillerde ara...';
+
+  @override
+  String get languagesPopular => 'POPÜLER';
+
+  @override
+  String get reminderPermissionNeeded =>
+      'Hatırlatmalar için bildirim izni gerekiyor. Sistem ayarlarından açın.';
+
+  @override
+  String reminderSetFor(String time) {
+    return 'Günlük hatırlatma $time için kuruldu';
+  }
+
+  @override
+  String get reminderPickTime => 'Bana şu saatte hatırlat';
+
+  @override
+  String get wizardPurposeQuestion => 'Bu dili neden öğreniyorsunuz?';
+
+  @override
+  String get wizardSelectAllThatApply => 'Uyanların hepsini seçin';
+
+  @override
+  String get wizardAgeQuestion => 'Yaş aralığınız nedir?';
+
+  @override
+  String get wizardTopicsQuestion => 'Önce hangi konuları çalışmak istersiniz?';
+
+  @override
+  String get wizardAgeNote =>
+      'Yaşınızı erişilebilirlik ayarlarını ve öğrenme deneyimini iyileştirmek için kullanıyoruz.';
+
+  @override
+  String get studyAllUpToDate =>
+      'Öğrendiğiniz her kart güncel. Yeni kelimeler ekleyin ya da tekrar zamanı gelince dönün.';
+
+  @override
+  String studyDeckMastered(String deck) {
+    return '$deck destesindeki her şeyi öğrendiniz. Devam etmek için yeni kelimeler ekleyin.';
+  }
+
+  @override
+  String get ttsVoiceMissingUnknown =>
+      'Bu dilin sesi cihazınızda henüz yüklü değil.';
+
+  @override
+  String ttsVoiceMissing(String language) {
+    return '$language konuşma sesi cihazınızda henüz yüklü değil. Sistem metin okuma ayarlarından ekleyin.';
+  }
+
+  @override
+  String get ttsUnavailable =>
+      'Bu cihazda kullanılabilir bir metin okuma motoru yok.';
+
+  @override
+  String get ttsPlay => 'Telaffuzu dinle';
+
+  @override
+  String get ttsNothing => 'Okunacak bir şey yok';
+
+  @override
+  String ttsPlayOf(String text) {
+    return '$text kelimesinin telaffuzunu dinle';
+  }
+
+  @override
+  String get reminderNotificationTitle => 'Tekrar zamanı';
+
+  @override
+  String get reminderNotificationBody =>
+      'Kartlarınız bekliyor — birkaç dakika seriyi ayakta tutar.';
+
+  @override
+  String get splashTagline => 'HER DİLİ ÖĞREN';
+
+  @override
+  String get profileLearningLabel => 'öğreniyor';
 }

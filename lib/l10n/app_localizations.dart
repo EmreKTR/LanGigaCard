@@ -2249,6 +2249,150 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Account deletion'**
   String get privacyAccountDeletion;
+
+  /// No description provided for @categoriesEditTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Edit Categories'**
+  String get categoriesEditTitle;
+
+  /// No description provided for @categoriesSearchHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Search categories...'**
+  String get categoriesSearchHint;
+
+  /// No description provided for @languagesSearchHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Search languages...'**
+  String get languagesSearchHint;
+
+  /// No description provided for @languagesPopular.
+  ///
+  /// In en, this message translates to:
+  /// **'POPULAR'**
+  String get languagesPopular;
+
+  /// No description provided for @reminderPermissionNeeded.
+  ///
+  /// In en, this message translates to:
+  /// **'Reminders need notification permission. Enable it in your system settings.'**
+  String get reminderPermissionNeeded;
+
+  /// No description provided for @reminderSetFor.
+  ///
+  /// In en, this message translates to:
+  /// **'Daily reminder set for {time}'**
+  String reminderSetFor(String time);
+
+  /// No description provided for @reminderPickTime.
+  ///
+  /// In en, this message translates to:
+  /// **'Remind me at'**
+  String get reminderPickTime;
+
+  /// No description provided for @wizardPurposeQuestion.
+  ///
+  /// In en, this message translates to:
+  /// **'Why are you learning this language?'**
+  String get wizardPurposeQuestion;
+
+  /// No description provided for @wizardSelectAllThatApply.
+  ///
+  /// In en, this message translates to:
+  /// **'Select all that apply'**
+  String get wizardSelectAllThatApply;
+
+  /// No description provided for @wizardAgeQuestion.
+  ///
+  /// In en, this message translates to:
+  /// **'What is your age range?'**
+  String get wizardAgeQuestion;
+
+  /// No description provided for @wizardTopicsQuestion.
+  ///
+  /// In en, this message translates to:
+  /// **'What topics would you like to study first?'**
+  String get wizardTopicsQuestion;
+
+  /// No description provided for @wizardAgeNote.
+  ///
+  /// In en, this message translates to:
+  /// **'We use your age to optimize accessibility settings and learning experience.'**
+  String get wizardAgeNote;
+
+  /// No description provided for @studyAllUpToDate.
+  ///
+  /// In en, this message translates to:
+  /// **'Every card you\'re learning is up to date. Add new words or come back when reviews are due.'**
+  String get studyAllUpToDate;
+
+  /// No description provided for @studyDeckMastered.
+  ///
+  /// In en, this message translates to:
+  /// **'You\'ve mastered everything in {deck}. Add new words to keep going.'**
+  String studyDeckMastered(String deck);
+
+  /// No description provided for @ttsVoiceMissingUnknown.
+  ///
+  /// In en, this message translates to:
+  /// **'This language\'s voice isn\'t installed on your device yet.'**
+  String get ttsVoiceMissingUnknown;
+
+  /// No description provided for @ttsVoiceMissing.
+  ///
+  /// In en, this message translates to:
+  /// **'{language} speech isn\'t installed on your device yet. Add it in your system text-to-speech settings.'**
+  String ttsVoiceMissing(String language);
+
+  /// No description provided for @ttsUnavailable.
+  ///
+  /// In en, this message translates to:
+  /// **'This device doesn\'t have a text-to-speech engine available.'**
+  String get ttsUnavailable;
+
+  /// No description provided for @ttsPlay.
+  ///
+  /// In en, this message translates to:
+  /// **'Play pronunciation'**
+  String get ttsPlay;
+
+  /// No description provided for @ttsNothing.
+  ///
+  /// In en, this message translates to:
+  /// **'Nothing to pronounce'**
+  String get ttsNothing;
+
+  /// No description provided for @ttsPlayOf.
+  ///
+  /// In en, this message translates to:
+  /// **'Play pronunciation of {text}'**
+  String ttsPlayOf(String text);
+
+  /// No description provided for @reminderNotificationTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Time to review'**
+  String get reminderNotificationTitle;
+
+  /// No description provided for @reminderNotificationBody.
+  ///
+  /// In en, this message translates to:
+  /// **'Your cards are waiting — a few minutes keeps the streak alive.'**
+  String get reminderNotificationBody;
+
+  /// No description provided for @splashTagline.
+  ///
+  /// In en, this message translates to:
+  /// **'LEARN ANY LANGUAGE'**
+  String get splashTagline;
+
+  /// No description provided for @profileLearningLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'learning'**
+  String get profileLearningLabel;
 }
 
 class _AppLocalizationsDelegate

@@ -1192,4 +1192,84 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get privacyAccountDeletion => '删除账号';
+
+  @override
+  String get categoriesEditTitle => '编辑主题';
+
+  @override
+  String get categoriesSearchHint => '搜索主题...';
+
+  @override
+  String get languagesSearchHint => '搜索语言...';
+
+  @override
+  String get languagesPopular => '热门';
+
+  @override
+  String get reminderPermissionNeeded => '提醒需要通知权限，请在系统设置中开启。';
+
+  @override
+  String reminderSetFor(String time) {
+    return '每日提醒已设为 $time';
+  }
+
+  @override
+  String get reminderPickTime => '提醒时间';
+
+  @override
+  String get wizardPurposeQuestion => '你为什么学习这门语言？';
+
+  @override
+  String get wizardSelectAllThatApply => '可多选';
+
+  @override
+  String get wizardAgeQuestion => '你的年龄段是？';
+
+  @override
+  String get wizardTopicsQuestion => '你想先学习哪些主题？';
+
+  @override
+  String get wizardAgeNote => '我们使用你的年龄来优化无障碍设置和学习体验。';
+
+  @override
+  String get studyAllUpToDate => '你正在学习的卡片都已是最新。添加新单词，或等到复习时间再回来。';
+
+  @override
+  String studyDeckMastered(String deck) {
+    return '你已掌握 $deck 中的全部内容。添加新单词继续学习。';
+  }
+
+  @override
+  String get ttsVoiceMissingUnknown => '该语言的语音尚未安装到你的设备上。';
+
+  @override
+  String ttsVoiceMissing(String language) {
+    return '$language 语音尚未安装。请在系统的文字转语音设置中添加。';
+  }
+
+  @override
+  String get ttsUnavailable => '此设备没有可用的文字转语音引擎。';
+
+  @override
+  String get ttsPlay => '播放发音';
+
+  @override
+  String get ttsNothing => '没有可朗读的内容';
+
+  @override
+  String ttsPlayOf(String text) {
+    return '播放 $text 的发音';
+  }
+
+  @override
+  String get reminderNotificationTitle => '该复习了';
+
+  @override
+  String get reminderNotificationBody => '你的卡片在等着你——几分钟就能保住连续记录。';
+
+  @override
+  String get splashTagline => '学习任何语言';
+
+  @override
+  String get profileLearningLabel => '学习中';
 }

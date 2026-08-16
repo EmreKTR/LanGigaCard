@@ -1,4 +1,4 @@
-﻿{
+{
   "@@locale": "es",
 
   "appLanguageTitle": "Elige el idioma de la app",
@@ -380,5 +380,32 @@
   "privacyChangingPassword": "Cambiar la contraseña",
   "privacySessionManagement": "La gestión de sesiones",
   "privacyExportingDecks": "Exportar tus mazos",
-  "privacyAccountDeletion": "Eliminar la cuenta"
+  "privacyAccountDeletion": "Eliminar la cuenta",
+
+  "categoriesEditTitle": "Editar temas",
+  "categoriesSearchHint": "Buscar temas...",
+  "languagesSearchHint": "Buscar idiomas...",
+  "languagesPopular": "POPULARES",
+  "reminderPermissionNeeded": "Los recordatorios necesitan permiso de notificaciones. Actívalo en los ajustes del sistema.",
+  "reminderSetFor": "Recordatorio diario fijado para las {time}",
+  "reminderPickTime": "Recordarme a las",
+  "wizardPurposeQuestion": "¿Por qué estás aprendiendo este idioma?",
+  "wizardSelectAllThatApply": "Elige todas las que apliquen",
+  "wizardAgeQuestion": "¿Cuál es tu rango de edad?",
+  "wizardTopicsQuestion": "¿Qué temas te gustaría estudiar primero?",
+
+  "wizardAgeNote": "Usamos tu edad para optimizar los ajustes de accesibilidad y la experiencia de aprendizaje.",
+  "studyAllUpToDate": "Todas tus tarjetas están al día. Añade palabras nuevas o vuelve cuando toque repasar.",
+  "studyDeckMastered": "Has dominado todo en {deck}. Añade palabras nuevas para seguir.",
+  "ttsVoiceMissingUnknown": "La voz de este idioma aún no está instalada en tu dispositivo.",
+  "ttsVoiceMissing": "La voz de {language} aún no está instalada. Añádela en los ajustes de texto a voz del sistema.",
+  "ttsUnavailable": "Este dispositivo no tiene un motor de texto a voz disponible.",
+  "ttsPlay": "Reproducir pronunciación",
+  "ttsNothing": "Nada que pronunciar",
+  "ttsPlayOf": "Reproducir la pronunciación de {text}",
+  "reminderNotificationTitle": "Hora de repasar",
+  "reminderNotificationBody": "Tus tarjetas te esperan: unos minutos mantienen viva la racha.",
+
+  "splashTagline": "APRENDE CUALQUIER IDIOMA",
+  "profileLearningLabel": "aprendiendo"
 }

@@ -1,4 +1,4 @@
-﻿import 'package:flutter/material.dart';
+import 'package:flutter/material.dart';
 import '../../app_controller.dart';
 import '../../data/api/user_api.dart';
 import '../../data/api/vocabgrid_user_api.dart';
@@ -279,7 +279,7 @@ class ProfileScreen extends StatelessWidget {
                           mainAxisSize: MainAxisSize.min,
                           children: [
                             IconButton(
-                              tooltip: 'Decrease daily goal',
+                              tooltip: l10n.profileDecreaseGoal,
                               visualDensity: VisualDensity.compact,
                               onPressed: profile.dailyGoalMinutes <= 5 ? null : () => _adjustGoal(context, -5),
                               icon: const Icon(Icons.remove_circle_outline_rounded, size: 22),
@@ -571,7 +571,7 @@ class _LanguagePairCard extends StatelessWidget {
           ),
           Column(
             children: [
-              Text('learning', style: TextStyle(color: colors.textMuted, fontSize: 10)),
+              Text(l10n.profileLearningLabel, style: TextStyle(color: colors.textMuted, fontSize: 10)),
               Icon(Icons.arrow_forward_rounded, color: colors.primary),
             ],
           ),
@@ -818,7 +818,7 @@ class _EditProfileSheetState extends State<_EditProfileSheet> {
               ),
               const SizedBox(height: AppSpacing.xl),
               PrimaryButton(
-                label: 'Save Changes',
+                label: l10n.decksSaveChanges,
                 onPressed: _nameError != null || _emailError != null
                     ? null
                     : () => Navigator.of(context).pop((

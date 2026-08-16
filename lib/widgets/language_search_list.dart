@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../data/mock_data.dart';
+import '../l10n/app_localizations.dart';
 import '../theme/app_theme.dart';
 import 'status_indicators.dart';
 
@@ -42,6 +43,7 @@ class _LanguageSearchListState extends State<LanguageSearchList> {
   @override
   Widget build(BuildContext context) {
     final colors = context.appColors;
+    final l10n = AppLocalizations.of(context);
     final results = MockData.languages.where((l) => l.$1.toLowerCase().contains(_query.toLowerCase())).toList();
 
     return Column(
@@ -49,11 +51,11 @@ class _LanguageSearchListState extends State<LanguageSearchList> {
       children: [
         if (widget.header != null) ...[widget.header!, const SizedBox(height: AppSpacing.lg)],
         TextField(
-          decoration: const InputDecoration(hintText: 'Search languages...', prefixIcon: Icon(Icons.search_rounded)),
+          decoration: InputDecoration(hintText: l10n.languagesSearchHint, prefixIcon: const Icon(Icons.search_rounded)),
           onChanged: (v) => setState(() => _query = v),
         ),
         const SizedBox(height: AppSpacing.lg),
-        Text('POPULAR', style: TextStyle(color: colors.textMuted, fontWeight: FontWeight.w700, fontSize: 11, letterSpacing: 0.6)),
+        Text(l10n.languagesPopular, style: TextStyle(color: colors.textMuted, fontWeight: FontWeight.w700, fontSize: 11, letterSpacing: 0.6)),
         const SizedBox(height: AppSpacing.sm),
         for (final lang in results)
           Builder(builder: (context) {

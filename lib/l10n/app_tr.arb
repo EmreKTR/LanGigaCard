@@ -1,4 +1,4 @@
-﻿{
+{
   "@@locale": "tr",
 
   "appLanguageTitle": "Uygulama Dilini Seçin",
@@ -380,5 +380,32 @@
   "privacyChangingPassword": "Şifre değiştirme",
   "privacySessionManagement": "Oturum yönetimi",
   "privacyExportingDecks": "Desteleri dışa aktarma",
-  "privacyAccountDeletion": "Hesap silme"
+  "privacyAccountDeletion": "Hesap silme",
+
+  "categoriesEditTitle": "Konuları Düzenle",
+  "categoriesSearchHint": "Konularda ara...",
+  "languagesSearchHint": "Dillerde ara...",
+  "languagesPopular": "POPÜLER",
+  "reminderPermissionNeeded": "Hatırlatmalar için bildirim izni gerekiyor. Sistem ayarlarından açın.",
+  "reminderSetFor": "Günlük hatırlatma {time} için kuruldu",
+  "reminderPickTime": "Bana şu saatte hatırlat",
+  "wizardPurposeQuestion": "Bu dili neden öğreniyorsunuz?",
+  "wizardSelectAllThatApply": "Uyanların hepsini seçin",
+  "wizardAgeQuestion": "Yaş aralığınız nedir?",
+  "wizardTopicsQuestion": "Önce hangi konuları çalışmak istersiniz?",
+
+  "wizardAgeNote": "Yaşınızı erişilebilirlik ayarlarını ve öğrenme deneyimini iyileştirmek için kullanıyoruz.",
+  "studyAllUpToDate": "Öğrendiğiniz her kart güncel. Yeni kelimeler ekleyin ya da tekrar zamanı gelince dönün.",
+  "studyDeckMastered": "{deck} destesindeki her şeyi öğrendiniz. Devam etmek için yeni kelimeler ekleyin.",
+  "ttsVoiceMissingUnknown": "Bu dilin sesi cihazınızda henüz yüklü değil.",
+  "ttsVoiceMissing": "{language} konuşma sesi cihazınızda henüz yüklü değil. Sistem metin okuma ayarlarından ekleyin.",
+  "ttsUnavailable": "Bu cihazda kullanılabilir bir metin okuma motoru yok.",
+  "ttsPlay": "Telaffuzu dinle",
+  "ttsNothing": "Okunacak bir şey yok",
+  "ttsPlayOf": "{text} kelimesinin telaffuzunu dinle",
+  "reminderNotificationTitle": "Tekrar zamanı",
+  "reminderNotificationBody": "Kartlarınız bekliyor — birkaç dakika seriyi ayakta tutar.",
+
+  "splashTagline": "HER DİLİ ÖĞREN",
+  "profileLearningLabel": "öğreniyor"
 }

@@ -1,4 +1,4 @@
-﻿{
+{
   "@@locale": "de",
 
   "appLanguageTitle": "App-Sprache wählen",
@@ -380,5 +380,32 @@
   "privacyChangingPassword": "Das Ändern des Passworts",
   "privacySessionManagement": "Die Sitzungsverwaltung",
   "privacyExportingDecks": "Das Exportieren deiner Stapel",
-  "privacyAccountDeletion": "Das Löschen des Kontos"
+  "privacyAccountDeletion": "Das Löschen des Kontos",
+
+  "categoriesEditTitle": "Themen bearbeiten",
+  "categoriesSearchHint": "Themen durchsuchen...",
+  "languagesSearchHint": "Sprachen durchsuchen...",
+  "languagesPopular": "BELIEBT",
+  "reminderPermissionNeeded": "Erinnerungen brauchen die Benachrichtigungserlaubnis. Aktiviere sie in den Systemeinstellungen.",
+  "reminderSetFor": "Tägliche Erinnerung auf {time} gesetzt",
+  "reminderPickTime": "Erinnere mich um",
+  "wizardPurposeQuestion": "Warum lernst du diese Sprache?",
+  "wizardSelectAllThatApply": "Wähle alles Zutreffende",
+  "wizardAgeQuestion": "Wie alt bist du ungefähr?",
+  "wizardTopicsQuestion": "Welche Themen möchtest du zuerst lernen?",
+
+  "wizardAgeNote": "Wir nutzen dein Alter, um Barrierefreiheit und Lernerlebnis anzupassen.",
+  "studyAllUpToDate": "Alle deine Karten sind aktuell. Füge neue Wörter hinzu oder komm wieder, wenn Wiederholungen fällig sind.",
+  "studyDeckMastered": "Du beherrschst alles in {deck}. Füge neue Wörter hinzu, um weiterzumachen.",
+  "ttsVoiceMissingUnknown": "Die Stimme für diese Sprache ist auf deinem Gerät noch nicht installiert.",
+  "ttsVoiceMissing": "Die Stimme für {language} ist noch nicht installiert. Füge sie in den Sprachausgabe-Einstellungen des Systems hinzu.",
+  "ttsUnavailable": "Auf diesem Gerät ist keine Sprachausgabe verfügbar.",
+  "ttsPlay": "Aussprache abspielen",
+  "ttsNothing": "Nichts vorzulesen",
+  "ttsPlayOf": "Aussprache von {text} abspielen",
+  "reminderNotificationTitle": "Zeit zu wiederholen",
+  "reminderNotificationBody": "Deine Karten warten — ein paar Minuten halten die Serie am Leben.",
+
+  "splashTagline": "LERNE JEDE SPRACHE",
+  "profileLearningLabel": "lernt"
 }

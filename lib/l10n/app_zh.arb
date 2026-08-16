@@ -1,4 +1,4 @@
-﻿{
+{
   "@@locale": "zh",
 
   "appLanguageTitle": "选择应用语言",
@@ -380,5 +380,32 @@
   "privacyChangingPassword": "修改密码",
   "privacySessionManagement": "会话管理",
   "privacyExportingDecks": "导出卡组",
-  "privacyAccountDeletion": "删除账号"
+  "privacyAccountDeletion": "删除账号",
+
+  "categoriesEditTitle": "编辑主题",
+  "categoriesSearchHint": "搜索主题...",
+  "languagesSearchHint": "搜索语言...",
+  "languagesPopular": "热门",
+  "reminderPermissionNeeded": "提醒需要通知权限，请在系统设置中开启。",
+  "reminderSetFor": "每日提醒已设为 {time}",
+  "reminderPickTime": "提醒时间",
+  "wizardPurposeQuestion": "你为什么学习这门语言？",
+  "wizardSelectAllThatApply": "可多选",
+  "wizardAgeQuestion": "你的年龄段是？",
+  "wizardTopicsQuestion": "你想先学习哪些主题？",
+
+  "wizardAgeNote": "我们使用你的年龄来优化无障碍设置和学习体验。",
+  "studyAllUpToDate": "你正在学习的卡片都已是最新。添加新单词，或等到复习时间再回来。",
+  "studyDeckMastered": "你已掌握 {deck} 中的全部内容。添加新单词继续学习。",
+  "ttsVoiceMissingUnknown": "该语言的语音尚未安装到你的设备上。",
+  "ttsVoiceMissing": "{language} 语音尚未安装。请在系统的文字转语音设置中添加。",
+  "ttsUnavailable": "此设备没有可用的文字转语音引擎。",
+  "ttsPlay": "播放发音",
+  "ttsNothing": "没有可朗读的内容",
+  "ttsPlayOf": "播放 {text} 的发音",
+  "reminderNotificationTitle": "该复习了",
+  "reminderNotificationBody": "你的卡片在等着你——几分钟就能保住连续记录。",
+
+  "splashTagline": "学习任何语言",
+  "profileLearningLabel": "学习中"
 }

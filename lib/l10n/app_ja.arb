@@ -1,4 +1,4 @@
-﻿{
+{
   "@@locale": "ja",
 
   "appLanguageTitle": "アプリの言語を選択",
@@ -380,5 +380,32 @@
   "privacyChangingPassword": "パスワードの変更",
   "privacySessionManagement": "セッション管理",
   "privacyExportingDecks": "デッキのエクスポート",
-  "privacyAccountDeletion": "アカウントの削除"
+  "privacyAccountDeletion": "アカウントの削除",
+
+  "categoriesEditTitle": "テーマを編集",
+  "categoriesSearchHint": "テーマを検索...",
+  "languagesSearchHint": "言語を検索...",
+  "languagesPopular": "人気",
+  "reminderPermissionNeeded": "リマインダーには通知の許可が必要です。システム設定で有効にしてください。",
+  "reminderSetFor": "毎日のリマインダーを{time}に設定しました",
+  "reminderPickTime": "通知する時刻",
+  "wizardPurposeQuestion": "この言語を学ぶ理由は何ですか？",
+  "wizardSelectAllThatApply": "当てはまるものをすべて選んでください",
+  "wizardAgeQuestion": "年齢層を教えてください",
+  "wizardTopicsQuestion": "最初にどのテーマを学びたいですか？",
+
+  "wizardAgeNote": "年齢はアクセシビリティ設定と学習体験の最適化に使用します。",
+  "studyAllUpToDate": "学習中のカードはすべて最新です。新しい単語を追加するか、復習の時期に戻ってきてください。",
+  "studyDeckMastered": "{deck}の内容はすべて習得済みです。続けるには新しい単語を追加してください。",
+  "ttsVoiceMissingUnknown": "この言語の音声はまだ端末にインストールされていません。",
+  "ttsVoiceMissing": "{language}の音声がまだインストールされていません。端末の音声読み上げ設定から追加してください。",
+  "ttsUnavailable": "この端末には利用可能な音声読み上げエンジンがありません。",
+  "ttsPlay": "発音を再生",
+  "ttsNothing": "読み上げる内容がありません",
+  "ttsPlayOf": "{text} の発音を再生",
+  "reminderNotificationTitle": "復習の時間です",
+  "reminderNotificationBody": "カードが待っています。数分で連続記録を守れます。",
+
+  "splashTagline": "どんな言語も学べる",
+  "profileLearningLabel": "学習中"
 }
