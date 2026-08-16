@@ -1,4 +1,5 @@
-import 'package:flutter/material.dart';
+﻿import 'package:flutter/material.dart';
+import '../../l10n/app_localizations.dart';
 import '../../theme/app_theme.dart';
 import '../../widgets/section_card.dart';
 
@@ -19,45 +20,17 @@ class _Faq {
   final String answer;
 }
 
-const _faqs = [
-  _Faq(
-    'How does spaced repetition work?',
-    'After you flip a card you rate how well you knew it. Cards you find hard '
-        'come back sooner; cards you rate Easy are pushed further out, so you '
-        'spend your time on the words you actually struggle with.',
-  ),
-  _Faq(
-    'What do Again, Hard, Medium and Easy mean?',
-    'They set how soon a card returns. Again brings it back in this session, '
-        'Hard in about a day, Medium in a few days, and Easy in about a week.',
-  ),
-  _Faq(
-    'What does "Review Due" mean on a card?',
-    'That card has passed its scheduled review date. Review Due cards are put '
-        'at the front of your next study session.',
-  ),
-  _Faq(
-    'How do I create a deck?',
-    'Open the Decks tab and tap "New Deck" in the top right. Give it a title, '
-        'then use "Add Card" from the deck to start filling it.',
-  ),
-  _Faq(
-    'Can I add a picture to a card?',
-    'Yes. When adding or editing a card, paste an image URL into the Image URL '
-        'field and it will appear on the answer side.',
-  ),
-  _Faq(
-    'How is my daily goal calculated?',
-    'The ring on the home screen compares the minutes you have studied today '
-        'against the daily goal set in Profile → Study Preferences.',
-  ),
-  _Faq(
-    'Why did my streak reset?',
-    'A streak counts consecutive days with at least one completed review. '
-        'Missing a full day ends it.',
-  ),
-];
-
+/// Built per-frame rather than held in a `const` list: the copy is localized,
+/// so it needs a context to resolve against.
+List<_Faq> _faqsFor(AppLocalizations l10n) => [
+      _Faq(l10n.faqSpacedQ, l10n.faqSpacedA),
+      _Faq(l10n.faqRatingsQ, l10n.faqRatingsA),
+      _Faq(l10n.faqReviewDueQ, l10n.faqReviewDueA),
+      _Faq(l10n.faqCreateDeckQ, l10n.faqCreateDeckA),
+      _Faq(l10n.faqPictureQ, l10n.faqPictureA),
+      _Faq(l10n.faqGoalQ, l10n.faqGoalA),
+      _Faq(l10n.faqStreakQ, l10n.faqStreakA),
+    ];
 class _HelpSupportScreenState extends State<HelpSupportScreen> {
   String _query = '';
   int? _expandedIndex;
@@ -65,23 +38,24 @@ class _HelpSupportScreenState extends State<HelpSupportScreen> {
   @override
   Widget build(BuildContext context) {
     final colors = context.appColors;
-    final results = _faqs
+    final l10n = AppLocalizations.of(context);
+    final results = _faqsFor(l10n)
         .where((f) =>
             f.question.toLowerCase().contains(_query.toLowerCase()) ||
             f.answer.toLowerCase().contains(_query.toLowerCase()))
         .toList();
 
     return Scaffold(
-      appBar: AppBar(title: const Text('Help & Support')),
+      appBar: AppBar(title: Text(l10n.profileHelpSupport)),
       body: SafeArea(
         top: false,
         child: ListView(
           padding: const EdgeInsets.all(AppSpacing.lg),
           children: [
             TextField(
-              decoration: const InputDecoration(
-                hintText: 'Search help articles...',
-                prefixIcon: Icon(Icons.search_rounded),
+              decoration: InputDecoration(
+                hintText: l10n.helpSearchHint,
+                prefixIcon: const Icon(Icons.search_rounded),
               ),
               onChanged: (v) => setState(() {
                 _query = v;
@@ -89,13 +63,13 @@ class _HelpSupportScreenState extends State<HelpSupportScreen> {
               }),
             ),
             const SizedBox(height: AppSpacing.lg),
-            Text('FREQUENTLY ASKED', style: Theme.of(context).textTheme.titleMedium),
+            Text(l10n.helpFrequentlyAsked, style: Theme.of(context).textTheme.titleMedium),
             const SizedBox(height: AppSpacing.md),
             if (results.isEmpty)
               Padding(
                 padding: const EdgeInsets.symmetric(vertical: AppSpacing.xxl),
                 child: Center(
-                  child: Text('No articles match "$_query"', style: TextStyle(color: colors.textMuted)),
+                  child: Text(l10n.helpNoMatch(_query), style: TextStyle(color: colors.textMuted)),
                 ),
               )
             else
@@ -109,26 +83,26 @@ class _HelpSupportScreenState extends State<HelpSupportScreen> {
                   ),
                 ),
             const SizedBox(height: AppSpacing.xl),
-            Text('STILL STUCK?', style: Theme.of(context).textTheme.titleMedium),
+            Text(l10n.helpStillStuck, style: Theme.of(context).textTheme.titleMedium),
             const SizedBox(height: AppSpacing.md),
             SettingsGroup(
               title: '',
               children: [
                 SettingsRow(
                   icon: Icons.mail_outline_rounded,
-                  label: 'Email support',
+                  label: l10n.helpEmailSupport,
                   value: 'support@langigacards.app',
-                  onTap: () => _showComingSoon(context, 'Email support'),
+                  onTap: () => _showComingSoon(context, l10n.helpEmailSupport),
                 ),
                 SettingsRow(
                   icon: Icons.forum_outlined,
-                  label: 'Community forum',
-                  onTap: () => _showComingSoon(context, 'The community forum'),
+                  label: l10n.helpCommunityForum,
+                  onTap: () => _showComingSoon(context, l10n.helpTheCommunityForum),
                 ),
                 SettingsRow(
                   icon: Icons.bug_report_outlined,
-                  label: 'Report a problem',
-                  onTap: () => _showComingSoon(context, 'Problem reporting'),
+                  label: l10n.helpReportProblem,
+                  onTap: () => _showComingSoon(context, l10n.helpProblemReporting),
                 ),
               ],
             ),
@@ -141,7 +115,7 @@ class _HelpSupportScreenState extends State<HelpSupportScreen> {
 
   void _showComingSoon(BuildContext context, String what) {
     ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text('$what is not available in this build yet.'), duration: const Duration(seconds: 2)),
+      SnackBar(content: Text(AppLocalizations.of(context).helpComingSoon(what)), duration: const Duration(seconds: 2)),
     );
   }
 }

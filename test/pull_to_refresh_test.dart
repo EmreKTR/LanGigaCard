@@ -1,11 +1,15 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:langigacards/l10n/app_localizations.dart';
 import 'package:langigacards/data/deck_store.dart';
 import 'package:langigacards/screens/decks/deck_dashboard_screen.dart';
 import 'package:langigacards/theme/app_theme.dart';
 import 'package:langigacards/widgets/refreshable.dart';
 
-Widget _wrap(Widget child) => MaterialApp(theme: AppTheme.dark(AccentColor.purple), home: child);
+Widget _wrap(Widget child) => MaterialApp(
+      localizationsDelegates: AppLocalizations.localizationsDelegates,
+      supportedLocales: AppLocalizations.supportedLocales,
+theme: AppTheme.dark(AccentColor.purple), home: child);
 
 void main() {
   testWidgets('My Decks responds to a pull-to-refresh gesture', (tester) async {

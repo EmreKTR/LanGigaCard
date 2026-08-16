@@ -1,10 +1,12 @@
 import 'package:flutter/material.dart';
+import '../app_controller.dart';
 import '../data/api/deck_api.dart';
 import '../data/api/vocabgrid_user_api.dart';
 import '../data/deck_store.dart';
 import '../data/mock_data.dart';
 import '../data/onboarding_store.dart';
 import '../data/pronunciation_service.dart';
+import '../l10n/app_localizations.dart';
 import '../models/app_models.dart';
 import '../theme/app_theme.dart';
 import '../widgets/app_bottom_nav.dart';
@@ -66,8 +68,9 @@ class _MainShellState extends State<MainShell> {
 
   void _showSyncDroppedNotice(int count) {
     if (!mounted) return;
+    final l10n = AppLocalizations.of(context);
     ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text(count == 1 ? "1 change couldn't be saved and was discarded." : "$count changes couldn't be saved and were discarded.")),
+      SnackBar(content: Text(count == 1 ? l10n.shellSyncDroppedOne : l10n.shellSyncDroppedMany(count))),
     );
   }
 
@@ -111,8 +114,18 @@ class _MainShellState extends State<MainShell> {
   }
 
   /// Brings everything that depends on the language pair in line with
-  /// [profile]: the speaking voice, and the starter decks.
+  /// [profile]: the interface language, the speaking voice, and the starter
+  /// decks.
   void _applyProfile(UserProfile profile) {
+    // The interface is shown in the learner's *native* language — the one
+    // they already speak — not the one they're learning. Driving it from here
+    // means the two can never drift apart: this runs on first load and again
+    // on every profile change, so editing Native Language in Profile
+    // re-translates the app immediately.
+    // maybeOf, not appController: this also runs from initState (when the
+    // wizard hands the profile straight over), where a dependency lookup
+    // would assert.
+    AppControllerScope.maybeOf(context)?.setLanguageCode(profile.nativeLanguageCode);
     // Cards are written in the language being learned, so that's the voice
     // the speaker buttons should use.
     PronunciationService.useLanguageCode(profile.targetLanguageCode);
@@ -221,6 +234,7 @@ class _ProfileLoadErrorView extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final colors = context.appColors;
+    final l10n = AppLocalizations.of(context);
     return Scaffold(
       body: SafeArea(
         child: Padding(
@@ -230,15 +244,15 @@ class _ProfileLoadErrorView extends StatelessWidget {
             children: [
               Icon(Icons.cloud_off_rounded, size: 56, color: colors.textMuted),
               const SizedBox(height: AppSpacing.lg),
-              Text("Couldn't load your profile", style: Theme.of(context).textTheme.headlineMedium, textAlign: TextAlign.center),
+              Text(l10n.shellProfileLoadFailed, style: Theme.of(context).textTheme.headlineMedium, textAlign: TextAlign.center),
               const SizedBox(height: AppSpacing.sm),
               Text(
-                "Check your connection and try again.",
+                l10n.shellCheckConnection,
                 textAlign: TextAlign.center,
                 style: TextStyle(color: colors.textMuted),
               ),
               const SizedBox(height: AppSpacing.xxl),
-              SizedBox(width: double.infinity, child: PrimaryButton(label: 'Try Again', onPressed: onRetry)),
+              SizedBox(width: double.infinity, child: PrimaryButton(label: l10n.commonTryAgain, onPressed: onRetry)),
             ],
           ),
         ),

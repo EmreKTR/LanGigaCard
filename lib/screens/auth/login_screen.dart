@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../../data/api/auth_api.dart';
 import '../../data/auth_store.dart';
+import '../../l10n/app_localizations.dart';
 import '../../theme/app_theme.dart';
 import '../../widgets/app_buttons.dart';
 import '../../widgets/app_text_field.dart';
@@ -71,11 +72,12 @@ class _LoginScreenState extends State<LoginScreen> {
       if (!mounted) return;
 
       if (!result.isSuccess) {
+        final l10n = AppLocalizations.of(context);
         setState(() {
           _signingIn = false;
           _errorText = switch (result.outcome) {
-            AuthOutcome.networkError => "Can't reach the server. Check your connection and try again.",
-            _ => 'Incorrect email or password. Create an account if you don\'t have one yet.',
+            AuthOutcome.networkError => l10n.commonNetworkError,
+            _ => l10n.loginInvalidCredentials,
           };
         });
         return;
@@ -99,6 +101,7 @@ class _LoginScreenState extends State<LoginScreen> {
   @override
   Widget build(BuildContext context) {
     final colors = context.appColors;
+    final l10n = AppLocalizations.of(context);
     return Scaffold(
       body: SafeArea(
         child: SingleChildScrollView(
@@ -117,9 +120,9 @@ class _LoginScreenState extends State<LoginScreen> {
                 child: const Icon(Icons.style_rounded, color: Colors.white, size: 24),
               ),
               const SizedBox(height: AppSpacing.xl),
-              Text('Welcome back', style: Theme.of(context).textTheme.headlineLarge),
+              Text(l10n.loginTitle, style: Theme.of(context).textTheme.headlineLarge),
               const SizedBox(height: AppSpacing.xs),
-              Text('Sign in to continue your learning journey', style: Theme.of(context).textTheme.bodyLarge),
+              Text(l10n.loginSubtitle, style: Theme.of(context).textTheme.bodyLarge),
               const SizedBox(height: AppSpacing.xxl),
               if (_errorText != null)
                 Container(
@@ -143,7 +146,7 @@ class _LoginScreenState extends State<LoginScreen> {
                 child: Column(
                   children: [
                     AppTextField(
-                      label: 'Email address',
+                      label: l10n.loginEmailLabel,
                       hint: 'sarah@example.com',
                       controller: _emailController,
                       keyboardType: TextInputType.emailAddress,
@@ -152,7 +155,7 @@ class _LoginScreenState extends State<LoginScreen> {
                     ),
                     const SizedBox(height: AppSpacing.lg),
                     AppTextField(
-                      label: 'Password',
+                      label: l10n.loginPasswordLabel,
                       hint: '••••••••',
                       obscureText: true,
                       controller: _passwordController,
@@ -181,7 +184,7 @@ class _LoginScreenState extends State<LoginScreen> {
                           ),
                         ),
                         const SizedBox(width: AppSpacing.sm),
-                        Text('Remember me', style: TextStyle(color: colors.textSecondary, fontSize: 13)),
+                        Text(l10n.loginRememberMe, style: TextStyle(color: colors.textSecondary, fontSize: 13)),
                       ],
                     ),
                   ),
@@ -189,19 +192,19 @@ class _LoginScreenState extends State<LoginScreen> {
                     onPressed: () => Navigator.of(context).push(
                       MaterialPageRoute(builder: (_) => const ForgotPasswordScreen()),
                     ),
-                    child: const Text('Forgot password?'),
+                    child: Text(l10n.loginForgotPassword),
                   ),
                 ],
               ),
               const SizedBox(height: AppSpacing.lg),
-              PrimaryButton(label: 'Sign In', loading: _signingIn, onPressed: _login),
+              PrimaryButton(label: l10n.commonSignIn, loading: _signingIn, onPressed: _login),
               const SizedBox(height: AppSpacing.xl),
               Row(
                 children: [
                   Expanded(child: Divider(color: colors.border)),
                   Padding(
                     padding: const EdgeInsets.symmetric(horizontal: AppSpacing.md),
-                    child: Text('or continue with', style: TextStyle(color: colors.textMuted, fontSize: 12)),
+                    child: Text(l10n.loginOrContinueWith, style: TextStyle(color: colors.textMuted, fontSize: 12)),
                   ),
                   Expanded(child: Divider(color: colors.border)),
                 ],
@@ -218,10 +221,10 @@ class _LoginScreenState extends State<LoginScreen> {
               Row(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  Text("Don't have an account?", style: TextStyle(color: colors.textSecondary)),
+                  Text(l10n.loginNoAccount, style: TextStyle(color: colors.textSecondary)),
                   TextButton(
                     onPressed: () => Navigator.of(context).push(MaterialPageRoute(builder: (_) => const RegisterScreen())),
-                    child: const Text('Create Account'),
+                    child: Text(l10n.registerTitle),
                   ),
                 ],
               ),

@@ -107,7 +107,13 @@ class VocabGridUserApi implements UserApi {
   @override
   Future<List<int>> updateMyLearningPurposes(List<int> purposeIds) async {
     try {
-      final response = await _client.dio.put('/api/User/learning-purposes', data: {'purposeIds': purposeIds});
+      // The key must be 'learningPurposeIds' to match the server's
+      // ReplaceUserLearningPurposesDto. Sending 'purposeIds' binds to nothing,
+      // and because the DTO's list defaults to empty (so [Required] still
+      // passes) the server silently wipes the learner's saved purposes and
+      // returns an empty list instead of failing.
+      final response =
+          await _client.dio.put('/api/User/learning-purposes', data: {'learningPurposeIds': purposeIds});
       return (response.data as List).map((e) => (e as Map<String, dynamic>)['id'] as int).toList();
     } catch (_) {
       return const [];

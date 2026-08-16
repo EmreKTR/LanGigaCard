@@ -1,4 +1,5 @@
-import 'package:flutter/material.dart';
+﻿import 'package:flutter/material.dart';
+import '../../l10n/app_localizations.dart';
 import '../../theme/app_theme.dart';
 import '../../widgets/app_buttons.dart';
 import '../../widgets/app_text_field.dart';
@@ -58,6 +59,7 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
   }
 
   Widget _form(BuildContext context, AppColorsExt colors) {
+    final l10n = AppLocalizations.of(context);
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -71,10 +73,10 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
           child: const Icon(Icons.lock_reset_rounded, color: Colors.white, size: 24),
         ),
         const SizedBox(height: AppSpacing.xl),
-        Text('Reset your password', style: Theme.of(context).textTheme.headlineLarge),
+        Text(l10n.forgotTitle, style: Theme.of(context).textTheme.headlineLarge),
         const SizedBox(height: AppSpacing.xs),
         Text(
-          "Enter the email you signed up with and we'll send you a link to choose a new password.",
+          l10n.forgotSubtitle,
           style: Theme.of(context).textTheme.bodyLarge,
         ),
         const SizedBox(height: AppSpacing.xxl),
@@ -84,18 +86,18 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               AppTextField(
-                label: 'Email address',
+                label: l10n.forgotEmailLabel,
                 hint: 'sarah@example.com',
                 controller: _emailController,
                 keyboardType: TextInputType.emailAddress,
                 textInputAction: TextInputAction.done,
                 autofillHints: const [AutofillHints.username, AutofillHints.email],
-                errorText: _emailController.text.isEmpty || _emailValid ? null : 'Enter a valid email address',
+                errorText: _emailController.text.isEmpty || _emailValid ? null : l10n.forgotInvalidEmail,
                 onSubmitted: (_) => _emailValid ? _submit() : null,
               ),
               const SizedBox(height: AppSpacing.xl),
               PrimaryButton(
-                label: 'Send reset link',
+                label: l10n.forgotSend,
                 loading: _sending,
                 onPressed: _emailValid ? _submit : null,
               ),
@@ -106,7 +108,7 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
         Center(
           child: TextButton(
             onPressed: () => Navigator.of(context).maybePop(),
-            child: const Text('Back to sign in'),
+            child: Text(l10n.registerBackToSignIn),
           ),
         ),
       ],
@@ -115,26 +117,40 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
 
   Widget _confirmation(BuildContext context) {
     final colors = context.appColors;
+    final l10n = AppLocalizations.of(context);
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Icon(Icons.mark_email_read_outlined, size: 56, color: colors.success),
         const SizedBox(height: AppSpacing.lg),
-        Text('Check your inbox', style: Theme.of(context).textTheme.headlineLarge),
+        Text(l10n.forgotCheckInbox, style: Theme.of(context).textTheme.headlineLarge),
         const SizedBox(height: AppSpacing.sm),
-        Text.rich(
-          TextSpan(
-            style: Theme.of(context).textTheme.bodyLarge,
-            children: [
-              const TextSpan(text: 'If an account exists for '),
-              TextSpan(
-                text: _emailController.text.trim(),
-                style: TextStyle(color: colors.textPrimary, fontWeight: FontWeight.w700),
-              ),
-              const TextSpan(text: ', a reset link is on its way.'),
-            ],
-          ),
-        ),
+        // The address is emphasised inside the sentence. Rather than splitting
+        // the copy into two fixed halves — which only works while the address
+        // sits in the middle, and it doesn't in every language — the whole
+        // sentence is translated as one string and the address located in it.
+        Builder(builder: (context) {
+          final email = _emailController.text.trim();
+          final message = l10n.forgotSentTo(email);
+          final start = message.indexOf(email);
+          final bodyStyle = Theme.of(context).textTheme.bodyLarge;
+          if (start < 0) {
+            return Text(message, style: bodyStyle);
+          }
+          return Text.rich(
+            TextSpan(
+              style: bodyStyle,
+              children: [
+                TextSpan(text: message.substring(0, start)),
+                TextSpan(
+                  text: email,
+                  style: TextStyle(color: colors.textPrimary, fontWeight: FontWeight.w700),
+                ),
+                TextSpan(text: message.substring(start + email.length)),
+              ],
+            ),
+          );
+        }),
         const SizedBox(height: AppSpacing.lg),
         Container(
           padding: const EdgeInsets.all(AppSpacing.md),
@@ -150,7 +166,7 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
               const SizedBox(width: AppSpacing.sm),
               Expanded(
                 child: Text(
-                  'This build has no mail server connected, so no email is actually sent.',
+                  l10n.forgotNoMailServer,
                   style: TextStyle(color: colors.srsHard, fontSize: 12, height: 1.4),
                 ),
               ),
@@ -159,14 +175,14 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
         ),
         const SizedBox(height: AppSpacing.xxl),
         PrimaryButton(
-          label: 'Back to sign in',
+          label: l10n.registerBackToSignIn,
           onPressed: () => Navigator.of(context).maybePop(),
         ),
         const SizedBox(height: AppSpacing.md),
         Center(
           child: TextButton(
             onPressed: () => setState(() => _submitted = false),
-            child: const Text('Use a different email'),
+            child: Text(l10n.forgotUseDifferent),
           ),
         ),
       ],

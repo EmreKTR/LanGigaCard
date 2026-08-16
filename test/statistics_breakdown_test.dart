@@ -1,5 +1,6 @@
-import 'package:flutter/material.dart';
+﻿import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:langigacards/l10n/app_localizations.dart';
 import 'package:langigacards/data/library_storage.dart';
 import 'package:langigacards/data/deck_store.dart';
 import 'package:langigacards/data/mock_data.dart';
@@ -29,7 +30,10 @@ Future<void> _pump(WidgetTester tester) async {
   await tester.binding.setSurfaceSize(const Size(1000, 3200));
   addTearDown(() => tester.binding.setSurfaceSize(null));
   await tester.pumpWidget(
-    MaterialApp(theme: AppTheme.dark(AccentColor.purple), home: const StatisticsScreen()),
+    MaterialApp(
+      localizationsDelegates: AppLocalizations.localizationsDelegates,
+      supportedLocales: AppLocalizations.supportedLocales,
+theme: AppTheme.dark(AccentColor.purple), home: const StatisticsScreen()),
   );
 }
 

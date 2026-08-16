@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../../data/deck_store.dart';
 import '../../models/app_models.dart';
+import '../../l10n/app_localizations.dart';
 import '../../theme/app_theme.dart';
 import '../../widgets/app_buttons.dart';
 import '../../widgets/refreshable.dart';
@@ -8,9 +9,6 @@ import '../study/quiz_screen.dart';
 import '../study/study_session_screen.dart';
 import 'card_library_screen.dart';
 import 'deck_detail_screen.dart';
-
-/// Placeholder description stored for decks created without one.
-const _noDescription = 'No description yet';
 
 /// "My Decks": due-today banner, search, and a list of deck cards each with
 /// a mastery bar, Study/Browse actions and a rename/delete menu.
@@ -44,22 +42,23 @@ class _DeckDashboardScreenState extends State<DeckDashboardScreen> {
 
   Future<void> _deleteDeck(Deck deck) async {
     final colors = context.appColors;
+    final l10n = AppLocalizations.of(context);
     final cardCount = DeckStore.cards.where((c) => c.deckId == deck.id).length;
 
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
-        title: Text('Delete "${deck.name}"?'),
+        title: Text(l10n.decksDeleteConfirm(deck.name)),
         content: Text(
           cardCount == 0
-              ? 'This deck is empty and will be removed.'
-              : 'The deck and its $cardCount card${cardCount == 1 ? '' : 's'} will be removed.',
+              ? l10n.decksDeleteEmpty
+              : l10n.decksDeleteWithCards(cardCount),
         ),
         actions: [
-          TextButton(onPressed: () => Navigator.of(context).pop(false), child: const Text('Cancel')),
+          TextButton(onPressed: () => Navigator.of(context).pop(false), child: Text(l10n.commonCancel)),
           TextButton(
             onPressed: () => Navigator.of(context).pop(true),
-            child: Text('Delete', style: TextStyle(color: colors.danger)),
+            child: Text(l10n.commonDelete, style: TextStyle(color: colors.danger)),
           ),
         ],
       ),
@@ -70,28 +69,29 @@ class _DeckDashboardScreenState extends State<DeckDashboardScreen> {
     if (!mounted) return;
     if (!ok) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text("Couldn't delete the deck. Please try again.")),
+        SnackBar(content: Text(l10n.decksDeleteFailed)),
       );
       return;
     }
 
     ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text('"${deck.name}" deleted')),
+      SnackBar(content: Text(l10n.decksDeleted(deck.name))),
     );
   }
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
     return Scaffold(
       appBar: AppBar(
-        title: const Text('My Decks'),
+        title: Text(l10n.decksTitle),
         actions: [
           Padding(
             padding: const EdgeInsets.only(right: AppSpacing.lg),
             child: TextButton.icon(
               onPressed: _createDeck,
               icon: const Icon(Icons.add_rounded, size: 18),
-              label: const Text('New Deck'),
+              label: Text(l10n.decksNewDeck),
             ),
           ),
         ],
@@ -108,6 +108,7 @@ class _DeckDashboardScreenState extends State<DeckDashboardScreen> {
 
   Widget _buildDeckList(BuildContext context) {
     final colors = context.appColors;
+    final l10n = AppLocalizations.of(context);
     final decks = DeckStore.decks.where((d) => d.name.toLowerCase().contains(_query.toLowerCase())).toList();
     final totalDue = DeckStore.decks.fold<int>(0, (sum, d) => sum + d.dueCount);
 
@@ -116,7 +117,7 @@ class _DeckDashboardScreenState extends State<DeckDashboardScreen> {
       physics: const AlwaysScrollableScrollPhysics(),
       padding: const EdgeInsets.all(AppSpacing.lg),
       children: [
-        Text('${DeckStore.decks.length} decks · $totalDue cards due today', style: TextStyle(color: colors.textMuted, fontSize: 13)),
+        Text(l10n.decksSummary(DeckStore.decks.length, totalDue), style: TextStyle(color: colors.textMuted, fontSize: 13)),
         const SizedBox(height: AppSpacing.lg),
         InkWell(
           borderRadius: BorderRadius.circular(AppRadius.lg),
@@ -139,8 +140,8 @@ class _DeckDashboardScreenState extends State<DeckDashboardScreen> {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Text('$totalDue cards due for review', style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w700)),
-                      Text('Sorted by urgency · Tap to start session', style: TextStyle(color: Colors.white.withValues(alpha: 0.75), fontSize: 12)),
+                      Text(l10n.decksDueForReview(totalDue), style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w700)),
+                      Text(l10n.decksSortedByUrgency, style: TextStyle(color: Colors.white.withValues(alpha: 0.75), fontSize: 12)),
                     ],
                   ),
                 ),
@@ -151,7 +152,7 @@ class _DeckDashboardScreenState extends State<DeckDashboardScreen> {
         ),
         const SizedBox(height: AppSpacing.lg),
         TextField(
-          decoration: const InputDecoration(hintText: 'Search decks...', prefixIcon: Icon(Icons.search_rounded)),
+          decoration: InputDecoration(hintText: l10n.decksSearchHint, prefixIcon: const Icon(Icons.search_rounded)),
           onChanged: (v) => setState(() => _query = v),
         ),
         const SizedBox(height: AppSpacing.lg),
@@ -179,6 +180,7 @@ class _EmptyDecks extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final colors = context.appColors;
+    final l10n = AppLocalizations.of(context);
     final searching = query.isNotEmpty;
 
     return Padding(
@@ -192,22 +194,22 @@ class _EmptyDecks extends StatelessWidget {
           ),
           const SizedBox(height: AppSpacing.lg),
           Text(
-            searching ? 'No decks match "$query"' : 'No decks yet',
+            searching ? l10n.decksNoMatch(query) : l10n.decksNoneYet,
             style: Theme.of(context).textTheme.titleLarge,
             textAlign: TextAlign.center,
           ),
           const SizedBox(height: AppSpacing.sm),
           Text(
             searching
-                ? 'Try a different search, or create a deck with this name.'
-                : 'Decks group the words you want to learn. Create your first one to get started.',
+                ? l10n.decksTryDifferentSearch
+                : l10n.decksEmptyHelp,
             textAlign: TextAlign.center,
             style: TextStyle(color: colors.textMuted, height: 1.5),
           ),
           const SizedBox(height: AppSpacing.xl),
           SizedBox(
             width: 220,
-            child: PrimaryButton(label: 'Create a deck', icon: Icons.add_rounded, onPressed: onCreate),
+            child: PrimaryButton(label: l10n.decksCreateADeck, icon: Icons.add_rounded, onPressed: onCreate),
           ),
         ],
       ),
@@ -225,6 +227,7 @@ class _DeckCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final colors = context.appColors;
+    final l10n = AppLocalizations.of(context);
     // cardCount is counted from the cards themselves — trivially accurate
     // after any real refresh. studyable has no server-side equivalent, so it
     // stays a local best-effort approximation. dueCount and mastery, though,
@@ -273,7 +276,7 @@ class _DeckCard extends StatelessWidget {
                   child: Text('$dueCount due', style: TextStyle(color: colors.danger, fontSize: 11, fontWeight: FontWeight.w700)),
                 ),
               PopupMenuButton<String>(
-                tooltip: 'Deck options',
+                tooltip: l10n.decksOptions,
                 icon: Icon(Icons.more_vert_rounded, size: 20, color: colors.textMuted),
                 onSelected: (value) => switch (value) {
                   'quiz' => Navigator.of(context).push(
@@ -283,22 +286,22 @@ class _DeckCard extends StatelessWidget {
                   _ => onDelete(),
                 },
                 itemBuilder: (context) => [
-                  const PopupMenuItem(
+                  PopupMenuItem(
                     value: 'quiz',
                     child: ListTile(
                       dense: true,
                       contentPadding: EdgeInsets.zero,
                       leading: Icon(Icons.quiz_outlined, size: 20),
-                      title: Text('Quiz this deck'),
+                      title: Text(l10n.decksQuizThis),
                     ),
                   ),
-                  const PopupMenuItem(
+                  PopupMenuItem(
                     value: 'rename',
                     child: ListTile(
                       dense: true,
                       contentPadding: EdgeInsets.zero,
                       leading: Icon(Icons.edit_outlined, size: 20),
-                      title: Text('Rename deck'),
+                      title: Text(l10n.decksRename),
                     ),
                   ),
                   PopupMenuItem(
@@ -307,7 +310,7 @@ class _DeckCard extends StatelessWidget {
                       dense: true,
                       contentPadding: EdgeInsets.zero,
                       leading: Icon(Icons.delete_outline_rounded, size: 20, color: colors.danger),
-                      title: Text('Delete deck', style: TextStyle(color: colors.danger)),
+                      title: Text(l10n.decksDelete, style: TextStyle(color: colors.danger)),
                     ),
                   ),
                 ],
@@ -319,16 +322,16 @@ class _DeckCard extends StatelessWidget {
             spacing: AppSpacing.sm,
             runSpacing: AppSpacing.sm,
             children: [
-              _tag(colors, '$cardCount card${cardCount == 1 ? '' : 's'}', colors.surfaceElevated, colors.textSecondary),
-              if (dueCount > 0) _tag(colors, 'Review Due', colors.danger.withValues(alpha: 0.14), colors.danger),
-              _tag(colors, '${deck.reviewCount} reviews', colors.surfaceElevated, colors.textSecondary),
+              _tag(colors, l10n.decksCardCount(cardCount), colors.surfaceElevated, colors.textSecondary),
+              if (dueCount > 0) _tag(colors, l10n.decksReviewDue, colors.danger.withValues(alpha: 0.14), colors.danger),
+              _tag(colors, l10n.decksReviewCount(deck.reviewCount), colors.surfaceElevated, colors.textSecondary),
             ],
           ),
           const SizedBox(height: AppSpacing.md),
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Text('Mastery', style: TextStyle(color: colors.textMuted, fontSize: 12)),
+              Text(l10n.decksMastery, style: TextStyle(color: colors.textMuted, fontSize: 12)),
               Text('$mastery%', style: TextStyle(color: deck.accentColor, fontWeight: FontWeight.w700, fontSize: 12)),
             ],
           ),
@@ -348,7 +351,7 @@ class _DeckCard extends StatelessWidget {
               Expanded(
                 flex: 2,
                 child: PrimaryButton(
-                  label: studyable > 0 ? 'Study $studyable card${studyable == 1 ? '' : 's'}' : 'All caught up',
+                  label: studyable > 0 ? l10n.decksStudyCards(studyable) : l10n.decksAllCaughtUp,
                   onPressed: studyable == 0
                       ? null
                       : () => Navigator.of(context).push(MaterialPageRoute(builder: (_) => StudySessionScreen(deck: deck))),
@@ -358,7 +361,7 @@ class _DeckCard extends StatelessWidget {
               Expanded(
                 child: OutlinedButton(
                   onPressed: () => Navigator.of(context).push(MaterialPageRoute(builder: (_) => CardLibraryScreen(deck: deck))),
-                  child: const Text('Browse'),
+                  child: Text(l10n.decksBrowse),
                 ),
               ),
             ],
@@ -388,12 +391,18 @@ class _DeckEditorSheet extends StatefulWidget {
   State<_DeckEditorSheet> createState() => _DeckEditorSheetState();
 }
 
+/// The description placeholder is localized and resolved at render time now,
+/// so it can never be persisted. This is the English string it used to be,
+/// kept only so a deck that stored it before the change still opens with an
+/// empty description field rather than the literal placeholder.
+const _legacyNoDescription = 'No description yet';
+
 class _DeckEditorSheetState extends State<_DeckEditorSheet> {
   late final _titleController = TextEditingController(text: widget.editing?.name);
   late final _descController = TextEditingController(
     // The placeholder used for decks created without a description shouldn't
     // come back as literal text to edit.
-    text: widget.editing?.description == _noDescription ? '' : widget.editing?.description,
+    text: widget.editing?.description == _legacyNoDescription ? '' : widget.editing?.description,
   );
 
   bool get _isEditing => widget.editing != null;
@@ -414,9 +423,10 @@ class _DeckEditorSheetState extends State<_DeckEditorSheet> {
         : await DeckStore.addDeck(title: title, description: description);
 
     if (!mounted) return;
+    final l10n = AppLocalizations.of(context);
     if (!ok) {
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(_isEditing ? "Couldn't save changes. Please try again." : "Couldn't create the deck. Please try again.")),
+        SnackBar(content: Text(_isEditing ? l10n.decksSaveFailed : l10n.decksCreateFailed)),
       );
       return;
     }
@@ -426,6 +436,7 @@ class _DeckEditorSheetState extends State<_DeckEditorSheet> {
   @override
   Widget build(BuildContext context) {
     final colors = context.appColors;
+    final l10n = AppLocalizations.of(context);
     return Padding(
       padding: EdgeInsets.only(bottom: MediaQuery.of(context).viewInsets.bottom),
       child: Container(
@@ -441,7 +452,7 @@ class _DeckEditorSheetState extends State<_DeckEditorSheet> {
             Row(
               children: [
                 Expanded(
-                  child: Text(_isEditing ? 'Rename Deck' : 'Create New Deck', style: Theme.of(context).textTheme.titleLarge),
+                  child: Text(_isEditing ? l10n.decksRenameTitle : l10n.decksCreateTitle, style: Theme.of(context).textTheme.titleLarge),
                 ),
                 IconButton(onPressed: () => Navigator.of(context).pop(), icon: const Icon(Icons.close_rounded)),
               ],
@@ -452,7 +463,7 @@ class _DeckEditorSheetState extends State<_DeckEditorSheet> {
               builder: (context, _) => Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  Text('TITLE *', style: TextStyle(color: colors.textMuted, fontWeight: FontWeight.w700, fontSize: 11)),
+                  Text(l10n.decksTitleLabel, style: TextStyle(color: colors.textMuted, fontWeight: FontWeight.w700, fontSize: 11)),
                   Text('${_titleController.text.length} / 50', style: TextStyle(color: colors.textMuted, fontSize: 11)),
                 ],
               ),
@@ -462,21 +473,21 @@ class _DeckEditorSheetState extends State<_DeckEditorSheet> {
               controller: _titleController,
               maxLength: 50,
               buildCounter: (_, {required currentLength, required isFocused, maxLength}) => null,
-              decoration: const InputDecoration(hintText: 'e.g. French Basics'),
+              decoration: InputDecoration(hintText: l10n.decksTitleHint),
             ),
             const SizedBox(height: AppSpacing.lg),
-            Text('DESCRIPTION (OPTIONAL)', style: TextStyle(color: colors.textMuted, fontWeight: FontWeight.w700, fontSize: 11)),
+            Text(l10n.decksDescriptionLabel, style: TextStyle(color: colors.textMuted, fontWeight: FontWeight.w700, fontSize: 11)),
             const SizedBox(height: AppSpacing.sm),
             TextField(
               controller: _descController,
               maxLines: 3,
-              decoration: const InputDecoration(hintText: 'Describe what this deck covers...'),
+              decoration: InputDecoration(hintText: l10n.decksDescriptionHint),
             ),
             const SizedBox(height: AppSpacing.xl),
             AnimatedBuilder(
               animation: _titleController,
               builder: (context, _) => PrimaryButton(
-                label: _isEditing ? 'Save Changes' : 'Create Deck',
+                label: _isEditing ? l10n.decksSaveChanges : l10n.decksCreateDeck,
                 onPressed: _titleController.text.trim().isEmpty ? null : _save,
               ),
             ),

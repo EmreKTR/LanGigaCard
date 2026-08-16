@@ -54,6 +54,25 @@ class AuthResult {
   bool get isSuccess => outcome == AuthOutcome.success;
 }
 
+/// Why an email-verification attempt did or didn't succeed. [tooManyAttempts]
+/// is separate from [invalidCode] because the server burns the code once the
+/// attempt budget runs out — retyping it can't help, so the UI has to steer
+/// the learner to "Resend code" instead of "try again".
+enum VerificationOutcome { success, invalidCode, tooManyAttempts, networkError }
+
+class VerificationResult {
+  const VerificationResult._(this.outcome);
+
+  const VerificationResult.success() : this._(VerificationOutcome.success);
+  const VerificationResult.invalidCode() : this._(VerificationOutcome.invalidCode);
+  const VerificationResult.tooManyAttempts() : this._(VerificationOutcome.tooManyAttempts);
+  const VerificationResult.networkError() : this._(VerificationOutcome.networkError);
+
+  final VerificationOutcome outcome;
+
+  bool get isSuccess => outcome == VerificationOutcome.success;
+}
+
 /// Registers and signs learners in. [VocabGridAuthApi] is the real
 /// implementation; [FakeAuthApi] is an in-memory stand-in for tests, the
 /// same role [InMemoryLibraryStorage] plays for [LibraryStorage].
@@ -69,6 +88,15 @@ abstract class AuthApi {
   Future<AuthResult> login({required String email, required String password});
 
   Future<void> logout();
+
+  /// Asks the server to mail a fresh 6-digit code, invalidating any the
+  /// learner was previously sent. Returns false only when the request
+  /// couldn't be delivered — the server deliberately answers the same way
+  /// whether or not the address is registered, so a `true` here says
+  /// nothing about whether an account exists.
+  Future<bool> sendVerificationCode(String email);
+
+  Future<VerificationResult> verifyEmail({required String email, required String code});
 }
 
 /// In-memory [AuthApi] for tests: no plugins, no network, no disk.
@@ -134,4 +162,43 @@ class FakeAuthApi implements AuthApi {
 
   @override
   Future<void> logout() async {}
+
+  /// The code this fake always issues, so tests have something to type.
+  static const fakeCode = '123456';
+
+  /// Mirrors the server's budget in [VocabGridAuthApi]'s real counterpart.
+  static const maxAttempts = 5;
+
+  final Set<String> _verifiedEmails = {};
+  final Map<String, int> _attemptsByEmail = {};
+
+  @override
+  Future<bool> sendVerificationCode(String email) async {
+    // Reissuing clears the attempt budget, exactly as a new server-side code
+    // does — otherwise "Resend code" would hand back a code that's already
+    // spent its allowance.
+    _attemptsByEmail.remove(_key(email));
+    return true;
+  }
+
+  @override
+  Future<VerificationResult> verifyEmail({required String email, required String code}) async {
+    final key = _key(email);
+    if (_verifiedEmails.contains(key)) {
+      return const VerificationResult.success();
+    }
+
+    final attempts = _attemptsByEmail[key] ?? 0;
+    if (attempts >= maxAttempts) {
+      return const VerificationResult.tooManyAttempts();
+    }
+
+    if (code.trim() != fakeCode) {
+      _attemptsByEmail[key] = attempts + 1;
+      return const VerificationResult.invalidCode();
+    }
+
+    _verifiedEmails.add(key);
+    return const VerificationResult.success();
+  }
 }

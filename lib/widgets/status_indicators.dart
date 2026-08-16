@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../data/pronunciation_service.dart';
 import '../models/app_models.dart';
+import '../l10n/app_localizations.dart';
 import '../theme/app_theme.dart';
 
 /// Small colored pill showing whether a card is Mastered / Learning /
@@ -100,13 +101,13 @@ class _SpeakerButtonState extends State<SpeakerButton> {
 
     // A phone that has never used the language simply has no voice for it,
     // which is worth saying out loud instead of appearing broken.
+    final l10n = AppLocalizations.of(context);
     final message = switch (result.outcome) {
       PronunciationOutcome.spoke => null,
       PronunciationOutcome.languageMissing => result.language == null
-          ? "This language's voice isn't installed on your device yet."
-          : "${result.language} speech isn't installed on your device yet. "
-              'Add it in your system text-to-speech settings.',
-      PronunciationOutcome.unavailable => "This device doesn't have a text-to-speech engine available.",
+          ? l10n.ttsVoiceMissingUnknown
+          : l10n.ttsVoiceMissing(result.language!),
+      PronunciationOutcome.unavailable => l10n.ttsUnavailable,
     };
     if (message == null) return;
 
@@ -118,14 +119,15 @@ class _SpeakerButtonState extends State<SpeakerButton> {
   @override
   Widget build(BuildContext context) {
     final colors = context.appColors;
+    final l10n = AppLocalizations.of(context);
     final enabled = widget.text != null && widget.text!.isNotEmpty;
 
     return Tooltip(
-      message: enabled ? 'Play pronunciation' : 'Nothing to pronounce',
+      message: enabled ? l10n.ttsPlay : l10n.ttsNothing,
       child: Semantics(
         button: true,
         enabled: enabled,
-        label: widget.text == null ? 'Play pronunciation' : 'Play pronunciation of ${widget.text}',
+        label: widget.text == null ? l10n.ttsPlay : l10n.ttsPlayOf(widget.text!),
         child: InkWell(
           onTap: enabled ? _speak : null,
           borderRadius: BorderRadius.circular(AppRadius.pill),

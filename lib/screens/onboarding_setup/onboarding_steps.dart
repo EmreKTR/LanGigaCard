@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../../data/api/user_api.dart';
+import '../../l10n/app_localizations.dart';
 import '../../theme/app_theme.dart';
 import '../../theme/category_icons.dart';
 
@@ -15,21 +16,24 @@ const _learningPurposeIcons = {
   'Just for Fun': Icons.celebration_rounded,
 };
 
-const _targetLevels = [
-  ('Just Starting', 'Learning the basics'),
-  ('Beginner', 'Know some words and phrases'),
-  ('Intermediate', 'Can have simple conversations'),
-  ('Advanced', 'Comfortable in most situations'),
-  ('Fluent', 'Near-native proficiency'),
-];
+/// alue is what gets stored on the profile and sent to the API, so it stays
+/// English no matter which language the UI is in; only label and
+/// description are translated.
+List<({String value, String label, String description})> _targetLevelsFor(AppLocalizations l10n) => [
+      (value: 'Just Starting', label: l10n.levelJustStarting, description: l10n.levelJustStartingDesc),
+      (value: 'Beginner', label: l10n.levelBeginner, description: l10n.levelBeginnerDesc),
+      (value: 'Intermediate', label: l10n.levelIntermediate, description: l10n.levelIntermediateDesc),
+      (value: 'Advanced', label: l10n.levelAdvanced, description: l10n.levelAdvancedDesc),
+      (value: 'Fluent', label: l10n.levelFluent, description: l10n.levelFluentDesc),
+    ];
 
 const _ageRanges = ['13-17', '18-24', '25-34', '35-44', '45-54', '55+'];
 
-const _dailyGoals = [
-  (5, 'Casual', '~25 words/day'),
-  (10, 'Regular', '~50 words/day'),
-  (20, 'Intense', '~100 words/day'),
-];
+List<({int minutes, String label, String words})> _dailyGoalsFor(AppLocalizations l10n) => [
+      (minutes: 5, label: l10n.goalCasual, words: l10n.goalWordsPerDay(25)),
+      (minutes: 10, label: l10n.goalRegular, words: l10n.goalWordsPerDay(50)),
+      (minutes: 20, label: l10n.goalIntense, words: l10n.goalWordsPerDay(100)),
+    ];
 
 /// Step 3: self-reported starting level in the target language — a direct
 /// pick, not a placement test. Same 2-column grid-card UI as [LearningPurposeStep].
@@ -42,12 +46,13 @@ class TargetLevelStep extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text("What's your current level in $targetLanguage?", style: Theme.of(context).textTheme.headlineMedium),
+        Text(l10n.wizardLevelQuestion(targetLanguage), style: Theme.of(context).textTheme.headlineMedium),
         const SizedBox(height: AppSpacing.xs),
-        Text('Pick what feels right — you can adjust this anytime.', style: Theme.of(context).textTheme.bodyLarge),
+        Text(l10n.wizardLevelHint, style: Theme.of(context).textTheme.bodyLarge),
         const SizedBox(height: AppSpacing.xl),
         GridView.count(
           crossAxisCount: 2,
@@ -57,12 +62,12 @@ class TargetLevelStep extends StatelessWidget {
           crossAxisSpacing: AppSpacing.sm,
           childAspectRatio: 1.3,
           children: [
-            for (final level in _targetLevels)
+            for (final level in _targetLevelsFor(l10n))
               _OptionCard(
-                label: level.$1,
-                description: level.$2,
-                selected: selected == level.$1,
-                onTap: () => onSelected(level.$1),
+                label: level.label,
+                description: level.description,
+                selected: selected == level.value,
+                onTap: () => onSelected(level.value),
               ),
           ],
         ),
@@ -83,12 +88,13 @@ class LearningPurposeStep extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text('Why are you learning this language?', style: Theme.of(context).textTheme.headlineMedium),
+        Text(l10n.wizardPurposeQuestion, style: Theme.of(context).textTheme.headlineMedium),
         const SizedBox(height: AppSpacing.xs),
-        Text('Select all that apply', style: Theme.of(context).textTheme.bodyLarge),
+        Text(l10n.wizardSelectAllThatApply, style: Theme.of(context).textTheme.bodyLarge),
         const SizedBox(height: AppSpacing.xl),
         GridView.count(
           crossAxisCount: 2,
@@ -124,10 +130,11 @@ class AgeRangeStep extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final colors = context.appColors;
+    final l10n = AppLocalizations.of(context);
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text('What is your age range?', style: Theme.of(context).textTheme.headlineMedium),
+        Text(l10n.wizardAgeQuestion, style: Theme.of(context).textTheme.headlineMedium),
         const SizedBox(height: AppSpacing.xl),
         for (final range in _ageRanges)
           Padding(
@@ -166,7 +173,7 @@ class AgeRangeStep extends StatelessWidget {
               const SizedBox(width: AppSpacing.sm),
               Expanded(
                 child: Text(
-                  'We use your age to optimize accessibility settings and learning experience.',
+                  l10n.wizardAgeNote,
                   style: TextStyle(color: colors.textMuted, fontSize: 12),
                 ),
               ),
@@ -191,12 +198,13 @@ class TopicsStep extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final colors = context.appColors;
+    final l10n = AppLocalizations.of(context);
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text('What topics would you like to study first?', style: Theme.of(context).textTheme.headlineMedium),
+        Text(l10n.wizardTopicsQuestion, style: Theme.of(context).textTheme.headlineMedium),
         const SizedBox(height: AppSpacing.xs),
-        Text('${selected.length} selected · You can change this later', style: TextStyle(color: colors.textMuted, fontSize: 13)),
+        Text(l10n.wizardSelectedHint(selected.length), style: TextStyle(color: colors.textMuted, fontSize: 13)),
         const SizedBox(height: AppSpacing.xl),
         GridView.count(
           crossAxisCount: 3,
@@ -249,10 +257,11 @@ class DailyGoalStep extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final colors = context.appColors;
+    final l10n = AppLocalizations.of(context);
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text('How much time can you dedicate daily?', style: Theme.of(context).textTheme.headlineMedium),
+        Text(l10n.wizardGoalQuestion, style: Theme.of(context).textTheme.headlineMedium),
         const SizedBox(height: AppSpacing.xl),
         if (nativeLanguage.isNotEmpty && targetLanguage.isNotEmpty)
           Container(
@@ -272,20 +281,20 @@ class DailyGoalStep extends StatelessWidget {
             ),
           ),
         const SizedBox(height: AppSpacing.xl),
-        for (final goal in _dailyGoals)
+        for (final goal in _dailyGoalsFor(l10n))
           Padding(
             padding: const EdgeInsets.only(bottom: AppSpacing.sm),
             child: InkWell(
               borderRadius: BorderRadius.circular(AppRadius.md),
-              onTap: () => onSelected(goal.$1),
+              onTap: () => onSelected(goal.minutes),
               child: Container(
                 padding: const EdgeInsets.all(AppSpacing.md),
                 decoration: BoxDecoration(
-                  color: selectedMinutes == goal.$1 ? colors.primary.withValues(alpha: 0.08) : colors.surfaceElevated,
+                  color: selectedMinutes == goal.minutes ? colors.primary.withValues(alpha: 0.08) : colors.surfaceElevated,
                   borderRadius: BorderRadius.circular(AppRadius.md),
                   border: Border.all(
-                    color: selectedMinutes == goal.$1 ? colors.primary : colors.border,
-                    width: selectedMinutes == goal.$1 ? 1.5 : 1,
+                    color: selectedMinutes == goal.minutes ? colors.primary : colors.border,
+                    width: selectedMinutes == goal.minutes ? 1.5 : 1,
                   ),
                 ),
                 child: Row(
@@ -295,7 +304,7 @@ class DailyGoalStep extends StatelessWidget {
                       height: 44,
                       alignment: Alignment.center,
                       decoration: BoxDecoration(color: colors.primary, borderRadius: BorderRadius.circular(AppRadius.pill)),
-                      child: Text('${goal.$1}m', style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w700, fontSize: 12)),
+                      child: Text('${goal.minutes}m', style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w700, fontSize: 12)),
                     ),
                     const SizedBox(width: AppSpacing.md),
                     Expanded(
@@ -303,14 +312,14 @@ class DailyGoalStep extends StatelessWidget {
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           Text(
-                            goal.$2,
-                            style: TextStyle(fontWeight: FontWeight.w700, color: selectedMinutes == goal.$1 ? colors.primary : colors.textPrimary),
+                            goal.label,
+                            style: TextStyle(fontWeight: FontWeight.w700, color: selectedMinutes == goal.minutes ? colors.primary : colors.textPrimary),
                           ),
-                          Text(goal.$3, style: TextStyle(color: colors.textMuted, fontSize: 12)),
+                          Text(goal.words, style: TextStyle(color: colors.textMuted, fontSize: 12)),
                         ],
                       ),
                     ),
-                    if (selectedMinutes == goal.$1) Icon(Icons.check_circle_rounded, color: colors.primary, size: 20),
+                    if (selectedMinutes == goal.minutes) Icon(Icons.check_circle_rounded, color: colors.primary, size: 20),
                   ],
                 ),
               ),

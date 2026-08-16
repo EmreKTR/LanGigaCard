@@ -1,4 +1,5 @@
-import 'package:flutter/material.dart';
+﻿import 'package:flutter/material.dart';
+import '../../l10n/app_localizations.dart';
 import '../../theme/app_theme.dart';
 import '../../widgets/section_card.dart';
 
@@ -23,30 +24,31 @@ class _PrivacySecurityScreenState extends State<PrivacySecurityScreen> {
   @override
   Widget build(BuildContext context) {
     final colors = context.appColors;
+    final l10n = AppLocalizations.of(context);
 
     return Scaffold(
-      appBar: AppBar(title: const Text('Privacy & Security')),
+      appBar: AppBar(title: Text(l10n.profilePrivacySecurity)),
       body: SafeArea(
         top: false,
         child: ListView(
           padding: const EdgeInsets.all(AppSpacing.lg),
           children: [
             Text(
-              'Control what LanGigaCards stores about you and how your learning data is used.',
+              l10n.privacyIntro,
               style: TextStyle(color: colors.textMuted, fontSize: 13, height: 1.5),
             ),
             const SizedBox(height: AppSpacing.xl),
             SettingsGroup(
-              title: 'Privacy',
+              title: l10n.privacySectionPrivacy,
               children: [
                 SettingsRow(
                   icon: Icons.insights_rounded,
-                  label: 'Usage analytics',
+                  label: l10n.privacyUsageAnalytics,
                   trailing: Switch(value: _analytics, onChanged: (v) => setState(() => _analytics = v)),
                 ),
                 SettingsRow(
                   icon: Icons.auto_awesome_rounded,
-                  label: 'Personalised review order',
+                  label: l10n.privacyPersonalisedReview,
                   trailing: Switch(
                     value: _personalisedReview,
                     onChanged: (v) => setState(() => _personalisedReview = v),
@@ -54,7 +56,7 @@ class _PrivacySecurityScreenState extends State<PrivacySecurityScreen> {
                 ),
                 SettingsRow(
                   icon: Icons.public_rounded,
-                  label: 'Public profile',
+                  label: l10n.privacyPublicProfile,
                   trailing: Switch(value: _publicProfile, onChanged: (v) => setState(() => _publicProfile = v)),
                 ),
               ],
@@ -62,42 +64,42 @@ class _PrivacySecurityScreenState extends State<PrivacySecurityScreen> {
             const SizedBox(height: AppSpacing.md),
             _Note(
               text: _analytics
-                  ? 'Anonymous usage data helps improve the review algorithm.'
-                  : 'Analytics are off. Nothing about how you use the app is collected.',
+                  ? l10n.privacyAnalyticsOn
+                  : l10n.privacyAnalyticsOff,
             ),
             const SizedBox(height: AppSpacing.xl),
             SettingsGroup(
-              title: 'Security',
+              title: l10n.privacySectionSecurity,
               children: [
                 SettingsRow(
                   icon: Icons.fingerprint_rounded,
-                  label: 'Require biometric unlock',
+                  label: l10n.privacyBiometric,
                   trailing: Switch(value: _biometricLock, onChanged: (v) => setState(() => _biometricLock = v)),
                 ),
                 SettingsRow(
                   icon: Icons.password_rounded,
-                  label: 'Change password',
-                  onTap: () => _needsAccount(context, 'Changing your password'),
+                  label: l10n.privacyChangePassword,
+                  onTap: () => _needsAccount(context, l10n.privacyChangingPassword),
                 ),
                 SettingsRow(
                   icon: Icons.devices_rounded,
-                  label: 'Active sessions',
-                  onTap: () => _needsAccount(context, 'Session management'),
+                  label: l10n.privacyActiveSessions,
+                  onTap: () => _needsAccount(context, l10n.privacySessionManagement),
                 ),
               ],
             ),
             const SizedBox(height: AppSpacing.xl),
             SettingsGroup(
-              title: 'Your data',
+              title: l10n.privacySectionYourData,
               children: [
                 SettingsRow(
                   icon: Icons.download_rounded,
-                  label: 'Export my decks',
-                  onTap: () => _needsAccount(context, 'Exporting your decks'),
+                  label: l10n.privacyExportDecks,
+                  onTap: () => _needsAccount(context, l10n.privacyExportingDecks),
                 ),
                 SettingsRow(
                   icon: Icons.delete_forever_rounded,
-                  label: 'Delete account',
+                  label: l10n.privacyDeleteAccount,
                   iconColor: colors.danger,
                   onTap: () => _confirmDelete(context),
                 ),
@@ -113,7 +115,7 @@ class _PrivacySecurityScreenState extends State<PrivacySecurityScreen> {
   void _needsAccount(BuildContext context, String what) {
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
-        content: Text('$what needs a signed-in account, which this build does not have yet.'),
+        content: Text(AppLocalizations.of(context).privacyNeedsAccount(what)),
         duration: const Duration(seconds: 3),
       ),
     );
@@ -121,25 +123,23 @@ class _PrivacySecurityScreenState extends State<PrivacySecurityScreen> {
 
   Future<void> _confirmDelete(BuildContext context) async {
     final colors = context.appColors;
+    final l10n = AppLocalizations.of(context);
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
-        title: const Text('Delete account?'),
-        content: const Text(
-          'This would permanently remove your decks, cards and review history. '
-          'This cannot be undone.',
-        ),
+        title: Text(l10n.privacyDeleteConfirm),
+        content: Text(l10n.privacyDeleteBody),
         actions: [
-          TextButton(onPressed: () => Navigator.of(context).pop(false), child: const Text('Cancel')),
+          TextButton(onPressed: () => Navigator.of(context).pop(false), child: Text(l10n.commonCancel)),
           TextButton(
             onPressed: () => Navigator.of(context).pop(true),
-            child: Text('Delete', style: TextStyle(color: colors.danger)),
+            child: Text(l10n.commonDelete, style: TextStyle(color: colors.danger)),
           ),
         ],
       ),
     );
     if (confirmed != true || !context.mounted) return;
-    _needsAccount(context, 'Account deletion');
+    _needsAccount(context, l10n.privacyAccountDeletion);
   }
 }
 

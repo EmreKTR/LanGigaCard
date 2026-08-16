@@ -1,5 +1,6 @@
-import 'package:flutter/material.dart';
+﻿import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import '../l10n/app_localizations.dart';
 import '../theme/app_theme.dart';
 import 'auth/login_screen.dart';
 
@@ -13,29 +14,28 @@ class _OnboardingSlide {
   final Color color;
 }
 
-const _slides = [
-  _OnboardingSlide(
-    Icons.style_rounded,
-    'Learn with Flashcards',
-    'Master vocabulary through our proven spaced repetition system. '
-        'Review cards at the perfect moment to maximize memory retention.',
-    Color(0xFF6C5CE7),
-  ),
-  _OnboardingSlide(
-    Icons.show_chart_rounded,
-    'Track Your Progress',
-    'Visualize your learning journey with beautiful statistics. Watch '
-        'your vocabulary grow day by day with streaks and achievements.',
-    Color(0xFF10B981),
-  ),
-  _OnboardingSlide(
-    Icons.emoji_events_rounded,
-    'Reach Your Goals',
-    'Set personalized daily goals and stay motivated. Our smart '
-        'algorithm adapts to your pace, making learning effortless.',
-    Color(0xFFF59E0B),
-  ),
-];
+/// Built per-frame rather than held in a `const` list: the copy is localized,
+/// so it can only be resolved once there's a context to read it from.
+List<_OnboardingSlide> _slidesFor(AppLocalizations l10n) => [
+      _OnboardingSlide(
+        Icons.style_rounded,
+        l10n.onboardingSlide1Title,
+        l10n.onboardingSlide1Body,
+        const Color(0xFF6C5CE7),
+      ),
+      _OnboardingSlide(
+        Icons.show_chart_rounded,
+        l10n.onboardingSlide2Title,
+        l10n.onboardingSlide2Body,
+        const Color(0xFF10B981),
+      ),
+      _OnboardingSlide(
+        Icons.emoji_events_rounded,
+        l10n.onboardingSlide3Title,
+        l10n.onboardingSlide3Body,
+        const Color(0xFFF59E0B),
+      ),
+    ];
 
 /// 3-slide onboarding carousel introducing the app, shown right after splash.
 class OnboardingScreen extends StatefulWidget {
@@ -59,8 +59,10 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
   @override
   Widget build(BuildContext context) {
     final colors = context.appColors;
-    final isLast = _index == _slides.length - 1;
-    final accent = _slides[_index].color;
+    final l10n = AppLocalizations.of(context);
+    final slides = _slidesFor(l10n);
+    final isLast = _index == slides.length - 1;
+    final accent = slides[_index].color;
 
     return Scaffold(
       body: SafeArea(
@@ -74,29 +76,29 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                     ? const SizedBox(height: 36)
                     : TextButton(
                         onPressed: _goToLogin,
-                        child: Text('Skip', style: TextStyle(color: colors.textSecondary)),
+                        child: Text(l10n.commonSkip, style: TextStyle(color: colors.textSecondary)),
                       ),
               ),
             ),
             Expanded(
               child: PageView.builder(
                 controller: _controller,
-                itemCount: _slides.length,
+                itemCount: slides.length,
                 onPageChanged: (i) => setState(() => _index = i),
-                itemBuilder: (context, i) => _SlideView(slide: _slides[i]),
+                itemBuilder: (context, i) => _SlideView(slide: slides[i]),
               ),
             ),
             Row(
               mainAxisAlignment: MainAxisAlignment.center,
               children: List.generate(
-                _slides.length,
+                slides.length,
                 (i) => AnimatedContainer(
                   duration: const Duration(milliseconds: 200),
                   margin: const EdgeInsets.symmetric(horizontal: 4),
                   width: i == _index ? 22 : 8,
                   height: 8,
                   decoration: BoxDecoration(
-                    color: i == _index ? _slides[i].color : colors.border,
+                    color: i == _index ? slides[i].color : colors.border,
                     borderRadius: BorderRadius.circular(AppRadius.pill),
                   ),
                 ),
@@ -121,7 +123,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                           _controller.nextPage(duration: const Duration(milliseconds: 300), curve: Curves.easeOut);
                         }
                       },
-                      child: Text(isLast ? 'Get Started' : 'Continue', style: const TextStyle(fontWeight: FontWeight.w700)),
+                      child: Text(isLast ? l10n.commonGetStarted : l10n.commonContinue, style: const TextStyle(fontWeight: FontWeight.w700)),
                     ),
                   ),
                   if (isLast) ...[
@@ -129,8 +131,8 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                     Row(
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
-                        Text('Already have an account?', style: TextStyle(color: colors.textSecondary)),
-                        TextButton(onPressed: _goToLogin, child: const Text('Sign In')),
+                        Text(l10n.onboardingHaveAccount, style: TextStyle(color: colors.textSecondary)),
+                        TextButton(onPressed: _goToLogin, child: Text(l10n.commonSignIn)),
                       ],
                     ),
                   ],

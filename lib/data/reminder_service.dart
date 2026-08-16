@@ -86,7 +86,15 @@ class ReminderService {
   /// Stores [setting] and brings the scheduled notification in line with it.
   /// Returns false when the platform refused permission, so the UI can say so
   /// rather than leaving a switch on that will never fire.
-  static Future<bool> apply(ReminderSetting setting) async {
+  ///
+  /// [title] and [body] are passed in rather than looked up here: this runs
+  /// outside the widget tree, so it has no context to resolve translations
+  /// from. The caller — which does have one — supplies the localized copy.
+  static Future<bool> apply(
+    ReminderSetting setting, {
+    required String title,
+    required String body,
+  }) async {
     await _save(setting);
 
     if (!setting.enabled) {
@@ -102,8 +110,8 @@ class ReminderService {
 
       await plugin.zonedSchedule(
         id: _notificationId,
-        title: 'Time to review',
-        body: 'Your cards are waiting — a few minutes keeps the streak alive.',
+        title: title,
+        body: body,
         scheduledDate: _nextOccurrence(setting.hour, setting.minute),
         notificationDetails: const NotificationDetails(
           android: AndroidNotificationDetails(

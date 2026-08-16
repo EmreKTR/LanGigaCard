@@ -1,5 +1,6 @@
-import 'package:flutter/material.dart';
+﻿import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:langigacards/l10n/app_localizations.dart';
 import 'package:langigacards/data/library_storage.dart';
 import 'package:langigacards/data/deck_store.dart';
 import 'package:langigacards/models/app_models.dart';
@@ -69,6 +70,9 @@ Future<void> _pump(WidgetTester tester) async {
   addTearDown(() => tester.binding.setSurfaceSize(null));
   await tester.pumpWidget(
     MaterialApp(
+      localizationsDelegates: AppLocalizations.localizationsDelegates,
+      supportedLocales: AppLocalizations.supportedLocales,
+
       theme: AppTheme.dark(AccentColor.purple),
       home: const DeckDetailScreen(deckId: 'detail_deck'),
     ),

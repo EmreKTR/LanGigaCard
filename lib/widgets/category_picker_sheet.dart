@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../data/api/user_api.dart';
+import '../l10n/app_localizations.dart';
 import '../theme/app_theme.dart';
 import '../theme/category_icons.dart';
 import 'app_buttons.dart';
@@ -25,6 +26,7 @@ class _CategoryPickerSheetState extends State<CategoryPickerSheet> {
   @override
   Widget build(BuildContext context) {
     final colors = context.appColors;
+    final l10n = AppLocalizations.of(context);
     final results = widget.allCategories.where((c) => c.name.toLowerCase().contains(_query.toLowerCase())).toList();
 
     return Padding(
@@ -42,13 +44,13 @@ class _CategoryPickerSheetState extends State<CategoryPickerSheet> {
               children: [
                 Row(
                   children: [
-                    Expanded(child: Text('Edit Categories', style: Theme.of(context).textTheme.titleLarge)),
-                    Text('${_selected.length} selected', style: TextStyle(color: colors.primary, fontSize: 12, fontWeight: FontWeight.w700)),
+                    Expanded(child: Text(l10n.categoriesEditTitle, style: Theme.of(context).textTheme.titleLarge)),
+                    Text(l10n.profileSelectedCount(_selected.length), style: TextStyle(color: colors.primary, fontSize: 12, fontWeight: FontWeight.w700)),
                     IconButton(onPressed: () => Navigator.of(context).pop(), icon: const Icon(Icons.close_rounded)),
                   ],
                 ),
                 TextField(
-                  decoration: const InputDecoration(hintText: 'Search categories...', prefixIcon: Icon(Icons.search_rounded)),
+                  decoration: InputDecoration(hintText: l10n.categoriesSearchHint, prefixIcon: const Icon(Icons.search_rounded)),
                   onChanged: (v) => setState(() => _query = v),
                 ),
                 const SizedBox(height: AppSpacing.md),
@@ -90,7 +92,7 @@ class _CategoryPickerSheetState extends State<CategoryPickerSheet> {
                 ),
                 const SizedBox(height: AppSpacing.md),
                 PrimaryButton(
-                  label: 'Save Changes',
+                  label: l10n.decksSaveChanges,
                   onPressed: () {
                     widget.onSave(_selected);
                     Navigator.of(context).pop();
