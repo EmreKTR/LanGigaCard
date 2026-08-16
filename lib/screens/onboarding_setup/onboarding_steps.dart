@@ -1,33 +1,39 @@
-import 'package:flutter/material.dart';
-import '../../data/mock_data.dart';
+﻿import 'package:flutter/material.dart';
+import '../../data/api/user_api.dart';
+import '../../l10n/app_localizations.dart';
 import '../../theme/app_theme.dart';
+import '../../theme/category_icons.dart';
 
 const _learningPurposeIcons = {
   'Travel': Icons.flight_rounded,
   'Business': Icons.work_rounded,
   'Exam Prep': Icons.edit_note_rounded,
   'Academic': Icons.school_rounded,
+  'Daily Conversation': Icons.chat_bubble_outline_rounded,
   'Culture': Icons.theater_comedy_rounded,
   'Relocation': Icons.home_work_rounded,
   'Family': Icons.family_restroom_rounded,
   'Just for Fun': Icons.celebration_rounded,
 };
 
-const _targetLevels = [
-  ('Just Starting', 'Learning the basics'),
-  ('Beginner', 'Know some words and phrases'),
-  ('Intermediate', 'Can have simple conversations'),
-  ('Advanced', 'Comfortable in most situations'),
-  ('Fluent', 'Near-native proficiency'),
-];
+/// alue is what gets stored on the profile and sent to the API, so it stays
+/// English no matter which language the UI is in; only label and
+/// description are translated.
+List<({String value, String label, String description})> _targetLevelsFor(AppLocalizations l10n) => [
+      (value: 'Just Starting', label: l10n.levelJustStarting, description: l10n.levelJustStartingDesc),
+      (value: 'Beginner', label: l10n.levelBeginner, description: l10n.levelBeginnerDesc),
+      (value: 'Intermediate', label: l10n.levelIntermediate, description: l10n.levelIntermediateDesc),
+      (value: 'Advanced', label: l10n.levelAdvanced, description: l10n.levelAdvancedDesc),
+      (value: 'Fluent', label: l10n.levelFluent, description: l10n.levelFluentDesc),
+    ];
 
 const _ageRanges = ['13-17', '18-24', '25-34', '35-44', '45-54', '55+'];
 
-const _dailyGoals = [
-  (5, 'Casual', '~25 words/day'),
-  (10, 'Regular', '~50 words/day'),
-  (20, 'Intense', '~100 words/day'),
-];
+List<({int minutes, String label, String words})> _dailyGoalsFor(AppLocalizations l10n) => [
+      (minutes: 5, label: l10n.goalCasual, words: l10n.goalWordsPerDay(25)),
+      (minutes: 10, label: l10n.goalRegular, words: l10n.goalWordsPerDay(50)),
+      (minutes: 20, label: l10n.goalIntense, words: l10n.goalWordsPerDay(100)),
+    ];
 
 /// Step 3: self-reported starting level in the target language — a direct
 /// pick, not a placement test. Same 2-column grid-card UI as [LearningPurposeStep].
@@ -40,12 +46,13 @@ class TargetLevelStep extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text("What's your current level in $targetLanguage?", style: Theme.of(context).textTheme.headlineMedium),
+        Text(l10n.wizardLevelQuestion(targetLanguage), style: Theme.of(context).textTheme.headlineMedium),
         const SizedBox(height: AppSpacing.xs),
-        Text('Pick what feels right — you can adjust this anytime.', style: Theme.of(context).textTheme.bodyLarge),
+        Text(l10n.wizardLevelHint, style: Theme.of(context).textTheme.bodyLarge),
         const SizedBox(height: AppSpacing.xl),
         GridView.count(
           crossAxisCount: 2,
@@ -55,12 +62,12 @@ class TargetLevelStep extends StatelessWidget {
           crossAxisSpacing: AppSpacing.sm,
           childAspectRatio: 1.3,
           children: [
-            for (final level in _targetLevels)
+            for (final level in _targetLevelsFor(l10n))
               _OptionCard(
-                label: level.$1,
-                description: level.$2,
-                selected: selected == level.$1,
-                onTap: () => onSelected(level.$1),
+                label: level.label,
+                description: level.description,
+                selected: selected == level.value,
+                onTap: () => onSelected(level.value),
               ),
           ],
         ),
@@ -69,12 +76,15 @@ class TargetLevelStep extends StatelessWidget {
   }
 }
 
-/// Step 4: unchanged from the previous design, still "Step 4 of 7" now.
+/// Step 4: fetched from the API, not a fixed local list — every purpose
+/// carries a real id so the wizard can save the selection via
+/// UserApi.updateMyLearningPurposes.
 class LearningPurposeStep extends StatelessWidget {
-  const LearningPurposeStep({super.key, required this.selected, required this.onToggle});
+  const LearningPurposeStep({super.key, required this.purposes, required this.selected, required this.onToggle});
 
-  final Set<String> selected;
-  final ValueChanged<String> onToggle;
+  final List<LearningPurposeData> purposes;
+  final Set<int> selected;
+  final ValueChanged<int> onToggle;
 
   @override
   Widget build(BuildContext context) {
@@ -93,12 +103,12 @@ class LearningPurposeStep extends StatelessWidget {
           crossAxisSpacing: AppSpacing.sm,
           childAspectRatio: 1.6,
           children: [
-            for (final purpose in MockData.learningPurposes)
+            for (final purpose in purposes)
               _OptionCard(
-                label: purpose,
-                icon: _learningPurposeIcons[purpose] ?? Icons.star_rounded,
-                selected: selected.contains(purpose),
-                onTap: () => onToggle(purpose),
+                label: purpose.name,
+                icon: _learningPurposeIcons[purpose.name] ?? Icons.star_rounded,
+                selected: selected.contains(purpose.id),
+                onTap: () => onToggle(purpose.id),
               ),
           ],
         ),
@@ -173,22 +183,26 @@ class AgeRangeStep extends StatelessWidget {
   }
 }
 
-/// Step 6: unchanged — same category grid used by [CategoryPickerSheet].
+/// Step 6: fetched from the API, not a fixed local list. Icon/color come
+/// from the server's iconName/colorHex, translated via
+/// lib/theme/category_icons.dart.
 class TopicsStep extends StatelessWidget {
-  const TopicsStep({super.key, required this.selected, required this.onToggle});
+  const TopicsStep({super.key, required this.categories, required this.selected, required this.onToggle});
 
-  final Set<String> selected;
-  final ValueChanged<String> onToggle;
+  final List<CategoryData> categories;
+  final Set<int> selected;
+  final ValueChanged<int> onToggle;
 
   @override
   Widget build(BuildContext context) {
     final colors = context.appColors;
+    final l10n = AppLocalizations.of(context);
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text('What topics would you like to study first?', style: Theme.of(context).textTheme.headlineMedium),
         const SizedBox(height: AppSpacing.xs),
-        Text('${selected.length} selected · You can change this later', style: TextStyle(color: colors.textMuted, fontSize: 13)),
+        Text(l10n.wizardSelectedHint(selected.length), style: TextStyle(color: colors.textMuted, fontSize: 13)),
         const SizedBox(height: AppSpacing.xl),
         GridView.count(
           crossAxisCount: 3,
@@ -198,13 +212,13 @@ class TopicsStep extends StatelessWidget {
           crossAxisSpacing: AppSpacing.sm,
           childAspectRatio: 1,
           children: [
-            for (final category in MockData.categories)
+            for (final category in categories)
               _OptionCard(
-                label: category.label,
-                icon: category.icon,
-                iconColor: category.color,
-                selected: selected.contains(category.label),
-                onTap: () => onToggle(category.label),
+                label: category.name,
+                icon: iconForCategory(category.iconName),
+                iconColor: _colorFromHex(category.colorHex),
+                selected: selected.contains(category.id),
+                onTap: () => onToggle(category.id),
                 dense: true,
               ),
           ],
@@ -212,6 +226,15 @@ class TopicsStep extends StatelessWidget {
       ],
     );
   }
+}
+
+/// Parses "#RRGGBB" from the API into a [Color]. Falls back to a neutral
+/// gray if the server ever sends something unparseable, rather than
+/// throwing mid-build.
+Color _colorFromHex(String hex) {
+  final cleaned = hex.replaceFirst('#', '');
+  final value = int.tryParse(cleaned, radix: 16);
+  return value == null ? const Color(0xFF9E9E9E) : Color(0xFF000000 | value);
 }
 
 /// Step 7: unchanged from the previous design.
@@ -232,10 +255,11 @@ class DailyGoalStep extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final colors = context.appColors;
+    final l10n = AppLocalizations.of(context);
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text('How much time can you dedicate daily?', style: Theme.of(context).textTheme.headlineMedium),
+        Text(l10n.wizardGoalQuestion, style: Theme.of(context).textTheme.headlineMedium),
         const SizedBox(height: AppSpacing.xl),
         if (nativeLanguage.isNotEmpty && targetLanguage.isNotEmpty)
           Container(
@@ -255,20 +279,20 @@ class DailyGoalStep extends StatelessWidget {
             ),
           ),
         const SizedBox(height: AppSpacing.xl),
-        for (final goal in _dailyGoals)
+        for (final goal in _dailyGoalsFor(l10n))
           Padding(
             padding: const EdgeInsets.only(bottom: AppSpacing.sm),
             child: InkWell(
               borderRadius: BorderRadius.circular(AppRadius.md),
-              onTap: () => onSelected(goal.$1),
+              onTap: () => onSelected(goal.minutes),
               child: Container(
                 padding: const EdgeInsets.all(AppSpacing.md),
                 decoration: BoxDecoration(
-                  color: selectedMinutes == goal.$1 ? colors.primary.withValues(alpha: 0.08) : colors.surfaceElevated,
+                  color: selectedMinutes == goal.minutes ? colors.primary.withValues(alpha: 0.08) : colors.surfaceElevated,
                   borderRadius: BorderRadius.circular(AppRadius.md),
                   border: Border.all(
-                    color: selectedMinutes == goal.$1 ? colors.primary : colors.border,
-                    width: selectedMinutes == goal.$1 ? 1.5 : 1,
+                    color: selectedMinutes == goal.minutes ? colors.primary : colors.border,
+                    width: selectedMinutes == goal.minutes ? 1.5 : 1,
                   ),
                 ),
                 child: Row(
@@ -278,7 +302,7 @@ class DailyGoalStep extends StatelessWidget {
                       height: 44,
                       alignment: Alignment.center,
                       decoration: BoxDecoration(color: colors.primary, borderRadius: BorderRadius.circular(AppRadius.pill)),
-                      child: Text('${goal.$1}m', style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w700, fontSize: 12)),
+                      child: Text('${goal.minutes}m', style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w700, fontSize: 12)),
                     ),
                     const SizedBox(width: AppSpacing.md),
                     Expanded(
@@ -286,14 +310,14 @@ class DailyGoalStep extends StatelessWidget {
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           Text(
-                            goal.$2,
-                            style: TextStyle(fontWeight: FontWeight.w700, color: selectedMinutes == goal.$1 ? colors.primary : colors.textPrimary),
+                            goal.label,
+                            style: TextStyle(fontWeight: FontWeight.w700, color: selectedMinutes == goal.minutes ? colors.primary : colors.textPrimary),
                           ),
-                          Text(goal.$3, style: TextStyle(color: colors.textMuted, fontSize: 12)),
+                          Text(goal.words, style: TextStyle(color: colors.textMuted, fontSize: 12)),
                         ],
                       ),
                     ),
-                    if (selectedMinutes == goal.$1) Icon(Icons.check_circle_rounded, color: colors.primary, size: 20),
+                    if (selectedMinutes == goal.minutes) Icon(Icons.check_circle_rounded, color: colors.primary, size: 20),
                   ],
                 ),
               ),

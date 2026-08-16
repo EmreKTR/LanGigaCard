@@ -1,11 +1,15 @@
-import 'dart:convert';
+﻿import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:langigacards/l10n/app_localizations.dart';
 import 'package:langigacards/screens/stats/statistics_screen.dart';
 import 'package:langigacards/theme/app_theme.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
-Widget _wrap(Widget child) => MaterialApp(theme: AppTheme.dark(AccentColor.purple), home: child);
+Widget _wrap(Widget child) => MaterialApp(
+      localizationsDelegates: AppLocalizations.localizationsDelegates,
+      supportedLocales: AppLocalizations.supportedLocales,
+theme: AppTheme.dark(AccentColor.purple), home: child);
 
 /// Seeds the review log with [count] reviews on the day [daysAgo].
 Map<String, Object> _log(List<({int daysAgo, int count, bool correct})> days) {

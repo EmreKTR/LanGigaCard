@@ -1,6 +1,7 @@
-import 'package:flutter/material.dart';
-import '../../data/mock_data.dart';
+﻿import 'package:flutter/material.dart';
+import '../../data/deck_store.dart';
 import '../../models/app_models.dart';
+import '../../l10n/app_localizations.dart';
 import '../../theme/app_theme.dart';
 import '../../widgets/app_buttons.dart';
 
@@ -22,7 +23,7 @@ class _AddWordScreenState extends State<AddWordScreen> {
   late final _backController = TextEditingController(text: widget.editingCard?.translation);
   late final _exampleController = TextEditingController(text: widget.editingCard?.exampleSentence);
   late final _imageUrlController = TextEditingController(text: widget.editingCard?.imageUrl);
-  late String _deckId = widget.editingCard?.deckId ?? widget.initialDeckId ?? MockData.decks.first.id;
+  late String _deckId = widget.editingCard?.deckId ?? widget.initialDeckId ?? DeckStore.decks.first.id;
 
   bool get _isEditing => widget.editingCard != null;
 
@@ -33,7 +34,7 @@ class _AddWordScreenState extends State<AddWordScreen> {
     if (raw.isEmpty) return null;
     final uri = Uri.tryParse(raw);
     if (uri == null || !uri.isAbsolute || (uri.scheme != 'http' && uri.scheme != 'https')) {
-      return 'Enter a full image URL starting with http:// or https://';
+      return AppLocalizations.of(context).cardImageError;
     }
     return null;
   }
@@ -52,32 +53,31 @@ class _AddWordScreenState extends State<AddWordScreen> {
     super.dispose();
   }
 
-  void _submit() {
-    if (_isEditing) {
-      MockData.updateCard(
-        FlashCard(
-          id: widget.editingCard!.id,
-          deckId: _deckId,
-          term: _frontController.text.trim(),
-          translation: _backController.text.trim(),
-          exampleSentence: _exampleController.text.trim(),
-          strength: widget.editingCard!.strength,
-          reviewCount: widget.editingCard!.reviewCount,
-          imageUrl: _imageUrlValue,
-        ),
+  Future<void> _submit() async {
+    final ok = _isEditing
+        ? await DeckStore.updateCard(
+            wordId: widget.editingCard!.id,
+            deckId: _deckId,
+            term: _frontController.text.trim(),
+            translation: _backController.text.trim(),
+            exampleSentence: _exampleController.text.trim(),
+            imageUrl: _imageUrlValue,
+          )
+        : await DeckStore.addCard(
+            deckId: _deckId,
+            term: _frontController.text.trim(),
+            translation: _backController.text.trim(),
+            exampleSentence: _exampleController.text.trim(),
+            imageUrl: _imageUrlValue,
+          );
+
+    if (!mounted) return;
+    final l10n = AppLocalizations.of(context);
+    if (!ok) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(_isEditing ? l10n.decksSaveFailed : l10n.cardAddFailed)),
       );
-    } else {
-      MockData.addCard(
-        FlashCard(
-          id: 'card_${DateTime.now().microsecondsSinceEpoch}',
-          deckId: _deckId,
-          term: _frontController.text.trim(),
-          translation: _backController.text.trim(),
-          exampleSentence: _exampleController.text.trim(),
-          strength: MemoryStrength.learning,
-          imageUrl: _imageUrlValue,
-        ),
-      );
+      return;
     }
     Navigator.of(context).pop(true);
   }
@@ -85,9 +85,10 @@ class _AddWordScreenState extends State<AddWordScreen> {
   @override
   Widget build(BuildContext context) {
     final colors = context.appColors;
+    final l10n = AppLocalizations.of(context);
     return Scaffold(
       appBar: AppBar(
-        title: Text(_isEditing ? 'Edit Card' : 'Add New Card'),
+        title: Text(_isEditing ? l10n.cardEditTitle : l10n.cardAddTitle),
         actions: [IconButton(onPressed: () => Navigator.of(context).maybePop(), icon: const Icon(Icons.close_rounded))],
       ),
       body: SafeArea(
@@ -97,46 +98,46 @@ class _AddWordScreenState extends State<AddWordScreen> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text('DECK *', style: TextStyle(color: colors.textMuted, fontWeight: FontWeight.w700, fontSize: 11)),
+              Text(l10n.cardDeckLabel, style: TextStyle(color: colors.textMuted, fontWeight: FontWeight.w700, fontSize: 11)),
               const SizedBox(height: AppSpacing.sm),
               DropdownButtonFormField<String>(
                 initialValue: _deckId,
-                items: [for (final d in MockData.decks) DropdownMenuItem(value: d.id, child: Text(d.name))],
+                items: [for (final d in DeckStore.decks) DropdownMenuItem(value: d.id, child: Text(d.name))],
                 onChanged: (v) => setState(() => _deckId = v ?? _deckId),
               ),
               const SizedBox(height: AppSpacing.lg),
               Row(
                 children: [
-                  Expanded(child: _label(colors, 'FRONT (TARGET WORD) *')),
+                  Expanded(child: _label(colors, l10n.cardFrontLabel)),
                   const SizedBox(width: AppSpacing.md),
-                  Expanded(child: _label(colors, 'BACK (TRANSLATION) *')),
+                  Expanded(child: _label(colors, l10n.cardBackLabel)),
                 ],
               ),
               const SizedBox(height: AppSpacing.sm),
               Row(
                 children: [
                   Expanded(
-                    child: TextField(controller: _frontController, decoration: const InputDecoration(hintText: 'e.g. Bonjour')),
+                    child: TextField(controller: _frontController, decoration: InputDecoration(hintText: l10n.cardFrontHint)),
                   ),
                   const SizedBox(width: AppSpacing.md),
                   Expanded(
-                    child: TextField(controller: _backController, decoration: const InputDecoration(hintText: 'e.g. Hello')),
+                    child: TextField(controller: _backController, decoration: InputDecoration(hintText: l10n.cardBackHint)),
                   ),
                 ],
               ),
               const SizedBox(height: AppSpacing.lg),
-              _label(colors, 'EXAMPLE SENTENCE'),
+              _label(colors, l10n.cardExampleLabel),
               const SizedBox(height: AppSpacing.sm),
-              TextField(controller: _exampleController, maxLines: 3, decoration: const InputDecoration(hintText: 'Write an example sentence...')),
+              TextField(controller: _exampleController, maxLines: 3, decoration: InputDecoration(hintText: l10n.cardExampleHint)),
               const SizedBox(height: AppSpacing.lg),
-              _label(colors, 'IMAGE URL'),
+              _label(colors, l10n.cardImageLabel),
               const SizedBox(height: AppSpacing.sm),
               AnimatedBuilder(
                 animation: _imageUrlController,
                 builder: (context, _) => TextField(
                   controller: _imageUrlController,
                   keyboardType: TextInputType.url,
-                  decoration: InputDecoration(hintText: 'https://...', errorText: _imageUrlError),
+                  decoration: InputDecoration(hintText: l10n.cardImageHint, errorText: _imageUrlError),
                 ),
               ),
               const SizedBox(height: AppSpacing.xxl),
@@ -145,7 +146,7 @@ class _AddWordScreenState extends State<AddWordScreen> {
                 builder: (context, _) {
                   final incomplete = _frontController.text.trim().isEmpty || _backController.text.trim().isEmpty;
                   return PrimaryButton(
-                    label: _isEditing ? 'Save Changes' : 'Add Card',
+                    label: _isEditing ? l10n.decksSaveChanges : l10n.cardAdd,
                     onPressed: incomplete || _imageUrlError != null ? null : _submit,
                   );
                 },

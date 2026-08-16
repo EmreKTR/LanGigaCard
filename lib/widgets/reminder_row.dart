@@ -1,5 +1,6 @@
-import 'package:flutter/material.dart';
+﻿import 'package:flutter/material.dart';
 import '../data/reminder_service.dart';
+import '../l10n/app_localizations.dart';
 import '../theme/app_theme.dart';
 import 'section_card.dart';
 
@@ -76,7 +77,7 @@ class _ReminderRowState extends State<ReminderRow> {
 
     return SettingsRow(
       icon: Icons.notifications_active_rounded,
-      label: 'Daily Reminder',
+      label: AppLocalizations.of(context).profileDailyReminder,
       trailing: Row(
         mainAxisSize: MainAxisSize.min,
         children: [

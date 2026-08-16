@@ -1,11 +1,9 @@
-import 'package:flutter/material.dart';
-import '../../data/mock_data.dart';
+﻿import 'package:flutter/material.dart';
+import '../../data/deck_store.dart';
 import '../../data/pronunciation_service.dart';
 import '../../data/review_log.dart';
-import '../../data/srs_scheduler.dart';
-import '../../data/srs_store.dart';
-import '../../models/srs_state.dart';
 import '../../models/app_models.dart';
+import '../../l10n/app_localizations.dart';
 import '../../theme/app_theme.dart';
 import '../../widgets/app_buttons.dart';
 import '../../widgets/flip_card.dart';
@@ -32,17 +30,27 @@ class _StudySessionScreenState extends State<StudySessionScreen> {
   /// deck-scoped and mixed-review flows — studying a deck used to queue up
   /// every card in it, contradicting the "Study N cards" count on the tile.
   ///
-  /// Null while the persisted due dates are still loading.
+  /// Null while the due-review queue is still loading from the API.
   List<FlashCard>? _queue;
 
-  /// SM-2 schedules written by previous sessions. A card that has never been
-  /// rated has no entry and falls back to its seeded [MemoryStrength].
-  Map<String, SrsCardState> _schedules = const {};
+  /// Set when [_load] fails (e.g. the API call throws) so `build` can show a
+  /// retry view instead of spinning forever.
+  bool _loadFailed = false;
 
   int _index = 0;
   bool _exampleRevealed = false;
   bool _flipped = false;
   final Map<SrsRating, int> _tally = {for (final r in SrsRating.values) r: 0};
+
+  /// Real interval math now lives entirely server-side, so these are just an
+  /// approximate "sneak peek" hint next to each rating button, not the
+  /// actual applied result — a deliberate simplification, not an oversight.
+  static const Map<SrsRating, String> _approximateIntervalPreviews = {
+    SrsRating.again: '10m',
+    SrsRating.hard: '1d',
+    SrsRating.medium: '3d',
+    SrsRating.easy: '7d',
+  };
 
   @override
   void initState() {
@@ -51,70 +59,30 @@ class _StudySessionScreenState extends State<StudySessionScreen> {
   }
 
   Future<void> _load() async {
-    final schedules = await SrsStore.loadSchedules();
-    if (!mounted) return;
-    setState(() {
-      _schedules = schedules;
-      _queue = _buildQueue(schedules, DateTime.now());
-    });
-  }
-
-  List<FlashCard> _buildQueue(Map<String, SrsCardState> schedules, DateTime now) {
-    final deck = widget.deck;
-    final pool = MockData.cards.where((c) {
-      final inDeck = deck == null || c.deckId == deck.id;
-      return inDeck && SrsStore.isDue(c, schedules, now);
-    }).toList();
-
-    // Most overdue first, matching the deck banner's "Sorted by urgency".
-    pool.sort((a, b) => _priority(b, schedules, now).compareTo(_priority(a, schedules, now)));
-    return pool;
-  }
-
-  /// How badly a card wants reviewing: minutes past its due date, or a
-  /// stand-in derived from the seeded strength when it has never been rated.
-  double _priority(FlashCard card, Map<String, SrsCardState> schedules, DateTime now) {
-    final due = schedules[card.id]?.dueDate;
-    if (due != null) return now.difference(due).inMinutes.toDouble();
-    return switch (card.strength) {
-      MemoryStrength.reviewDue => const Duration(days: 1).inMinutes.toDouble(),
-      MemoryStrength.learning => 1,
-      MemoryStrength.mastered => -1,
-    };
-  }
-
-  bool _isOverdue(FlashCard card, DateTime now) {
-    final due = _schedules[card.id]?.dueDate;
-    if (due != null) return !due.isAfter(now);
-    return card.strength == MemoryStrength.reviewDue;
-  }
-
-  /// What each rating button will do to the card on screen, so the labels
-  /// show the real next interval rather than a fixed "+7 days".
-  Map<SrsRating, String> _intervalPreviews(FlashCard card, DateTime now) {
-    final state = _schedules[card.id] ?? SrsCardState(cardId: card.id);
-    return {
-      for (final rating in SrsRating.values) rating: SrsScheduler.previewLabel(state, rating, now),
-    };
+    setState(() => _loadFailed = false);
+    try {
+      final queue = await DeckStore.dueReviews(deckId: widget.deck?.id, take: 50);
+      if (!mounted) return;
+      setState(() => _queue = queue);
+    } catch (_) {
+      if (!mounted) return;
+      setState(() => _loadFailed = true);
+    }
   }
 
   FlashCard get _current => _queue![_index];
   bool get _finished => _index >= _queue!.length;
 
-  void _rate(SrsRating rating) {
+  Future<void> _rate(SrsRating rating) async {
     final card = _current;
-
-    // Ratings move the card two ways: the pill shown around the app updates
-    // immediately, and the SM-2 schedule is written to disk so the queue
-    // still respects it after a restart.
     final now = DateTime.now();
-    MockData.updateCard(card.copyWith(strength: _strengthAfter(card.strength, rating)));
-    SrsStore.recordReview(card.id, rating, now);
-    // Logged separately from the schedule: the schedule says when a card
-    // returns, the log says what the learner has been doing, which is what
-    // the streak, heatmap and accuracy are built from.
+
+    await DeckStore.submitReview(card.id, rating: rating, durationSeconds: 0);
+    // Kept alongside the API call — ReviewLog powers the current Statistics
+    // screen, which isn't part of this integration yet.
     ReviewLog.record(card.id, rating, now);
 
+    if (!mounted) return;
     setState(() {
       _tally[rating] = (_tally[rating] ?? 0) + 1;
       _index += 1;
@@ -123,15 +91,22 @@ class _StudySessionScreenState extends State<StudySessionScreen> {
     });
   }
 
-  MemoryStrength _strengthAfter(MemoryStrength current, SrsRating rating) => switch (rating) {
-        SrsRating.again => MemoryStrength.reviewDue,
-        SrsRating.hard => MemoryStrength.learning,
-        SrsRating.medium => current == MemoryStrength.reviewDue ? MemoryStrength.learning : MemoryStrength.mastered,
-        SrsRating.easy => MemoryStrength.mastered,
-      };
+  /// Moves on without rating — for a learner who just wants to look at a
+  /// card, not grade themselves on it. Rating stays the job of the 4 buttons
+  /// below the card, which submit to the API and the review log.
+  void _skip() {
+    setState(() {
+      _index += 1;
+      _flipped = false;
+      _exampleRevealed = false;
+    });
+  }
 
   @override
   Widget build(BuildContext context) {
+    if (_loadFailed) {
+      return _QueueLoadErrorView(onRetry: _load);
+    }
     final queue = _queue;
     if (queue == null) {
       return const Scaffold(body: Center(child: CircularProgressIndicator()));
@@ -144,16 +119,17 @@ class _StudySessionScreenState extends State<StudySessionScreen> {
     }
 
     final colors = context.appColors;
-    final deckName = widget.deck?.name ?? 'All decks';
-    final now = DateTime.now();
-    final dueCount = queue.where((c) => _isOverdue(c, now)).length;
+
+    final l10n = AppLocalizations.of(context);
+    final deckName = widget.deck?.name ?? l10n.studyAllDecks;
+    final dueCount = queue.where((c) => c.strength == MemoryStrength.reviewDue).length;
 
     return Scaffold(
       body: SafeArea(
         child: Column(
           children: [
             FocusHeader(progress: (_index + 1) / queue.length, trailing: CountPill(count: queue.length - _index)),
-            StudyMetaBar(title: 'Daily Review · $deckName', dueCount: dueCount),
+            StudyMetaBar(title: l10n.studyDailyReview(deckName), dueCount: dueCount),
             Expanded(
               child: Padding(
                 padding: const EdgeInsets.symmetric(horizontal: AppSpacing.lg),
@@ -170,14 +146,13 @@ class _StudySessionScreenState extends State<StudySessionScreen> {
                       child: Semantics(
                         button: true,
                         label: _flipped
-                            ? 'Answer: ${_current.translation}. Tap to see the word again. Swipe right if you knew it, left if you did not.'
-                            : 'Word: ${_current.term}. Tap to reveal the translation.',
+                            ? l10n.studyAnswerHint(_current.translation)
+                            : l10n.studyWordHint(_current.term),
                         child: SwipeToRate(
-                          // Swipe only arms once the answer is showing — rating
+                          // Swipe only arms once the answer is showing — skipping
                           // a card you haven't checked yet makes no sense.
                           enabled: _flipped,
-                          onSwipeRight: () => _rate(SrsRating.easy),
-                          onSwipeLeft: () => _rate(SrsRating.again),
+                          onSwipe: _skip,
                           child: FlipCard(
                             showBack: _flipped,
                             onTap: () => setState(() => _flipped = !_flipped),
@@ -200,8 +175,8 @@ class _StudySessionScreenState extends State<StudySessionScreen> {
               padding: const EdgeInsets.symmetric(vertical: AppSpacing.sm),
               child: Text(
                 _flipped
-                    ? 'How well did you know it?  ·  swipe → knew it,  ← again'
-                    : 'Recall the translation, then flip to check',
+                    ? l10n.studyRateBelow
+                    : l10n.studyRecallHint,
                 textAlign: TextAlign.center,
                 style: TextStyle(color: colors.textMuted, fontSize: 12),
               ),
@@ -213,7 +188,7 @@ class _StudySessionScreenState extends State<StudySessionScreen> {
                 duration: const Duration(milliseconds: 200),
                 child: IgnorePointer(
                   ignoring: !_flipped,
-                  child: SrsRatingBar(onRate: _rate, intervalPreviews: _intervalPreviews(_current, now)),
+                  child: SrsRatingBar(onRate: _rate, intervalPreviews: _approximateIntervalPreviews),
                 ),
               ),
             ),
@@ -235,6 +210,7 @@ class _NothingDueView extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final colors = context.appColors;
+    final l10n = AppLocalizations.of(context);
     return Scaffold(
       appBar: AppBar(leading: const CloseButton()),
       body: SafeArea(
@@ -245,7 +221,7 @@ class _NothingDueView extends StatelessWidget {
             children: [
               Icon(Icons.check_circle_outline_rounded, size: 72, color: colors.success),
               const SizedBox(height: AppSpacing.lg),
-              Text('Nothing due right now', style: Theme.of(context).textTheme.headlineMedium, textAlign: TextAlign.center),
+              Text(l10n.studyNothingDue, style: Theme.of(context).textTheme.headlineMedium, textAlign: TextAlign.center),
               const SizedBox(height: AppSpacing.sm),
               Text(
                 deckName == null
@@ -259,9 +235,46 @@ class _NothingDueView extends StatelessWidget {
                 width: double.infinity,
                 child: OutlinedButton(
                   onPressed: () => Navigator.of(context).maybePop(),
-                  child: const Text('Back to Decks'),
+                  child: Text(l10n.studyBackToDecks),
                 ),
               ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+/// Shown when [_StudySessionScreenState._load] fails — e.g. the API call
+/// throws — so the screen never gets stuck on a spinner with no way out.
+class _QueueLoadErrorView extends StatelessWidget {
+  const _QueueLoadErrorView({required this.onRetry});
+
+  final VoidCallback onRetry;
+
+  @override
+  Widget build(BuildContext context) {
+    final colors = context.appColors;
+    final l10n = AppLocalizations.of(context);
+    return Scaffold(
+      body: SafeArea(
+        child: Padding(
+          padding: const EdgeInsets.all(AppSpacing.xxl),
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Icon(Icons.cloud_off_rounded, size: 56, color: colors.textMuted),
+              const SizedBox(height: AppSpacing.lg),
+              Text(l10n.studyQueueFailed, style: Theme.of(context).textTheme.headlineMedium, textAlign: TextAlign.center),
+              const SizedBox(height: AppSpacing.sm),
+              Text(
+                "Check your connection and try again.",
+                textAlign: TextAlign.center,
+                style: TextStyle(color: colors.textMuted),
+              ),
+              const SizedBox(height: AppSpacing.xxl),
+              SizedBox(width: double.infinity, child: PrimaryButton(label: l10n.commonTryAgain, onPressed: onRetry)),
             ],
           ),
         ),
@@ -281,6 +294,7 @@ class _QuestionFace extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final colors = context.appColors;
+    final l10n = AppLocalizations.of(context);
     return Container(
       width: double.infinity,
       constraints: const BoxConstraints(minHeight: 280),
@@ -316,11 +330,11 @@ class _QuestionFace extends StatelessWidget {
                     ),
                   )
                 else
-                  Text('[ tap to see example ]', style: TextStyle(color: Colors.white.withValues(alpha: 0.6), fontStyle: FontStyle.italic, fontSize: 13)),
+                  Text(l10n.studyTapToSeeExample, style: TextStyle(color: Colors.white.withValues(alpha: 0.6), fontStyle: FontStyle.italic, fontSize: 13)),
                 const SizedBox(height: AppSpacing.lg),
-                _pillButton(Icons.article_outlined, 'Show Example Sentence', onShowExample),
+                _pillButton(Icons.article_outlined, l10n.studyShowExample, onShowExample),
                 const SizedBox(height: AppSpacing.sm),
-                _pillButton(Icons.touch_app_outlined, 'Tap to reveal translation', onFlip),
+                _pillButton(Icons.touch_app_outlined, l10n.studyTapToReveal, onFlip),
               ],
             ),
           ),
@@ -385,9 +399,10 @@ class _PronounceChipState extends State<_PronounceChip> {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
     return Semantics(
       button: true,
-      label: 'Hear ${widget.term} pronounced',
+      label: l10n.studyHearPronounced(widget.term),
       child: InkWell(
         onTap: _speak,
         borderRadius: BorderRadius.circular(AppRadius.pill),
@@ -402,7 +417,7 @@ class _PronounceChipState extends State<_PronounceChip> {
             children: [
               Icon(_speaking ? Icons.graphic_eq_rounded : Icons.volume_up_rounded, size: 15, color: Colors.white),
               const SizedBox(width: 6),
-              const Text('Hear it', style: TextStyle(color: Colors.white, fontSize: 12, fontWeight: FontWeight.w600)),
+              Text(l10n.studyHearIt, style: TextStyle(color: Colors.white, fontSize: 12, fontWeight: FontWeight.w600)),
             ],
           ),
         ),
@@ -419,6 +434,7 @@ class _AnswerFace extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final colors = context.appColors;
+    final l10n = AppLocalizations.of(context);
     return Container(
       width: double.infinity,
       constraints: const BoxConstraints(minHeight: 280),
@@ -429,7 +445,7 @@ class _AnswerFace extends StatelessWidget {
           crossAxisAlignment: CrossAxisAlignment.start,
           mainAxisSize: MainAxisSize.min,
           children: [
-            Text('TRANSLATION', style: TextStyle(color: colors.textMuted, fontSize: 11, fontWeight: FontWeight.w700, letterSpacing: 1)),
+            Text(l10n.studyTranslationLabel, style: TextStyle(color: colors.textMuted, fontSize: 11, fontWeight: FontWeight.w700, letterSpacing: 1)),
             const SizedBox(height: AppSpacing.sm),
             Text(card.translation, style: TextStyle(color: colors.textPrimary, fontSize: 26, fontWeight: FontWeight.w800)),
             if (card.imageUrl != null) ...[
@@ -437,7 +453,7 @@ class _AnswerFace extends StatelessWidget {
               _CardImage(url: card.imageUrl!),
             ],
             const SizedBox(height: AppSpacing.xl),
-            Text('EXAMPLE', style: TextStyle(color: colors.textMuted, fontSize: 11, fontWeight: FontWeight.w700, letterSpacing: 1)),
+            Text(l10n.studyExampleLabel, style: TextStyle(color: colors.textMuted, fontSize: 11, fontWeight: FontWeight.w700, letterSpacing: 1)),
             const SizedBox(height: AppSpacing.sm),
             Text(card.exampleSentence, style: TextStyle(color: colors.textSecondary, fontStyle: FontStyle.italic, fontSize: 14)),
           ],
@@ -457,6 +473,7 @@ class _CardImage extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final colors = context.appColors;
+    final l10n = AppLocalizations.of(context);
     return ClipRRect(
       borderRadius: BorderRadius.circular(AppRadius.md),
       child: Image.network(
@@ -473,7 +490,7 @@ class _CardImage extends StatelessWidget {
             children: [
               Icon(Icons.broken_image_outlined, size: 18, color: colors.textMuted),
               const SizedBox(width: AppSpacing.sm),
-              Text("Image didn't load", style: TextStyle(color: colors.textMuted, fontSize: 12)),
+              Text(l10n.studyImageFailed, style: TextStyle(color: colors.textMuted, fontSize: 12)),
             ],
           ),
         ),
@@ -500,6 +517,7 @@ class _ResultsView extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final colors = context.appColors;
+    final l10n = AppLocalizations.of(context);
     final confidence = total == 0 ? 0 : (((tally[SrsRating.easy] ?? 0) + (tally[SrsRating.medium] ?? 0)) / total * 100).round();
 
     return Scaffold(
@@ -511,10 +529,10 @@ class _ResultsView extends StatelessWidget {
             children: [
               const Text('🎉', style: TextStyle(fontSize: 56)),
               const SizedBox(height: AppSpacing.lg),
-              Text('All Caught Up!', style: Theme.of(context).textTheme.headlineLarge),
+              Text(l10n.studyAllCaughtUp, style: Theme.of(context).textTheme.headlineLarge),
               const SizedBox(height: AppSpacing.sm),
               Text(
-                total == 1 ? 'You reviewed the 1 card due today' : 'You reviewed all $total cards due today',
+                l10n.studyReviewedCount(total),
                 style: TextStyle(color: colors.textMuted),
                 textAlign: TextAlign.center,
               ),
@@ -528,7 +546,7 @@ class _ResultsView extends StatelessWidget {
                   mainAxisSize: MainAxisSize.min,
                   children: [
                     Text('$confidence%', style: TextStyle(fontSize: 26, fontWeight: FontWeight.w800, color: colors.textPrimary)),
-                    Text('confidence', style: TextStyle(fontSize: 11, color: colors.textMuted)),
+                    Text(l10n.studyConfidence, style: TextStyle(fontSize: 11, color: colors.textMuted)),
                   ],
                 ),
               ),
@@ -550,7 +568,7 @@ class _ResultsView extends StatelessWidget {
                   const SizedBox(width: AppSpacing.md),
                   Expanded(
                     child: PrimaryButton(
-                      label: 'View Stats',
+                      label: l10n.studyViewStats,
                       onPressed: () => Navigator.of(context).pushReplacement(MaterialPageRoute(builder: (_) => const StatisticsScreen())),
                     ),
                   ),

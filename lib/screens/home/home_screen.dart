@@ -1,5 +1,6 @@
-import 'package:flutter/material.dart';
-import '../../data/mock_data.dart';
+﻿import 'package:flutter/material.dart';
+import '../../data/deck_store.dart';
+import '../../l10n/app_localizations.dart';
 import '../../models/app_models.dart';
 import '../../theme/app_theme.dart';
 import '../../widgets/progress_ring.dart';
@@ -9,13 +10,24 @@ import '../decks/add_word_screen.dart';
 import '../decks/card_library_screen.dart';
 import '../study/quiz_screen.dart';
 
-/// Time-of-day greeting shown above the learner's name on Home.
-/// Top-level and pure so it can be unit-tested without pumping a widget.
-String greetingFor(DateTime now) {
-  if (now.hour < 12) return 'Good morning,';
-  if (now.hour < 18) return 'Good afternoon,';
-  return 'Good evening,';
+/// Which time-of-day greeting Home should show above the learner's name.
+enum DayPart { morning, afternoon, evening }
+
+/// Picks the greeting slot for [now]. Returns the slot rather than the words
+/// themselves so the copy can be localized at the call site — this stays pure
+/// and unit-testable without pumping a widget.
+DayPart greetingFor(DateTime now) {
+  if (now.hour < 12) return DayPart.morning;
+  if (now.hour < 18) return DayPart.afternoon;
+  return DayPart.evening;
 }
+
+/// The localized greeting for [part].
+String greetingText(AppLocalizations l10n, DayPart part) => switch (part) {
+      DayPart.morning => l10n.homeGreetingMorning,
+      DayPart.afternoon => l10n.homeGreetingAfternoon,
+      DayPart.evening => l10n.homeGreetingEvening,
+    };
 
 /// Two-letter initials for an avatar, safe for empty/single-word names.
 String initialsFor(String name) {
@@ -30,17 +42,18 @@ String initialsFor(String name) {
 /// followed by Quick Actions, Your Topics and Recently Learned on the
 /// regular scaffold background.
 class HomeScreen extends StatelessWidget {
-  const HomeScreen({super.key, required this.profile, required this.onStudyTap});
+  const HomeScreen({super.key, required this.profile, required this.onStudyTap, required this.onProfileTap});
 
   final UserProfile profile;
   final VoidCallback onStudyTap;
+  final VoidCallback onProfileTap;
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       body: SafeArea(
         child: ValueListenableBuilder<int>(
-          valueListenable: MockData.revision,
+          valueListenable: DeckStore.revision,
           builder: (context, _, __) => Refreshable(child: _buildContent(context)),
         ),
       ),
@@ -48,22 +61,29 @@ class HomeScreen extends StatelessWidget {
   }
 
   Widget _buildContent(BuildContext context) {
-    final recentCards = MockData.cards.take(5).toList();
-    final deck = MockData.decks.first;
+    final l10n = AppLocalizations.of(context);
+    final recentCards = DeckStore.cards.take(5).toList();
+    // Empty when the signed-in account hasn't completed onboarding yet (no
+    // language pair selected server-side, so MainShell._maybeCreateStarterContent
+    // had nothing for MockData.buildStarterContent to build, and so nothing
+    // to seed via DeckStore.addDeck/addCard) — must be handled, not assumed
+    // non-empty, now that a real account with no local demo-fallback can
+    // reach this screen.
+    final deck = DeckStore.decks.isEmpty ? null : DeckStore.decks.first;
 
     return CustomScrollView(
       physics: const AlwaysScrollableScrollPhysics(),
       slivers: [
-        SliverToBoxAdapter(child: _GradientHeader(profile: profile, deck: deck, onStudyTap: onStudyTap)),
+        SliverToBoxAdapter(child: _GradientHeader(profile: profile, deck: deck, onStudyTap: onStudyTap, onProfileTap: onProfileTap)),
         SliverPadding(
           padding: const EdgeInsets.all(AppSpacing.lg),
           sliver: SliverList(
             delegate: SliverChildListDelegate([
-              Text('QUICK ACTIONS', style: Theme.of(context).textTheme.titleMedium),
+              Text(l10n.homeQuickActions, style: Theme.of(context).textTheme.titleMedium),
               const SizedBox(height: AppSpacing.md),
-              _QuickActionsRow(onStudyTap: onStudyTap),
+              const _QuickActionsRow(),
               const SizedBox(height: AppSpacing.xxl),
-              Text('Your Topics', style: Theme.of(context).textTheme.titleLarge),
+              Text(l10n.homeYourTopics, style: Theme.of(context).textTheme.titleLarge),
               const SizedBox(height: AppSpacing.md),
               Wrap(
                 spacing: AppSpacing.sm,
@@ -74,10 +94,10 @@ class HomeScreen extends StatelessWidget {
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  Text('Recently Learned', style: Theme.of(context).textTheme.titleLarge),
+                  Text(l10n.homeRecentlyLearned, style: Theme.of(context).textTheme.titleLarge),
                   TextButton(
                     onPressed: () => Navigator.of(context).push(MaterialPageRoute(builder: (_) => const CardLibraryScreen())),
-                    child: const Text('See all'),
+                    child: Text(l10n.homeSeeAll),
                   ),
                 ],
               ),
@@ -92,15 +112,17 @@ class HomeScreen extends StatelessWidget {
 }
 
 class _GradientHeader extends StatelessWidget {
-  const _GradientHeader({required this.profile, required this.deck, required this.onStudyTap});
+  const _GradientHeader({required this.profile, required this.deck, required this.onStudyTap, required this.onProfileTap});
 
   final UserProfile profile;
-  final Deck deck;
+  final Deck? deck;
   final VoidCallback onStudyTap;
+  final VoidCallback onProfileTap;
 
   @override
   Widget build(BuildContext context) {
     final colors = context.appColors;
+    final l10n = AppLocalizations.of(context);
     // TODO: read from a real session log once study sessions are persisted.
     const minutesDone = 6;
     final progress = (minutesDone / profile.dailyGoalMinutes).clamp(0.0, 1.0);
@@ -125,83 +147,120 @@ class _GradientHeader extends StatelessWidget {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text(greetingFor(DateTime.now()), style: TextStyle(color: Colors.white.withValues(alpha: 0.75), fontSize: 13)),
+                    Text(greetingText(l10n, greetingFor(DateTime.now())), style: TextStyle(color: Colors.white.withValues(alpha: 0.75), fontSize: 13)),
                     Text(profile.name, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w700, fontSize: 20)),
                   ],
                 ),
               ),
-              Stack(
-                clipBehavior: Clip.none,
-                children: [
-                  CircleAvatar(
-                    radius: 22,
-                    backgroundColor: Colors.white.withValues(alpha: 0.2),
-                    child: Text(initialsFor(profile.name), style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w700)),
-                  ),
-                  Positioned(top: -4, right: -8, child: StreakBadge(days: profile.streakDays)),
-                ],
+              InkWell(
+                onTap: onProfileTap,
+                borderRadius: BorderRadius.circular(AppRadius.pill),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    StreakBadge(days: profile.streakDays),
+                    const SizedBox(width: 8),
+                    CircleAvatar(
+                      radius: 22,
+                      backgroundColor: Colors.white.withValues(alpha: 0.2),
+                      child: Text(initialsFor(profile.name), style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w700)),
+                    ),
+                  ],
+                ),
               ),
             ],
           ),
           const SizedBox(height: AppSpacing.lg),
-          Container(
-            width: double.infinity,
-            padding: const EdgeInsets.all(AppSpacing.lg),
-            decoration: BoxDecoration(
-              color: Colors.white.withValues(alpha: 0.14),
+          if (deck != null)
+            InkWell(
+              onTap: onStudyTap,
               borderRadius: BorderRadius.circular(AppRadius.lg),
-              border: Border.all(color: Colors.white.withValues(alpha: 0.16)),
-            ),
-            child: Row(
-              children: [
-                ProgressRing(
-                  progress: progress,
-                  size: 64,
-                  strokeWidth: 6,
-                  trackColor: Colors.white.withValues(alpha: 0.2),
-                  progressColor: Colors.white,
-                  child: Text('$progressPercent%', style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w700, fontSize: 13)),
+              child: Container(
+                width: double.infinity,
+                padding: const EdgeInsets.all(AppSpacing.lg),
+                decoration: BoxDecoration(
+                  color: Colors.white.withValues(alpha: 0.14),
+                  borderRadius: BorderRadius.circular(AppRadius.lg),
+                  border: Border.all(color: Colors.white.withValues(alpha: 0.16)),
                 ),
-                const SizedBox(width: AppSpacing.lg),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text('CONTINUE LEARNING', style: TextStyle(color: Colors.white.withValues(alpha: 0.7), fontSize: 10, letterSpacing: 1)),
-                      const SizedBox(height: 2),
-                      Text('${deck.name.replaceAll(' French', '')} Vocabulary',
-                          style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w700, fontSize: 15)),
-                      Text('${profile.nativeLanguage} → ${profile.targetLanguage} · Unit 3',
-                          style: TextStyle(color: Colors.white.withValues(alpha: 0.75), fontSize: 12)),
-                      const SizedBox(height: AppSpacing.sm),
-                      Wrap(
-                        spacing: AppSpacing.sm,
-                        runSpacing: 4,
+                child: Row(
+                  children: [
+                    ProgressRing(
+                      progress: progress,
+                      size: 64,
+                      strokeWidth: 6,
+                      trackColor: Colors.white.withValues(alpha: 0.2),
+                      progressColor: Colors.white,
+                      child: Text('$progressPercent%', style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w700, fontSize: 13)),
+                    ),
+                    const SizedBox(width: AppSpacing.lg),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          _headerChip('${MockData.dueCountOf(deck.id)} cards due'),
-                          _headerChip('🔥 ${profile.dailyGoalMinutes} min goal'),
+                          Text(l10n.homeContinueLearning, style: TextStyle(color: Colors.white.withValues(alpha: 0.7), fontSize: 10, letterSpacing: 1)),
+                          const SizedBox(height: 2),
+                          // The deck's own name — this used to strip the word
+                          // "French" out and append "Vocabulary", which only
+                          // ever made sense for the French sample library.
+                          Text(deck!.name,
+                              style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w700, fontSize: 15),
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis),
+                          Text('${profile.nativeLanguage} → ${profile.targetLanguage}',
+                              style: TextStyle(color: Colors.white.withValues(alpha: 0.75), fontSize: 12)),
+                          const SizedBox(height: AppSpacing.sm),
+                          Wrap(
+                            spacing: AppSpacing.sm,
+                            runSpacing: 4,
+                            children: [
+                              _headerChip(l10n.homeCardsDue(deck!.dueCount)),
+                              _headerChip('🔥 ${l10n.homeMinGoal(profile.dailyGoalMinutes)}'),
+                            ],
+                          ),
                         ],
                       ),
-                    ],
-                  ),
+                    ),
+                    const Padding(
+                      padding: EdgeInsets.all(6),
+                      child: Icon(Icons.arrow_forward_rounded, color: Colors.white),
+                    ),
+                  ],
                 ),
-                InkWell(
-                  onTap: onStudyTap,
-                  borderRadius: BorderRadius.circular(AppRadius.pill),
-                  child: const Padding(
-                    padding: EdgeInsets.all(6),
-                    child: Icon(Icons.arrow_forward_rounded, color: Colors.white),
+              ),
+            )
+          else
+            // No starter/sample content yet — the account hasn't completed
+            // onboarding server-side (empty language pair), so there's
+            // nothing to "continue learning" with. A short prompt instead
+            // of the hero card, rather than crashing on an empty deck list.
+            Container(
+              width: double.infinity,
+              padding: const EdgeInsets.all(AppSpacing.lg),
+              decoration: BoxDecoration(
+                color: Colors.white.withValues(alpha: 0.14),
+                borderRadius: BorderRadius.circular(AppRadius.lg),
+                border: Border.all(color: Colors.white.withValues(alpha: 0.16)),
+              ),
+              child: Row(
+                children: [
+                  const Icon(Icons.auto_stories_rounded, color: Colors.white),
+                  const SizedBox(width: AppSpacing.md),
+                  Expanded(
+                    child: Text(
+                      l10n.homeFinishSetup,
+                      style: const TextStyle(color: Colors.white, fontSize: 13),
+                    ),
                   ),
-                ),
-              ],
+                ],
+              ),
             ),
-          ),
           const SizedBox(height: AppSpacing.lg),
           Row(
             children: [
-              _StatColumn(value: '${profile.wordsLearned}', label: 'Words'),
-              _StatColumn(value: '${profile.accuracyPercent}%', label: 'Accuracy'),
-              _StatColumn(value: '${profile.streakDays}d', label: 'Streak'),
+              _StatColumn(value: '${profile.wordsLearned}', label: l10n.homeWords),
+              _StatColumn(value: '${profile.accuracyPercent}%', label: l10n.homeAccuracy),
+              _StatColumn(value: '${profile.streakDays}d', label: l10n.homeStreak),
             ],
           ),
         ],
@@ -239,25 +298,22 @@ class _StatColumn extends StatelessWidget {
 }
 
 class _QuickActionsRow extends StatelessWidget {
-  const _QuickActionsRow({required this.onStudyTap});
-
-  final VoidCallback onStudyTap;
+  const _QuickActionsRow();
 
   @override
   Widget build(BuildContext context) {
     final colors = context.appColors;
+    final l10n = AppLocalizations.of(context);
     final actions = [
-      (icon: Icons.style_rounded, label: 'Flashcards', color: colors.primary, onTap: onStudyTap),
       (
         icon: Icons.quiz_rounded,
-        label: 'Quiz',
+        label: l10n.navQuiz,
         color: colors.srsHard,
         onTap: () => Navigator.of(context).push(MaterialPageRoute(builder: (_) => const QuizScreen())),
       ),
-      (icon: Icons.bolt_rounded, label: 'Study Now', color: colors.success, onTap: onStudyTap),
       (
         icon: Icons.add_rounded,
-        label: 'Add Word',
+        label: l10n.homeAddWord,
         color: colors.srsMedium,
         onTap: () => Navigator.of(context).push(MaterialPageRoute(builder: (_) => const AddWordScreen())),
       ),

@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
+import '../../app_controller.dart';
 import '../../data/onboarding_store.dart';
+import '../../l10n/app_localizations.dart';
 import '../../theme/app_theme.dart';
 import '../../widgets/app_buttons.dart';
 import '../../widgets/language_search_list.dart';
@@ -25,6 +27,10 @@ class _AppLanguageSelectScreenState extends State<AppLanguageSelectScreen> {
   Future<void> _continue() async {
     if (_languageCode == null) return;
     setState(() => _saving = true);
+    // Applies immediately as well as persisting: this is the only language
+    // choice available before sign-in, after which the profile's native
+    // language takes over (see MainShell._applyProfile).
+    context.appController.setLanguageCode(_languageCode!);
     await OnboardingStore.saveAppLanguage(_languageCode!);
     if (!mounted) return;
     Navigator.of(context).pushReplacement(MaterialPageRoute(builder: (_) => const OnboardingScreen()));
@@ -32,6 +38,7 @@ class _AppLanguageSelectScreenState extends State<AppLanguageSelectScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
     return Scaffold(
       body: SafeArea(
         child: Column(
@@ -43,9 +50,9 @@ class _AppLanguageSelectScreenState extends State<AppLanguageSelectScreen> {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     const SizedBox(height: AppSpacing.lg),
-                    Text('Choose Your App Language', style: Theme.of(context).textTheme.headlineLarge),
+                    Text(l10n.appLanguageTitle, style: Theme.of(context).textTheme.headlineLarge),
                     const SizedBox(height: AppSpacing.xs),
-                    Text('Pick the language you want to use LanGigaCards in.', style: Theme.of(context).textTheme.bodyLarge),
+                    Text(l10n.appLanguageSubtitle, style: Theme.of(context).textTheme.bodyLarge),
                     const SizedBox(height: AppSpacing.xxl),
                     LanguageSearchList(
                       selected: _language,
@@ -60,7 +67,7 @@ class _AppLanguageSelectScreenState extends State<AppLanguageSelectScreen> {
             ),
             Padding(
               padding: const EdgeInsets.all(AppSpacing.lg),
-              child: PrimaryButton(label: 'Continue', onPressed: _languageCode != null && !_saving ? _continue : null, loading: _saving),
+              child: PrimaryButton(label: l10n.commonContinue, onPressed: _languageCode != null && !_saving ? _continue : null, loading: _saving),
             ),
           ],
         ),

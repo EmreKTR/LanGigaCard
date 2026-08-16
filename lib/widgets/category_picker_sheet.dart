@@ -1,31 +1,31 @@
 import 'package:flutter/material.dart';
-import '../data/mock_data.dart';
+import '../data/api/user_api.dart';
 import '../theme/app_theme.dart';
+import '../theme/category_icons.dart';
 import 'app_buttons.dart';
 
 /// "Edit Categories" bottom sheet: header with a live selected-count and
 /// close button, a search box, a 3-column icon grid (selected = accent
-/// border), and a gradient "Save Changes" CTA. Shared by Home's "Your
-/// Topics" editor and Profile's "Study Categories" editor so both stay
-/// visually and behaviorally identical.
+/// border), and a gradient "Save Changes" CTA.
 class CategoryPickerSheet extends StatefulWidget {
-  const CategoryPickerSheet({super.key, required this.initial, required this.onSave});
+  const CategoryPickerSheet({super.key, required this.allCategories, required this.initial, required this.onSave});
 
-  final Set<String> initial;
-  final ValueChanged<Set<String>> onSave;
+  final List<CategoryData> allCategories;
+  final Set<int> initial;
+  final ValueChanged<Set<int>> onSave;
 
   @override
   State<CategoryPickerSheet> createState() => _CategoryPickerSheetState();
 }
 
 class _CategoryPickerSheetState extends State<CategoryPickerSheet> {
-  late final Set<String> _selected = Set.of(widget.initial);
+  late final Set<int> _selected = Set.of(widget.initial);
   String _query = '';
 
   @override
   Widget build(BuildContext context) {
     final colors = context.appColors;
-    final results = MockData.categories.where((c) => c.label.toLowerCase().contains(_query.toLowerCase())).toList();
+    final results = widget.allCategories.where((c) => c.name.toLowerCase().contains(_query.toLowerCase())).toList();
 
     return Padding(
       padding: EdgeInsets.only(bottom: MediaQuery.of(context).viewInsets.bottom),
@@ -64,10 +64,10 @@ class _CategoryPickerSheetState extends State<CategoryPickerSheet> {
                     itemCount: results.length,
                     itemBuilder: (context, i) {
                       final category = results[i];
-                      final isSelected = _selected.contains(category.label);
+                      final isSelected = _selected.contains(category.id);
                       return InkWell(
                         borderRadius: BorderRadius.circular(AppRadius.md),
-                        onTap: () => setState(() => isSelected ? _selected.remove(category.label) : _selected.add(category.label)),
+                        onTap: () => setState(() => isSelected ? _selected.remove(category.id) : _selected.add(category.id)),
                         child: Container(
                           alignment: Alignment.center,
                           decoration: BoxDecoration(
@@ -78,9 +78,9 @@ class _CategoryPickerSheetState extends State<CategoryPickerSheet> {
                           child: Column(
                             mainAxisAlignment: MainAxisAlignment.center,
                             children: [
-                              Icon(category.icon, color: category.color, size: 22),
+                              Icon(iconForCategory(category.iconName), color: _colorFromHex(category.colorHex), size: 22),
                               const SizedBox(height: 4),
-                              Text(category.label, style: TextStyle(fontSize: 10, color: colors.textSecondary)),
+                              Text(category.name, style: TextStyle(fontSize: 10, color: colors.textSecondary)),
                             ],
                           ),
                         ),
@@ -103,4 +103,15 @@ class _CategoryPickerSheetState extends State<CategoryPickerSheet> {
       ),
     );
   }
+}
+
+/// Parses "#RRGGBB" from the API into a [Color]. Falls back to a neutral
+/// gray if the server ever sends something unparseable, rather than
+/// throwing mid-build. Duplicated from `onboarding_steps.dart` deliberately
+/// — both are small, private, and pulling it into a shared file for two
+/// call sites isn't worth the indirection (YAGNI).
+Color _colorFromHex(String hex) {
+  final cleaned = hex.replaceFirst('#', '');
+  final value = int.tryParse(cleaned, radix: 16);
+  return value == null ? const Color(0xFF9E9E9E) : Color(0xFF000000 | value);
 }

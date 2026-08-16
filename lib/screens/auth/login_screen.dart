@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
+import '../../data/api/auth_api.dart';
 import '../../data/auth_store.dart';
+import '../../l10n/app_localizations.dart';
 import '../../theme/app_theme.dart';
 import '../../widgets/app_buttons.dart';
 import '../../widgets/app_text_field.dart';
@@ -58,30 +60,48 @@ class _LoginScreenState extends State<LoginScreen> {
       _errorText = null;
     });
 
-    final email = _emailController.text.trim();
-    final ok = await AuthStore.login(email, _passwordController.text);
-    if (!mounted) return;
+    // Tracks whether we're about to leave this screen, so the `finally`
+    // below never resets `_signingIn` right before navigating away (that
+    // would flash the button back to its idle state for a frame). Anything
+    // that throws before this is set still gets `_signingIn` reset, so the
+    // button can never get stuck disabled.
+    var didNavigateAway = false;
+    try {
+      final email = _emailController.text.trim();
+      final result = await AuthStore.api.login(email: email, password: _passwordController.text);
+      if (!mounted) return;
 
-    if (!ok) {
-      setState(() {
-        _signingIn = false;
-        _errorText = 'Incorrect email or password. Create an account if you don\'t have one yet.';
-      });
-      return;
+      if (!result.isSuccess) {
+        final l10n = AppLocalizations.of(context);
+        setState(() {
+          _signingIn = false;
+          _errorText = switch (result.outcome) {
+            AuthOutcome.networkError => l10n.commonNetworkError,
+            _ => l10n.loginInvalidCredentials,
+          };
+        });
+        return;
+      }
+
+      await AuthStore.rememberEmail(_rememberMe ? email : null);
+      if (!mounted) return;
+
+      didNavigateAway = true;
+      Navigator.of(context).pushAndRemoveUntil(
+        MaterialPageRoute(builder: (_) => const MainShell()),
+        (r) => false,
+      );
+    } finally {
+      if (!didNavigateAway && mounted && _signingIn) {
+        setState(() => _signingIn = false);
+      }
     }
-
-    await AuthStore.rememberEmail(_rememberMe ? email : null);
-    if (!mounted) return;
-
-    Navigator.of(context).pushAndRemoveUntil(
-      MaterialPageRoute(builder: (_) => const MainShell()),
-      (r) => false,
-    );
   }
 
   @override
   Widget build(BuildContext context) {
     final colors = context.appColors;
+    final l10n = AppLocalizations.of(context);
     return Scaffold(
       body: SafeArea(
         child: SingleChildScrollView(
@@ -100,9 +120,9 @@ class _LoginScreenState extends State<LoginScreen> {
                 child: const Icon(Icons.style_rounded, color: Colors.white, size: 24),
               ),
               const SizedBox(height: AppSpacing.xl),
-              Text('Welcome back', style: Theme.of(context).textTheme.headlineLarge),
+              Text(l10n.loginTitle, style: Theme.of(context).textTheme.headlineLarge),
               const SizedBox(height: AppSpacing.xs),
-              Text('Sign in to continue your learning journey', style: Theme.of(context).textTheme.bodyLarge),
+              Text(l10n.loginSubtitle, style: Theme.of(context).textTheme.bodyLarge),
               const SizedBox(height: AppSpacing.xxl),
               if (_errorText != null)
                 Container(
@@ -126,7 +146,7 @@ class _LoginScreenState extends State<LoginScreen> {
                 child: Column(
                   children: [
                     AppTextField(
-                      label: 'Email address',
+                      label: l10n.loginEmailLabel,
                       hint: 'sarah@example.com',
                       controller: _emailController,
                       keyboardType: TextInputType.emailAddress,
@@ -135,7 +155,7 @@ class _LoginScreenState extends State<LoginScreen> {
                     ),
                     const SizedBox(height: AppSpacing.lg),
                     AppTextField(
-                      label: 'Password',
+                      label: l10n.loginPasswordLabel,
                       hint: '••••••••',
                       obscureText: true,
                       controller: _passwordController,
@@ -164,7 +184,7 @@ class _LoginScreenState extends State<LoginScreen> {
                           ),
                         ),
                         const SizedBox(width: AppSpacing.sm),
-                        Text('Remember me', style: TextStyle(color: colors.textSecondary, fontSize: 13)),
+                        Text(l10n.loginRememberMe, style: TextStyle(color: colors.textSecondary, fontSize: 13)),
                       ],
                     ),
                   ),
@@ -172,19 +192,19 @@ class _LoginScreenState extends State<LoginScreen> {
                     onPressed: () => Navigator.of(context).push(
                       MaterialPageRoute(builder: (_) => const ForgotPasswordScreen()),
                     ),
-                    child: const Text('Forgot password?'),
+                    child: Text(l10n.loginForgotPassword),
                   ),
                 ],
               ),
               const SizedBox(height: AppSpacing.lg),
-              PrimaryButton(label: 'Sign In', loading: _signingIn, onPressed: _login),
+              PrimaryButton(label: l10n.commonSignIn, loading: _signingIn, onPressed: _login),
               const SizedBox(height: AppSpacing.xl),
               Row(
                 children: [
                   Expanded(child: Divider(color: colors.border)),
                   Padding(
                     padding: const EdgeInsets.symmetric(horizontal: AppSpacing.md),
-                    child: Text('or continue with', style: TextStyle(color: colors.textMuted, fontSize: 12)),
+                    child: Text(l10n.loginOrContinueWith, style: TextStyle(color: colors.textMuted, fontSize: 12)),
                   ),
                   Expanded(child: Divider(color: colors.border)),
                 ],
@@ -201,10 +221,10 @@ class _LoginScreenState extends State<LoginScreen> {
               Row(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  Text("Don't have an account?", style: TextStyle(color: colors.textSecondary)),
+                  Text(l10n.loginNoAccount, style: TextStyle(color: colors.textSecondary)),
                   TextButton(
                     onPressed: () => Navigator.of(context).push(MaterialPageRoute(builder: (_) => const RegisterScreen())),
-                    child: const Text('Create Account'),
+                    child: Text(l10n.registerTitle),
                   ),
                 ],
               ),

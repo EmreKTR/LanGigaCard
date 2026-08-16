@@ -1,11 +1,15 @@
-import 'package:flutter/material.dart';
+﻿import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:langigacards/data/mock_data.dart';
+import 'package:langigacards/l10n/app_localizations.dart';
+import 'package:langigacards/data/deck_store.dart';
 import 'package:langigacards/screens/decks/deck_dashboard_screen.dart';
 import 'package:langigacards/theme/app_theme.dart';
 import 'package:langigacards/widgets/refreshable.dart';
 
-Widget _wrap(Widget child) => MaterialApp(theme: AppTheme.dark(AccentColor.purple), home: child);
+Widget _wrap(Widget child) => MaterialApp(
+      localizationsDelegates: AppLocalizations.localizationsDelegates,
+      supportedLocales: AppLocalizations.supportedLocales,
+theme: AppTheme.dark(AccentColor.purple), home: child);
 
 void main() {
   testWidgets('My Decks responds to a pull-to-refresh gesture', (tester) async {
@@ -13,7 +17,7 @@ void main() {
 
     expect(find.byType(RefreshIndicator), findsOneWidget);
 
-    final before = MockData.revision.value;
+    final before = DeckStore.revision.value;
     await tester.fling(find.byType(ListView), const Offset(0, 320), 1000);
     await tester.pump();
     // Spinner is on screen while the refresh runs.
@@ -21,7 +25,7 @@ void main() {
 
     await tester.pumpAndSettle();
 
-    expect(MockData.revision.value, greaterThan(before),
+    expect(DeckStore.revision.value, greaterThan(before),
         reason: 'a pull should signal a rebuild, even without a server');
     expect(find.byType(RefreshProgressIndicator), findsNothing);
   });
@@ -61,10 +65,10 @@ void main() {
       ),
     ));
 
-    final before = MockData.revision.value;
+    final before = DeckStore.revision.value;
     await tester.fling(find.byType(ListView), const Offset(0, 320), 1000);
     await tester.pumpAndSettle();
 
-    expect(MockData.revision.value, greaterThan(before));
+    expect(DeckStore.revision.value, greaterThan(before));
   });
 }

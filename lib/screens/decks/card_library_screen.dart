@@ -1,6 +1,7 @@
-import 'package:flutter/material.dart';
-import '../../data/mock_data.dart';
+﻿import 'package:flutter/material.dart';
+import '../../data/deck_store.dart';
 import '../../models/app_models.dart';
+import '../../l10n/app_localizations.dart';
 import '../../theme/app_theme.dart';
 import '../../widgets/app_buttons.dart';
 import '../../widgets/refreshable.dart';
@@ -23,7 +24,7 @@ class _CardLibraryScreenState extends State<CardLibraryScreen> {
   String _query = '';
   late String? _deckFilter = widget.deck?.id;
 
-  // Add/edit/delete all rebuild via [MockData.revision], so these only need
+  // Add/edit/delete all rebuild via [DeckStore.revision], so these only need
   // to open the right screen — no manual setState.
   void _addCard() {
     Navigator.of(context).push(MaterialPageRoute(builder: (_) => AddWordScreen(initialDeckId: _deckFilter)));
@@ -34,48 +35,50 @@ class _CardLibraryScreenState extends State<CardLibraryScreen> {
   }
 
   Future<void> _deleteCard(FlashCard card) async {
+    final l10n = AppLocalizations.of(context);
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
-        title: const Text('Delete card?'),
-        content: Text('"${card.term}" will be permanently removed from your library.'),
+        title: Text(l10n.libraryDeleteConfirmTitle),
+        content: Text(l10n.libraryDeleteConfirmBody(card.term)),
         actions: [
-          TextButton(onPressed: () => Navigator.of(context).pop(false), child: const Text('Cancel')),
+          TextButton(onPressed: () => Navigator.of(context).pop(false), child: Text(l10n.commonCancel)),
           TextButton(
             onPressed: () => Navigator.of(context).pop(true),
-            child: Text('Delete', style: TextStyle(color: context.appColors.danger)),
+            child: Text(l10n.commonDelete, style: TextStyle(color: context.appColors.danger)),
           ),
         ],
       ),
     );
     if (confirmed != true) return;
 
-    final index = MockData.removeCard(card.id);
-    if (index == -1 || !mounted) return;
+    final ok = await DeckStore.removeCard(card.id);
+    if (!mounted) return;
+    if (!ok) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(l10n.libraryDeleteFailed)),
+      );
+      return;
+    }
 
     ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text('"${card.term}" deleted'),
-        action: SnackBarAction(
-          label: 'Undo',
-          onPressed: () => MockData.restoreCard(index, card),
-        ),
-      ),
+      SnackBar(content: Text(l10n.libraryCardDeleted(card.term))),
     );
   }
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Card Library'),
+        title: Text(l10n.libraryTitle),
         actions: [
           Padding(
             padding: const EdgeInsets.only(right: AppSpacing.lg),
             child: TextButton.icon(
               onPressed: _addCard,
               icon: const Icon(Icons.add_rounded, size: 18),
-              label: const Text('Add Card'),
+              label: Text(l10n.cardAdd),
             ),
           ),
         ],
@@ -83,7 +86,7 @@ class _CardLibraryScreenState extends State<CardLibraryScreen> {
       body: SafeArea(
         top: false,
         child: ValueListenableBuilder<int>(
-          valueListenable: MockData.revision,
+          valueListenable: DeckStore.revision,
           builder: (context, _, __) => _buildBody(context),
         ),
       ),
@@ -92,7 +95,8 @@ class _CardLibraryScreenState extends State<CardLibraryScreen> {
 
   Widget _buildBody(BuildContext context) {
     final colors = context.appColors;
-    final cards = MockData.cards.where((c) {
+    final l10n = AppLocalizations.of(context);
+    final cards = DeckStore.cards.where((c) {
       final matchesDeck = _deckFilter == null || c.deckId == _deckFilter;
       final matchesQuery = _query.isEmpty ||
           c.term.toLowerCase().contains(_query.toLowerCase()) ||
@@ -111,7 +115,7 @@ class _CardLibraryScreenState extends State<CardLibraryScreen> {
                   Expanded(
                     flex: 2,
                     child: TextField(
-                      decoration: const InputDecoration(hintText: 'Search front or back...', prefixIcon: Icon(Icons.search_rounded)),
+                      decoration: InputDecoration(hintText: l10n.librarySearchHint, prefixIcon: const Icon(Icons.search_rounded)),
                       onChanged: (v) => setState(() => _query = v),
                     ),
                   ),
@@ -122,8 +126,8 @@ class _CardLibraryScreenState extends State<CardLibraryScreen> {
                       isExpanded: true,
                       decoration: const InputDecoration(contentPadding: EdgeInsets.symmetric(horizontal: AppSpacing.md)),
                       items: [
-                        const DropdownMenuItem(value: null, child: Text('All Decks')),
-                        for (final d in MockData.decks) DropdownMenuItem(value: d.id, child: Text(d.name, overflow: TextOverflow.ellipsis)),
+                        DropdownMenuItem(value: null, child: Text(l10n.libraryAllDecks)),
+                        for (final d in DeckStore.decks) DropdownMenuItem(value: d.id, child: Text(d.name, overflow: TextOverflow.ellipsis)),
                       ],
                       onChanged: (v) => setState(() => _deckFilter = v),
                     ),
@@ -134,8 +138,8 @@ class _CardLibraryScreenState extends State<CardLibraryScreen> {
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  Text('Total Items: ${cards.length}', style: TextStyle(color: colors.textMuted, fontSize: 12)),
-                  Text(_deckFilter == null ? 'Showing all' : 'Filtered by deck', style: TextStyle(color: colors.textMuted, fontSize: 12)),
+                  Text(l10n.libraryTotalItems(cards.length), style: TextStyle(color: colors.textMuted, fontSize: 12)),
+                  Text(_deckFilter == null ? l10n.libraryShowingAll : l10n.libraryFilteredByDeck, style: TextStyle(color: colors.textMuted, fontSize: 12)),
                 ],
               ),
             ],
@@ -169,7 +173,7 @@ class _CardLibraryScreenState extends State<CardLibraryScreen> {
                     ? null
                     : () => Navigator.of(context).push(MaterialPageRoute(builder: (_) => StudySessionScreen(deck: widget.deck))),
                 icon: const Icon(Icons.style_rounded),
-                label: const Text('Study This Deck'),
+                label: Text(l10n.libraryStudyThisDeck),
               ),
             ),
           ),
@@ -189,6 +193,7 @@ class _EmptyCards extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final colors = context.appColors;
+    final l10n = AppLocalizations.of(context);
     final searching = query.isNotEmpty;
 
     return Center(
@@ -204,15 +209,15 @@ class _EmptyCards extends StatelessWidget {
             ),
             const SizedBox(height: AppSpacing.lg),
             Text(
-              searching ? 'No cards match "$query"' : 'No cards here yet',
+              searching ? l10n.libraryNoMatch(query) : l10n.libraryNoneYet,
               style: Theme.of(context).textTheme.titleLarge,
               textAlign: TextAlign.center,
             ),
             const SizedBox(height: AppSpacing.sm),
             Text(
               searching
-                  ? 'Check the spelling, or clear the deck filter to search everywhere.'
-                  : 'Add your first word and it will show up in your next study session.',
+                  ? l10n.libraryCheckSpelling
+                  : l10n.libraryAddFirst,
               textAlign: TextAlign.center,
               style: TextStyle(color: colors.textMuted, height: 1.5),
             ),
@@ -220,7 +225,7 @@ class _EmptyCards extends StatelessWidget {
               const SizedBox(height: AppSpacing.xl),
               SizedBox(
                 width: 200,
-                child: PrimaryButton(label: 'Add a card', icon: Icons.add_rounded, onPressed: onAddCard),
+                child: PrimaryButton(label: l10n.detailAddCard, icon: Icons.add_rounded, onPressed: onAddCard),
               ),
             ],
           ],
@@ -240,10 +245,11 @@ class _CardRow extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final colors = context.appColors;
+    final l10n = AppLocalizations.of(context);
     // A card can outlive its deck (deck removed while the card list is open),
     // so fall back instead of letting firstWhere throw.
-    final deck = MockData.decks.where((d) => d.id == card.deckId).firstOrNull;
-    final deckName = deck?.name ?? 'Unknown deck';
+    final deck = DeckStore.decks.where((d) => d.id == card.deckId).firstOrNull;
+    final deckName = deck?.name ?? l10n.libraryUnknownDeck;
     return Container(
       padding: const EdgeInsets.all(AppSpacing.md),
       decoration: BoxDecoration(color: colors.surface, borderRadius: BorderRadius.circular(AppRadius.md), border: Border.all(color: colors.border)),
@@ -264,17 +270,17 @@ class _CardRow extends StatelessWidget {
                 const SizedBox(height: 2),
                 Text(card.translation, style: TextStyle(color: colors.textMuted, fontSize: 12)),
                 const SizedBox(height: 4),
-                Text('$deckName · ${card.reviewCount} reviews', style: TextStyle(color: colors.textMuted, fontSize: 11)),
+                Text(l10n.libraryDeckReviews(deckName, card.reviewCount), style: TextStyle(color: colors.textMuted, fontSize: 11)),
               ],
             ),
           ),
           IconButton(
-            tooltip: 'Edit card',
+            tooltip: l10n.libraryEditCard,
             onPressed: onEdit,
             icon: Icon(Icons.edit_outlined, size: 18, color: colors.primary),
           ),
           IconButton(
-            tooltip: 'Delete card',
+            tooltip: l10n.libraryDeleteCard,
             onPressed: onDelete,
             icon: Icon(Icons.delete_outline_rounded, size: 18, color: colors.danger),
           ),

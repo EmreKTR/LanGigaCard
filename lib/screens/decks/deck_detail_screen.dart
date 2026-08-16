@@ -1,6 +1,7 @@
-import 'package:flutter/material.dart';
-import '../../data/mock_data.dart';
+﻿import 'package:flutter/material.dart';
+import '../../data/deck_store.dart';
 import '../../models/app_models.dart';
+import '../../l10n/app_localizations.dart';
 import '../../theme/app_theme.dart';
 import '../../widgets/app_buttons.dart';
 import '../../widgets/progress_ring.dart';
@@ -27,9 +28,9 @@ class DeckDetailScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return ValueListenableBuilder<int>(
-      valueListenable: MockData.revision,
+      valueListenable: DeckStore.revision,
       builder: (context, _, __) {
-        final deck = MockData.decks.where((d) => d.id == deckId).firstOrNull;
+        final deck = DeckStore.decks.where((d) => d.id == deckId).firstOrNull;
         // The deck can be deleted from underneath this screen (undo snackbar
         // on the previous page), so degrade instead of throwing.
         if (deck == null) return const _DeckGoneView();
@@ -45,6 +46,7 @@ class _DeckGoneView extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final colors = context.appColors;
+    final l10n = AppLocalizations.of(context);
     return Scaffold(
       appBar: AppBar(),
       body: Center(
@@ -55,11 +57,11 @@ class _DeckGoneView extends StatelessWidget {
             children: [
               Icon(Icons.folder_off_outlined, size: 56, color: colors.textMuted),
               const SizedBox(height: AppSpacing.lg),
-              Text('This deck no longer exists', style: Theme.of(context).textTheme.titleLarge),
+              Text(l10n.detailNotFound, style: Theme.of(context).textTheme.titleLarge),
               const SizedBox(height: AppSpacing.xl),
               OutlinedButton(
                 onPressed: () => Navigator.of(context).maybePop(),
-                child: const Text('Back to decks'),
+                child: Text(l10n.detailBackToDecks),
               ),
             ],
           ),
@@ -77,7 +79,8 @@ class _DeckDetailBody extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final colors = context.appColors;
-    final cards = MockData.cards.where((c) => c.deckId == deck.id).toList();
+    final l10n = AppLocalizations.of(context);
+    final cards = DeckStore.cards.where((c) => c.deckId == deck.id).toList();
 
     final mastered = cards.where((c) => c.strength == MemoryStrength.mastered).length;
     final learning = cards.where((c) => c.strength == MemoryStrength.learning).length;
@@ -94,14 +97,14 @@ class _DeckDetailBody extends StatelessWidget {
               padding: const EdgeInsets.all(AppSpacing.lg),
               sliver: SliverList(
                 delegate: SliverChildListDelegate([
-                  Text('PROGRESS', style: Theme.of(context).textTheme.titleMedium),
+                  Text(l10n.detailProgress, style: Theme.of(context).textTheme.titleMedium),
                   const SizedBox(height: AppSpacing.md),
                   SectionCard(
                     child: Column(
                       children: [
                         _StrengthRow(
                           key: const ValueKey('strength-mastered'),
-                          label: 'Mastered',
+                          label: l10n.detailMastered,
                           count: mastered,
                           total: cards.length,
                           color: colors.mastered,
@@ -109,7 +112,7 @@ class _DeckDetailBody extends StatelessWidget {
                         const SizedBox(height: AppSpacing.md),
                         _StrengthRow(
                           key: const ValueKey('strength-learning'),
-                          label: 'Learning',
+                          label: l10n.detailLearning,
                           count: learning,
                           total: cards.length,
                           color: colors.learning,
@@ -117,7 +120,7 @@ class _DeckDetailBody extends StatelessWidget {
                         const SizedBox(height: AppSpacing.md),
                         _StrengthRow(
                           key: const ValueKey('strength-due'),
-                          label: 'Review Due',
+                          label: l10n.decksReviewDue,
                           count: due,
                           total: cards.length,
                           color: colors.reviewDue,
@@ -129,13 +132,13 @@ class _DeckDetailBody extends StatelessWidget {
                   Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
-                      Text('Cards', style: Theme.of(context).textTheme.titleLarge),
+                      Text(l10n.detailCards, style: Theme.of(context).textTheme.titleLarge),
                       if (cards.isNotEmpty)
                         TextButton(
                           onPressed: () => Navigator.of(context).push(
                             MaterialPageRoute(builder: (_) => CardLibraryScreen(deck: deck)),
                           ),
-                          child: const Text('Browse all'),
+                          child: Text(l10n.detailBrowseAll),
                         ),
                     ],
                   ),
@@ -148,7 +151,7 @@ class _DeckDetailBody extends StatelessWidget {
                     Padding(
                       padding: const EdgeInsets.only(top: AppSpacing.sm),
                       child: Text(
-                        '+ ${cards.length - 6} more',
+                        l10n.detailMore(cards.length - 6),
                         style: TextStyle(color: colors.textMuted, fontSize: 12),
                       ),
                     ),
@@ -185,7 +188,7 @@ class _DeckDetailBody extends StatelessWidget {
                           MaterialPageRoute(builder: (_) => QuizScreen(deck: deck)),
                         ),
                         icon: const Icon(Icons.quiz_outlined, size: 18),
-                        label: const Text('Quiz'),
+                        label: Text(l10n.navQuiz),
                       ),
                     ),
                   ],
@@ -206,9 +209,16 @@ class _Header extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final colors = context.appColors;
-    // Derived from the cards actually present, not the deck's stored
-    // masteryPercent, so it can't drift from reality.
-    final mastery = cards.isEmpty ? 0.0 : mastered / cards.length;
+    final l10n = AppLocalizations.of(context);
+    // Sourced from the server-computed masteryPercent rather than
+    // recomputed from locally-cached card strength, which defaults every
+    // card to "review due" on a fresh fetch (no per-card review-progress
+    // data comes back from the flashcard-list endpoint) — recomputing here
+    // made every deck look like 0% mastered right after a fresh login. The
+    // Mastered/Learning/Review-Due breakdown row below is left as a local
+    // computation: the API only returns one aggregate percentage, not a
+    // 3-way split, so there's nothing server-side to source that from.
+    final mastery = deck.masteryPercent / 100;
 
     return Container(
       padding: const EdgeInsets.fromLTRB(AppSpacing.lg, 0, AppSpacing.lg, AppSpacing.xl),
@@ -228,7 +238,7 @@ class _Header extends StatelessWidget {
               IconButton(
                 onPressed: () => Navigator.of(context).maybePop(),
                 icon: const Icon(Icons.arrow_back_rounded, color: Colors.white),
-                tooltip: 'Back',
+                tooltip: l10n.detailBack,
               ),
               const Spacer(),
               IconButton(
@@ -236,7 +246,7 @@ class _Header extends StatelessWidget {
                   MaterialPageRoute(builder: (_) => AddWordScreen(initialDeckId: deck.id)),
                 ),
                 icon: const Icon(Icons.add_rounded, color: Colors.white),
-                tooltip: 'Add a card to this deck',
+                tooltip: l10n.detailAddCardTooltip,
               ),
             ],
           ),
@@ -276,9 +286,9 @@ class _Header extends StatelessWidget {
           const SizedBox(height: AppSpacing.lg),
           Row(
             children: [
-              _HeaderStat(value: '${cards.length}', label: 'Cards'),
-              _HeaderStat(value: '$mastered', label: 'Mastered'),
-              _HeaderStat(value: '${deck.reviewCount}', label: 'Reviews'),
+              _HeaderStat(value: '${cards.length}', label: l10n.detailCards),
+              _HeaderStat(value: '$mastered', label: l10n.detailMastered),
+              _HeaderStat(value: '${deck.reviewCount}', label: l10n.detailReviews),
             ],
           ),
         ],
@@ -323,12 +333,13 @@ class _StrengthRow extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final colors = context.appColors;
+    final l10n = AppLocalizations.of(context);
     final fraction = total == 0 ? 0.0 : count / total;
 
     // A bare bar plus a number tells a screen reader nothing, so the row is
     // merged into one spoken sentence.
     return Semantics(
-      label: '$label: $count of $total card${total == 1 ? '' : 's'}',
+      label: l10n.detailBreakdown(label, count, total),
       excludeSemantics: true,
       child: Row(
         children: [
@@ -405,16 +416,17 @@ class _EmptyDeck extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final colors = context.appColors;
+    final l10n = AppLocalizations.of(context);
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: AppSpacing.xxl),
       child: Column(
         children: [
           Icon(Icons.style_outlined, size: 48, color: colors.textMuted),
           const SizedBox(height: AppSpacing.md),
-          Text('This deck is empty', style: Theme.of(context).textTheme.titleLarge),
+          Text(l10n.detailEmpty, style: Theme.of(context).textTheme.titleLarge),
           const SizedBox(height: AppSpacing.sm),
           Text(
-            'Add a few words and you can start studying straight away.',
+            l10n.detailEmptyHelp,
             textAlign: TextAlign.center,
             style: TextStyle(color: colors.textMuted, height: 1.5),
           ),
@@ -422,7 +434,7 @@ class _EmptyDeck extends StatelessWidget {
           SizedBox(
             width: 200,
             child: PrimaryButton(
-              label: 'Add a card',
+              label: l10n.detailAddCard,
               icon: Icons.add_rounded,
               onPressed: () => Navigator.of(context).push(
                 MaterialPageRoute(builder: (_) => AddWordScreen(initialDeckId: deck.id)),

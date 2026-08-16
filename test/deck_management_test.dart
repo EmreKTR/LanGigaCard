@@ -1,90 +1,60 @@
-import 'package:flutter/material.dart';
+﻿import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:langigacards/l10n/app_localizations.dart';
+import 'package:langigacards/data/api/deck_api.dart';
 import 'package:langigacards/data/library_storage.dart';
-import 'package:langigacards/data/mock_data.dart';
-import 'package:langigacards/models/app_models.dart';
+import 'package:langigacards/data/deck_store.dart';
 import 'package:langigacards/screens/decks/deck_dashboard_screen.dart';
 import 'package:langigacards/theme/app_theme.dart';
 
-const _probeDeck = Deck(
-  id: 'probe_deck',
-  name: 'Probe Deck',
-  description: 'fixture',
-  cardCount: 0,
-  dueCount: 0,
-  reviewCount: 0,
-  masteryPercent: 0,
-  emoji: '📘',
-  accentColor: Color(0xFF6C5CE7),
-);
-
-FlashCard _card(String id) => FlashCard(
-      id: id,
-      deckId: _probeDeck.id,
-      term: 'term-$id',
-      translation: 'translation-$id',
-      exampleSentence: '',
-      strength: MemoryStrength.learning,
-    );
-
-void _cleanUp() {
-  MockData.cards.removeWhere((c) => c.deckId == _probeDeck.id);
-  MockData.decks.removeWhere((d) => d.id == _probeDeck.id);
-  MockData.revision.value++;
-}
-
 void main() {
-  // Keep the library in memory: these tests exercise data rules, not disk.
-  setUp(() => MockData.storage = InMemoryLibraryStorage());
+  setUp(() {
+    DeckStore.storage = InMemoryLibraryStorage();
+    DeckStore.api = FakeDeckApi();
+    DeckStore.decks.clear();
+    DeckStore.cards.clear();
+  });
 
-  tearDown(_cleanUp);
+  group('DeckStore deck mutations', () {
+    test('updateDeck renames in place without reordering', () async {
+      await DeckStore.addDeck(title: 'Probe Deck', description: 'fixture');
+      final id = DeckStore.decks.first.id;
+      final positionBefore = DeckStore.decks.indexWhere((d) => d.id == id);
 
-  group('MockData deck mutations', () {
-    test('updateDeck renames in place without reordering', () {
-      MockData.addDeck(_probeDeck);
-      final positionBefore = MockData.decks.indexWhere((d) => d.id == _probeDeck.id);
+      await DeckStore.updateDeck(id, title: 'Renamed', description: 'fixture');
 
-      MockData.updateDeck(_probeDeck.copyWith(name: 'Renamed'));
-
-      expect(MockData.decks[positionBefore].name, 'Renamed');
-      expect(MockData.decks.indexWhere((d) => d.id == _probeDeck.id), positionBefore);
+      expect(DeckStore.decks[positionBefore].name, 'Renamed');
+      expect(DeckStore.decks.indexWhere((d) => d.id == id), positionBefore);
     });
 
-    test('removeDeck takes its cards with it', () {
-      MockData.addDeck(_probeDeck);
-      MockData.addCard(_card('a'));
-      MockData.addCard(_card('b'));
-      final otherCards = MockData.cards.where((c) => c.deckId != _probeDeck.id).length;
+    test('removeDeck removes the deck and its cards, leaving other decks alone', () async {
+      await DeckStore.addDeck(title: 'Probe Deck', description: 'fixture');
+      final deckId = DeckStore.decks.first.id;
+      await DeckStore.addCard(deckId: deckId, term: 'a', translation: 'ta', exampleSentence: '');
+      await DeckStore.addCard(deckId: deckId, term: 'b', translation: 'tb', exampleSentence: '');
+      await DeckStore.addDeck(title: 'Other Deck', description: '');
+      final otherDeckId = DeckStore.decks.firstWhere((d) => d.id != deckId).id;
+      await DeckStore.addCard(deckId: otherDeckId, term: 'x', translation: 'ty', exampleSentence: '');
 
-      final removed = MockData.removeDeck(_probeDeck.id);
+      final ok = await DeckStore.removeDeck(deckId);
 
-      expect(removed, isNotNull);
-      expect(removed!.cards.length, 2);
-      expect(MockData.decks.any((d) => d.id == _probeDeck.id), isFalse);
-      expect(MockData.cards.any((c) => c.deckId == _probeDeck.id), isFalse);
-      expect(MockData.cards.length, otherCards, reason: 'other decks must be untouched');
+      expect(ok, isTrue);
+      expect(DeckStore.decks.any((d) => d.id == deckId), isFalse);
+      expect(DeckStore.cards.any((c) => c.deckId == deckId), isFalse);
+      expect(DeckStore.cards.where((c) => c.deckId == otherDeckId).length, 1, reason: 'other decks must be untouched');
     });
 
-    test('restoreDeck puts the deck and its cards back at the same position', () {
-      MockData.addDeck(_probeDeck);
-      MockData.addCard(_card('a'));
-      final positionBefore = MockData.decks.indexWhere((d) => d.id == _probeDeck.id);
-
-      final removed = MockData.removeDeck(_probeDeck.id)!;
-      MockData.restoreDeck(removed);
-
-      expect(MockData.decks.indexWhere((d) => d.id == _probeDeck.id), positionBefore);
-      expect(MockData.cards.where((c) => c.deckId == _probeDeck.id).length, 1);
-    });
-
-    test('removeDeck on an unknown id returns null and changes nothing', () {
-      final deckCount = MockData.decks.length;
-      final cardCount = MockData.cards.length;
-
-      expect(MockData.removeDeck('nope'), isNull);
-      expect(MockData.decks.length, deckCount);
-      expect(MockData.cards.length, cardCount);
-    });
+    // Two tests deleted here, not adapted:
+    //  - "restoreDeck puts the deck and its cards back at the same
+    //    position" — DeckStore.restoreDeck was removed entirely (Task 4): a
+    //    delete now round-trips through the real API and can't be locally
+    //    undone.
+    //  - "removeDeck on an unknown id returns null and changes nothing" —
+    //    removeDeck's bare-bool API can't distinguish "genuinely doesn't
+    //    exist" from "network unreachable", so per Task 4's documented
+    //    design it now always treats a delete optimistically (queues a
+    //    pending write and returns true) even for an id the API has never
+    //    heard of. The old "no-op, returns null" contract no longer exists.
   });
 
   group('My Decks screen', () {
@@ -92,12 +62,16 @@ void main() {
       await tester.binding.setSurfaceSize(const Size(1000, 3000));
       addTearDown(() => tester.binding.setSurfaceSize(null));
       await tester.pumpWidget(
-        MaterialApp(theme: AppTheme.dark(AccentColor.purple), home: const DeckDashboardScreen()),
+        MaterialApp(
+      localizationsDelegates: AppLocalizations.localizationsDelegates,
+      supportedLocales: AppLocalizations.supportedLocales,
+theme: AppTheme.dark(AccentColor.purple), home: const DeckDashboardScreen()),
       );
     }
 
     testWidgets('a deck can be renamed from its overflow menu', (tester) async {
-      MockData.addDeck(_probeDeck);
+      await DeckStore.addDeck(title: 'Probe Deck', description: 'fixture');
+      final deckId = DeckStore.decks.first.id;
       await pump(tester);
 
       await tester.scrollUntilVisible(find.text('Probe Deck'), 300, scrollable: find.byType(Scrollable).first);
@@ -111,12 +85,17 @@ void main() {
       await tester.tap(find.text('Save Changes'));
       await tester.pumpAndSettle();
 
-      expect(MockData.decks.firstWhere((d) => d.id == _probeDeck.id).name, 'Kitchen Words');
+      expect(DeckStore.decks.firstWhere((d) => d.id == deckId).name, 'Kitchen Words');
     });
 
-    testWidgets('deleting a deck asks first and can be undone', (tester) async {
-      MockData.addDeck(_probeDeck);
-      MockData.addCard(_card('a'));
+    testWidgets('deleting a deck asks first, then removes it', (tester) async {
+      // The "can be undone" half of this test is gone along with
+      // DeckStore.restoreDeck (Task 4) and the Undo action in this screen's
+      // delete flow (Task 5) — a delete now round-trips through the real API
+      // and can't be locally undone.
+      await DeckStore.addDeck(title: 'Probe Deck', description: 'fixture');
+      final deckId = DeckStore.decks.first.id;
+      await DeckStore.addCard(deckId: deckId, term: 'a', translation: 'b', exampleSentence: '');
       await pump(tester);
 
       await tester.scrollUntilVisible(find.text('Probe Deck'), 300, scrollable: find.byType(Scrollable).first);
@@ -132,17 +111,12 @@ void main() {
       await tester.tap(find.text('Delete'));
       await tester.pumpAndSettle();
 
-      expect(MockData.decks.any((d) => d.id == _probeDeck.id), isFalse);
-
-      await tester.tap(find.text('Undo'));
-      await tester.pumpAndSettle();
-
-      expect(MockData.decks.any((d) => d.id == _probeDeck.id), isTrue);
-      expect(MockData.cards.where((c) => c.deckId == _probeDeck.id).length, 1);
+      expect(DeckStore.decks.any((d) => d.id == deckId), isFalse);
     });
 
     testWidgets('cancelling the delete dialog keeps the deck', (tester) async {
-      MockData.addDeck(_probeDeck);
+      await DeckStore.addDeck(title: 'Probe Deck', description: 'fixture');
+      final deckId = DeckStore.decks.first.id;
       await pump(tester);
 
       await tester.scrollUntilVisible(find.text('Probe Deck'), 300, scrollable: find.byType(Scrollable).first);
@@ -153,7 +127,7 @@ void main() {
       await tester.tap(find.text('Cancel'));
       await tester.pumpAndSettle();
 
-      expect(MockData.decks.any((d) => d.id == _probeDeck.id), isTrue);
+      expect(DeckStore.decks.any((d) => d.id == deckId), isTrue);
     });
 
     testWidgets('a search with no matches explains itself', (tester) async {

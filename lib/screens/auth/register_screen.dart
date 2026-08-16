@@ -1,5 +1,7 @@
-import 'package:flutter/material.dart';
+﻿import 'package:flutter/material.dart';
+import '../../data/api/auth_api.dart';
 import '../../data/auth_store.dart';
+import '../../l10n/app_localizations.dart';
 import '../../theme/app_theme.dart';
 import '../../widgets/app_buttons.dart';
 import '../../widgets/app_text_field.dart';
@@ -38,6 +40,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
   bool _confirmTouched = false;
 
   bool _creating = false;
+  String? _errorText;
 
   @override
   void initState() {
@@ -76,25 +79,25 @@ class _RegisterScreenState extends State<RegisterScreen> {
       _passwordController.text == _confirmController.text;
 
   String? get _firstNameError =>
-      (_step1Submitted || _firstNameTouched) && _firstNameController.text.isEmpty ? 'This field is required' : null;
+      (_step1Submitted || _firstNameTouched) && _firstNameController.text.isEmpty ? AppLocalizations.of(context).commonRequiredField : null;
 
   String? get _lastNameError =>
-      (_step1Submitted || _lastNameTouched) && _lastNameController.text.isEmpty ? 'This field is required' : null;
+      (_step1Submitted || _lastNameTouched) && _lastNameController.text.isEmpty ? AppLocalizations.of(context).commonRequiredField : null;
 
   String? get _emailError =>
-      (_step1Submitted || _emailTouched) && !_emailController.text.contains('@') ? 'Please enter a valid email address' : null;
+      (_step1Submitted || _emailTouched) && !_emailController.text.contains('@') ? AppLocalizations.of(context).registerInvalidEmail : null;
 
   String? get _passwordError =>
-      (_step1Submitted || _passwordTouched) && _passwordController.text.length < 8 ? 'Password must be at least 8 characters' : null;
+      (_step1Submitted || _passwordTouched) && _passwordController.text.length < 8 ? AppLocalizations.of(context).registerPasswordTooShort : null;
 
   String? get _confirmError =>
       (_step1Submitted || _confirmTouched) && _passwordController.text != _confirmController.text
-          ? "Passwords don't match"
+          ? AppLocalizations.of(context).registerPasswordsDontMatch
           : null;
 
-  /// Creates the local account, then hands off to email verification and the
-  /// onboarding wizard, which is where the language pair and study
-  /// preferences are actually collected.
+  /// Registers the account against the real backend, then hands off to
+  /// email verification and the onboarding wizard, which is where the
+  /// language pair and study preferences are actually collected.
   Future<void> _createAccount() async {
     if (_creating) return;
     if (!_step1Valid) {
@@ -102,25 +105,62 @@ class _RegisterScreenState extends State<RegisterScreen> {
       return;
     }
 
-    setState(() => _creating = true);
-    final email = _emailController.text.trim();
-    await AuthStore.register(email, _passwordController.text);
-    if (!mounted) return;
+    setState(() {
+      _creating = true;
+      _errorText = null;
+    });
 
-    Navigator.of(context).pushReplacement(
-      MaterialPageRoute(
-        builder: (_) => EmailVerificationScreen(
-          firstName: _firstNameController.text.trim(),
-          lastName: _lastNameController.text.trim(),
-          email: email,
+    // Tracks whether we're about to leave this screen, so the `finally`
+    // below never resets `_creating` right before navigating away (that
+    // would flash the button back to its idle state for a frame). Anything
+    // that throws before this is set still gets `_creating` reset, so the
+    // button can never get stuck disabled.
+    var didNavigateAway = false;
+    try {
+      final email = _emailController.text.trim();
+      final result = await AuthStore.api.register(
+        firstName: _firstNameController.text.trim(),
+        lastName: _lastNameController.text.trim(),
+        email: email,
+        password: _passwordController.text,
+        confirmPassword: _confirmController.text,
+      );
+      if (!mounted) return;
+
+      if (!result.isSuccess) {
+        final l10n = AppLocalizations.of(context);
+        setState(() {
+          _creating = false;
+          _errorText = switch (result.outcome) {
+            AuthOutcome.emailTaken => l10n.registerEmailTaken,
+            AuthOutcome.networkError => l10n.commonNetworkError,
+            _ => result.message ?? l10n.commonSomethingWrong,
+          };
+        });
+        return;
+      }
+
+      didNavigateAway = true;
+      Navigator.of(context).pushReplacement(
+        MaterialPageRoute(
+          builder: (_) => EmailVerificationScreen(
+            firstName: _firstNameController.text.trim(),
+            lastName: _lastNameController.text.trim(),
+            email: email,
+          ),
         ),
-      ),
-    );
+      );
+    } finally {
+      if (!didNavigateAway && mounted && _creating) {
+        setState(() => _creating = false);
+      }
+    }
   }
 
   @override
   Widget build(BuildContext context) {
     final colors = context.appColors;
+    final l10n = AppLocalizations.of(context);
     return Scaffold(
       body: SafeArea(
         child: Column(
@@ -132,7 +172,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                   TextButton.icon(
                     onPressed: () => Navigator.of(context).maybePop(),
                     icon: const Icon(Icons.arrow_back_rounded, size: 16),
-                    label: const Text('Back to sign in'),
+                    label: Text(l10n.registerBackToSignIn),
                   ),
                 ],
               ),
@@ -143,13 +183,31 @@ class _RegisterScreenState extends State<RegisterScreen> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text('Create Account', style: Theme.of(context).textTheme.headlineLarge),
+                    Text(l10n.registerTitle, style: Theme.of(context).textTheme.headlineLarge),
                     const SizedBox(height: 4),
                     Text(
-                      'Your details — languages and study preferences come next.',
+                      l10n.registerSubtitle,
                       style: TextStyle(color: colors.textMuted, fontSize: 13),
                     ),
                     const SizedBox(height: AppSpacing.xxl),
+                    if (_errorText != null)
+                      Container(
+                        width: double.infinity,
+                        margin: const EdgeInsets.only(bottom: AppSpacing.lg),
+                        padding: const EdgeInsets.all(AppSpacing.md),
+                        decoration: BoxDecoration(
+                          color: colors.danger.withValues(alpha: 0.12),
+                          borderRadius: BorderRadius.circular(AppRadius.md),
+                          border: Border.all(color: colors.danger.withValues(alpha: 0.4)),
+                        ),
+                        child: Row(
+                          children: [
+                            Icon(Icons.error_outline_rounded, color: colors.danger, size: 18),
+                            const SizedBox(width: AppSpacing.sm),
+                            Expanded(child: Text(_errorText!, style: TextStyle(color: colors.danger, fontSize: 13))),
+                          ],
+                        ),
+                      ),
                     AnimatedBuilder(
                       animation: Listenable.merge([
                         _firstNameController,
@@ -183,7 +241,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
             Padding(
               padding: const EdgeInsets.all(AppSpacing.lg),
               child: PrimaryButton(
-                label: 'Create Account',
+                label: l10n.registerTitle,
                 loading: _creating,
                 onPressed: _createAccount,
               ),
@@ -235,6 +293,7 @@ class _PersonalDetailsStep extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -243,7 +302,7 @@ class _PersonalDetailsStep extends StatelessWidget {
           children: [
             Expanded(
               child: AppTextField(
-                label: 'First Name',
+                label: l10n.registerFirstName,
                 required: true,
                 hint: 'Sarah',
                 controller: firstNameController,
@@ -254,7 +313,7 @@ class _PersonalDetailsStep extends StatelessWidget {
             const SizedBox(width: AppSpacing.md),
             Expanded(
               child: AppTextField(
-                label: 'Last Name',
+                label: l10n.registerLastName,
                 required: true,
                 hint: 'Johnson',
                 controller: lastNameController,
@@ -266,7 +325,7 @@ class _PersonalDetailsStep extends StatelessWidget {
         ),
         const SizedBox(height: AppSpacing.lg),
         AppTextField(
-          label: 'Email Address',
+          label: l10n.registerEmail,
           required: true,
           hint: 'sarah@example.com',
           controller: emailController,
@@ -276,9 +335,9 @@ class _PersonalDetailsStep extends StatelessWidget {
         ),
         const SizedBox(height: AppSpacing.lg),
         AppTextField(
-          label: 'Password',
+          label: l10n.registerPassword,
           required: true,
-          hint: 'Min. 8 characters',
+          hint: l10n.registerPasswordHint,
           obscureText: true,
           controller: passwordController,
           focusNode: passwordFocusNode,
@@ -287,9 +346,9 @@ class _PersonalDetailsStep extends StatelessWidget {
         PasswordStrengthMeter(password: passwordController.text),
         const SizedBox(height: AppSpacing.lg),
         AppTextField(
-          label: 'Confirm Password',
+          label: l10n.registerConfirmPassword,
           required: true,
-          hint: 'Re-enter your password',
+          hint: l10n.registerConfirmHint,
           obscureText: true,
           controller: confirmController,
           focusNode: confirmFocusNode,

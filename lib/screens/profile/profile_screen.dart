@@ -1,8 +1,14 @@
-import 'package:flutter/material.dart';
+﻿import 'package:flutter/material.dart';
 import '../../app_controller.dart';
+import '../../data/api/user_api.dart';
+import '../../data/api/vocabgrid_user_api.dart';
+import '../../data/auth_store.dart';
+import '../../data/deck_store.dart';
 import '../../data/mock_data.dart';
+import '../../data/review_log.dart';
 import '../../models/app_models.dart';
 import '../../models/text_size_option.dart';
+import '../../l10n/app_localizations.dart';
 import '../../theme/app_theme.dart';
 import '../../widgets/app_buttons.dart';
 import '../../widgets/app_text_field.dart';
@@ -15,6 +21,16 @@ import '../home/home_screen.dart' show initialsFor;
 import 'help_support_screen.dart';
 import 'privacy_security_screen.dart';
 
+/// Splits a display name ("Ada Lovelace") into the firstName/lastName pair
+/// the API's updateProfile requires. Everything after the first word joins
+/// into lastName, so "Ada Countess Lovelace" -> ("Ada", "Countess Lovelace").
+(String firstName, String lastName) _splitName(String name) {
+  final parts = name.trim().split(RegExp(r'\s+')).where((p) => p.isNotEmpty).toList();
+  if (parts.isEmpty) return ('', '');
+  if (parts.length == 1) return (parts.first, '');
+  return (parts.first, parts.skip(1).join(' '));
+}
+
 /// Profile: gradient identity header, editable Language Pair card, and
 /// Study Preferences / App Preferences / Account settings groups.
 class ProfileScreen extends StatelessWidget {
@@ -23,38 +39,104 @@ class ProfileScreen extends StatelessWidget {
   final UserProfile profile;
   final ValueChanged<UserProfile> onProfileChanged;
 
-  void _editCategories(BuildContext context) {
+  Future<void> _editCategories(BuildContext context) async {
+
+    final l10n = AppLocalizations.of(context);
+    final allCategories = await userApi.getCategories();
+    if (!context.mounted) return;
+
+    // An empty list is indistinguishable from "the fetch failed" (the API
+    // never throws), so don't open a picker with nothing in it — opening it
+    // anyway would let Save silently wipe the real server-side selection.
+    if (allCategories.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(l10n.profileLoadCategoriesFailed)),
+      );
+      return;
+    }
+
+    final myIds = await userApi.getMyCategoryIds();
+    if (!context.mounted) return;
+
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
       builder: (_) => CategoryPickerSheet(
-        initial: profile.categories.toSet(),
-        onSave: (categories) => onProfileChanged(profile.copyWith(categories: categories.toList())),
+        allCategories: allCategories,
+        initial: myIds.toSet(),
+        onSave: (categoryIds) async {
+          final saved = await userApi.updateMyCategories(categoryIds.toList());
+          if (!context.mounted) return;
+
+          if (saved.length != categoryIds.length) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(content: Text(l10n.profileSaveCategoriesFailed)),
+            );
+            return;
+          }
+
+          final categoryNames = allCategories.where((c) => categoryIds.contains(c.id)).map((c) => c.name).toList();
+          onProfileChanged(profile.copyWith(categories: categoryNames));
+        },
       ),
     );
   }
 
-  void _adjustGoal(int delta) {
+  Future<void> _adjustGoal(BuildContext context, int delta) async {
+
+    final l10n = AppLocalizations.of(context);
     final next = (profile.dailyGoalMinutes + delta).clamp(5, 120);
+    final (firstName, lastName) = _splitName(profile.name);
+    final result = await userApi.updateProfile(firstName: firstName, lastName: lastName, dailyGoalMinutes: next);
+    if (!context.mounted) return;
+
+    if (!result.isSuccess) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(l10n.profileSaveGoalFailed)),
+      );
+      return;
+    }
+
     onProfileChanged(profile.copyWith(dailyGoalMinutes: next));
   }
 
   /// Language pickers for the native/target pair. The opposite side is
   /// excluded so the pair can never collapse to "English → English".
   Future<void> _pickLanguage(BuildContext context, {required bool isNative}) async {
+    final l10n = AppLocalizations.of(context);
     final picked = await showModalBottomSheet<(String, String)>(
       context: context,
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
       builder: (_) => _LanguageSheet(
-        title: isNative ? 'Native Language' : 'Target Language',
+        title: isNative ? l10n.profileNativeLanguage : l10n.profileTargetLanguage,
         selected: isNative ? profile.nativeLanguage : profile.targetLanguage,
         unavailable: isNative ? profile.targetLanguage : profile.nativeLanguage,
-        unavailableNote: isNative ? "you're learning this" : 'you speak this',
+        unavailableNote: isNative ? l10n.profileLearningThis : l10n.profileYouSpeakThis,
       ),
     );
-    if (picked == null) return;
+    if (picked == null || !context.mounted) return;
+
+    final (firstName, lastName) = _splitName(profile.name);
+    final result = await userApi.updateProfile(
+      firstName: firstName,
+      lastName: lastName,
+      nativeLanguage: isNative ? picked.$1 : null,
+      nativeLanguageCode: isNative ? picked.$2 : null,
+      targetLanguage: isNative ? null : picked.$1,
+      targetLanguageCode: isNative ? null : picked.$2,
+    );
+    if (!context.mounted) return;
+
+    if (!result.isSuccess) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(result.outcome == ProfileOutcome.networkError
+            ? l10n.profileServerUnreachable
+            : (result.message ?? l10n.profileSaveLanguageFailed))),
+      );
+      return;
+    }
 
     onProfileChanged(
       isNative
@@ -64,30 +146,79 @@ class ProfileScreen extends StatelessWidget {
   }
 
   Future<void> _editPurposes(BuildContext context) async {
-    final picked = await showModalBottomSheet<Set<String>>(
+
+    final l10n = AppLocalizations.of(context);
+    final allPurposes = await userApi.getLearningPurposes();
+    if (!context.mounted) return;
+
+    // Same rationale as _editCategories: an empty list means the fetch
+    // failed, not that there's genuinely nothing to pick from.
+    if (allPurposes.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(l10n.profileLoadPurposesFailed)),
+      );
+      return;
+    }
+
+    final myIds = await userApi.getMyLearningPurposeIds();
+    if (!context.mounted) return;
+
+    final picked = await showModalBottomSheet<Set<int>>(
       context: context,
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
-      builder: (_) => _PurposesSheet(initial: profile.learningPurposes.toSet()),
+      builder: (_) => _PurposesSheet(allPurposes: allPurposes, initial: myIds.toSet()),
     );
-    if (picked == null) return;
-    onProfileChanged(profile.copyWith(learningPurposes: picked.toList()));
+    if (picked == null || !context.mounted) return;
+
+    final saved = await userApi.updateMyLearningPurposes(picked.toList());
+    if (!context.mounted) return;
+
+    if (saved.length != picked.length) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(l10n.profileSavePurposesFailed)),
+      );
+      return;
+    }
+
+    final purposeNames = allPurposes.where((p) => picked.contains(p.id)).map((p) => p.name).toList();
+    onProfileChanged(profile.copyWith(learningPurposes: purposeNames));
   }
 
   Future<void> _editProfile(BuildContext context) async {
+
+    final l10n = AppLocalizations.of(context);
     final updated = await showModalBottomSheet<({String name, String email})>(
       context: context,
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
       builder: (_) => _EditProfileSheet(name: profile.name, email: profile.email),
     );
-    if (updated == null) return;
+    if (updated == null || !context.mounted) return;
+
+    final (firstName, lastName) = _splitName(updated.name);
+    final result = await userApi.updateProfile(firstName: firstName, lastName: lastName);
+    if (!context.mounted) return;
+
+    if (!result.isSuccess) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(result.outcome == ProfileOutcome.networkError
+            ? l10n.profileServerUnreachable
+            : (result.message ?? l10n.profileSaveNameFailed))),
+      );
+      return;
+    }
+
+    // Email isn't part of the API's update contract (PUT /api/User/profile
+    // has no email field) — updating it here only changes what's shown on
+    // this device, not the account's real email on the server.
     onProfileChanged(profile.copyWith(name: updated.name, email: updated.email));
   }
 
   @override
   Widget build(BuildContext context) {
     final colors = context.appColors;
+    final l10n = AppLocalizations.of(context);
     final controller = context.appController;
 
     return Scaffold(
@@ -104,43 +235,43 @@ class ProfileScreen extends StatelessWidget {
                   _LanguagePairCard(profile: profile),
                   const SizedBox(height: AppSpacing.xl),
                   SettingsGroup(
-                    title: 'Study Preferences',
+                    title: l10n.profileStudyPreferences,
                     children: [
                       SettingsRow(
                         icon: Icons.translate_rounded,
-                        label: 'Native Language',
+                        label: l10n.profileNativeLanguage,
                         value: profile.nativeLanguage,
                         onTap: () => _pickLanguage(context, isNative: true),
                       ),
                       SettingsRow(
                         icon: Icons.flag_rounded,
-                        label: 'Target Language',
+                        label: l10n.profileTargetLanguage,
                         value: profile.targetLanguage,
                         onTap: () => _pickLanguage(context, isNative: false),
                       ),
                       SettingsRow(
                         icon: Icons.emoji_objects_rounded,
-                        label: 'Learning Purpose',
+                        label: l10n.profileLearningPurpose,
                         value: profile.learningPurposes.isEmpty
                             ? 'None yet'
-                            : '${profile.learningPurposes.length} selected',
+                            : l10n.profileSelectedCount(profile.learningPurposes.length),
                         onTap: () => _editPurposes(context),
                       ),
                       SettingsRow(
                         icon: Icons.category_rounded,
-                        label: 'Study Categories',
+                        label: l10n.profileStudyCategories,
                         trailing: Row(
                           mainAxisSize: MainAxisSize.min,
                           children: [
-                            Text('${profile.categories.length} topics', style: TextStyle(color: colors.textMuted, fontSize: 13)),
+                            Text(l10n.profileTopicsCount(profile.categories.length), style: TextStyle(color: colors.textMuted, fontSize: 13)),
                             const SizedBox(width: AppSpacing.sm),
-                            TextButton(onPressed: () => _editCategories(context), child: const Text('Edit')),
+                            TextButton(onPressed: () => _editCategories(context), child: Text(l10n.profileEdit)),
                           ],
                         ),
                       ),
                       SettingsRow(
                         icon: Icons.timer_outlined,
-                        label: 'Daily Goal',
+                        label: l10n.profileDailyGoal,
                         // Stepper buttons are full IconButtons so they meet the
                         // 48dp minimum touch target; the bare 18px InkWells
                         // they replaced were nearly impossible to hit.
@@ -150,15 +281,15 @@ class ProfileScreen extends StatelessWidget {
                             IconButton(
                               tooltip: 'Decrease daily goal',
                               visualDensity: VisualDensity.compact,
-                              onPressed: profile.dailyGoalMinutes <= 5 ? null : () => _adjustGoal(-5),
+                              onPressed: profile.dailyGoalMinutes <= 5 ? null : () => _adjustGoal(context, -5),
                               icon: const Icon(Icons.remove_circle_outline_rounded, size: 22),
                               color: colors.textSecondary,
                             ),
-                            Text('${profile.dailyGoalMinutes} min', style: TextStyle(color: colors.primary, fontWeight: FontWeight.w700)),
+                            Text(l10n.profileMinutes(profile.dailyGoalMinutes), style: TextStyle(color: colors.primary, fontWeight: FontWeight.w700)),
                             IconButton(
-                              tooltip: 'Increase daily goal',
+                              tooltip: l10n.profileIncreaseGoal,
                               visualDensity: VisualDensity.compact,
-                              onPressed: profile.dailyGoalMinutes >= 120 ? null : () => _adjustGoal(5),
+                              onPressed: profile.dailyGoalMinutes >= 120 ? null : () => _adjustGoal(context, 5),
                               icon: const Icon(Icons.add_circle_outline_rounded, size: 22),
                               color: colors.textSecondary,
                             ),
@@ -171,16 +302,16 @@ class ProfileScreen extends StatelessWidget {
                   AnimatedBuilder(
                     animation: controller,
                     builder: (context, _) => SettingsGroup(
-                      title: 'App Preferences',
+                      title: l10n.profileAppPreferences,
                       children: [
                         SettingsRow(
                           icon: Icons.dark_mode_rounded,
-                          label: 'Dark Mode',
+                          label: l10n.profileDarkMode,
                           trailing: Switch(value: controller.isDarkMode, onChanged: controller.setDarkMode),
                         ),
                         SettingsRow(
                           icon: Icons.volume_up_rounded,
-                          label: 'Sound Effects',
+                          label: l10n.profileSoundEffects,
                           trailing: Switch(value: controller.soundEnabled, onChanged: controller.setSoundEnabled),
                         ),
                         const ReminderRow(),
@@ -190,7 +321,7 @@ class ProfileScreen extends StatelessWidget {
                             children: [
                               Icon(Icons.palette_rounded, size: 20, color: colors.primary),
                               const SizedBox(width: AppSpacing.md),
-                              Expanded(child: Text('Theme Color', style: TextStyle(color: colors.textPrimary, fontSize: 15))),
+                              Expanded(child: Text(l10n.profileThemeColor, style: TextStyle(color: colors.textPrimary, fontSize: 15))),
                               for (final accent in AccentColor.values)
                                 Padding(
                                   padding: const EdgeInsets.only(left: 6),
@@ -220,29 +351,34 @@ class ProfileScreen extends StatelessWidget {
                                 children: [
                                   Icon(Icons.format_size_rounded, size: 20, color: colors.primary),
                                   const SizedBox(width: AppSpacing.md),
-                                  Text('Text Size', style: TextStyle(color: colors.textPrimary, fontSize: 15)),
+                                  Text(l10n.profileTextSize, style: TextStyle(color: colors.textPrimary, fontSize: 15)),
                                   const Spacer(),
                                   Text(controller.textSize.label, style: TextStyle(color: colors.textMuted, fontSize: 12)),
                                 ],
                               ),
-                              const SizedBox(height: AppSpacing.sm),
-                              Wrap(
-                                spacing: AppSpacing.sm,
-                                runSpacing: AppSpacing.sm,
-                                children: TextSizeOption.values
-                                    .map((opt) => ChoiceChipButton(
-                                          label: opt.label,
-                                          selected: controller.textSize == opt,
-                                          onTap: () => controller.setTextSize(opt),
-                                        ))
-                                    .toList(),
+                              Row(
+                                children: [
+                                  Icon(Icons.text_fields_rounded, size: 14, color: colors.textMuted),
+                                  Expanded(
+                                    child: Slider(
+                                      value: TextSizeOption.values.indexOf(controller.textSize).toDouble(),
+                                      min: 0,
+                                      max: (TextSizeOption.values.length - 1).toDouble(),
+                                      divisions: TextSizeOption.values.length - 1,
+                                      label: controller.textSize.label,
+                                      activeColor: colors.primary,
+                                      onChanged: (v) => controller.setTextSize(TextSizeOption.values[v.round()]),
+                                    ),
+                                  ),
+                                  Icon(Icons.text_fields_rounded, size: 22, color: colors.textMuted),
+                                ],
                               ),
                             ],
                           ),
                         ),
                         SettingsRow(
                           icon: Icons.tune_rounded,
-                          label: 'Difficulty Mode',
+                          label: l10n.profileDifficultyMode,
                           value: controller.difficulty.label,
                           onTap: () => _showDifficultyPicker(context, controller),
                         ),
@@ -251,19 +387,19 @@ class ProfileScreen extends StatelessWidget {
                   ),
                   const SizedBox(height: AppSpacing.xl),
                   SettingsGroup(
-                    title: 'Account',
+                    title: l10n.profileAccount,
                     children: [
-                      SettingsRow(icon: Icons.edit_rounded, label: 'Edit Profile', onTap: () => _editProfile(context)),
+                      SettingsRow(icon: Icons.edit_rounded, label: l10n.profileEditProfile, onTap: () => _editProfile(context)),
                       SettingsRow(
                         icon: Icons.lock_rounded,
-                        label: 'Privacy & Security',
+                        label: l10n.profilePrivacySecurity,
                         onTap: () => Navigator.of(context).push(
                           MaterialPageRoute(builder: (_) => const PrivacySecurityScreen()),
                         ),
                       ),
                       SettingsRow(
                         icon: Icons.diamond_rounded,
-                        label: 'Upgrade to Premium',
+                        label: l10n.profileUpgradePremium,
                         iconColor: colors.srsHard,
                         trailing: Container(
                           padding: const EdgeInsets.symmetric(horizontal: AppSpacing.sm, vertical: 3),
@@ -273,14 +409,14 @@ class ProfileScreen extends StatelessWidget {
                       ),
                       SettingsRow(
                         icon: Icons.help_rounded,
-                        label: 'Help & Support',
+                        label: l10n.profileHelpSupport,
                         onTap: () => Navigator.of(context).push(
                           MaterialPageRoute(builder: (_) => const HelpSupportScreen()),
                         ),
                       ),
                       SettingsRow(
                         icon: Icons.logout_rounded,
-                        label: 'Log Out',
+                        label: l10n.profileLogOut,
                         iconColor: colors.danger,
                         // Signing out returns to sign-in, not the first-run
                         // onboarding carousel — that has already been seen.
@@ -299,21 +435,33 @@ class ProfileScreen extends StatelessWidget {
   }
 
   Future<void> _confirmLogOut(BuildContext context) async {
+
+    final l10n = AppLocalizations.of(context);
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
-        title: const Text('Log out?'),
-        content: const Text('You will need to sign in again to continue learning.'),
+        title: Text(l10n.profileLogOutConfirm),
+        content: Text(l10n.profileLogOutBody),
         actions: [
-          TextButton(onPressed: () => Navigator.of(context).pop(false), child: const Text('Cancel')),
+          TextButton(onPressed: () => Navigator.of(context).pop(false), child: Text(l10n.commonCancel)),
           TextButton(
             onPressed: () => Navigator.of(context).pop(true),
-            child: Text('Log Out', style: TextStyle(color: context.appColors.danger)),
+            child: Text(l10n.profileLogOut, style: TextStyle(color: context.appColors.danger)),
           ),
         ],
       ),
     );
     if (confirmed != true || !context.mounted) return;
+
+    await AuthStore.api.logout();
+    // Clear this account's decks/cards/queued writes so the next person to
+    // sign in on this device doesn't inherit them — the cache would
+    // otherwise flash stale content, and any pending offline writes would
+    // flush straight into the next account.
+    await DeckStore.writeQueue.clear();
+    await DeckStore.clearLibrary();
+    await ReviewLog.clear();
+    if (!context.mounted) return;
 
     Navigator.of(context).pushAndRemoveUntil(
       MaterialPageRoute(builder: (_) => const LoginScreen()),
@@ -351,6 +499,7 @@ class _ProfileHeader extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final colors = context.appColors;
+    final l10n = AppLocalizations.of(context);
     return Container(
       width: double.infinity,
       padding: const EdgeInsets.fromLTRB(AppSpacing.lg, AppSpacing.lg, AppSpacing.lg, AppSpacing.xxl),
@@ -375,9 +524,9 @@ class _ProfileHeader extends StatelessWidget {
                 const SizedBox(height: AppSpacing.sm),
                 Row(
                   children: [
-                    _pill('⭐ Level ${profile.level}', Colors.white.withValues(alpha: 0.2)),
+                    _pill(l10n.profileLevelBadge(profile.level), Colors.white.withValues(alpha: 0.2)),
                     const SizedBox(width: AppSpacing.sm),
-                    _pill('🔥 ${profile.streakDays}-day streak', Colors.black.withValues(alpha: 0.2)),
+                    _pill(l10n.profileStreakBadge(profile.streakDays), Colors.black.withValues(alpha: 0.2)),
                   ],
                 ),
               ],
@@ -406,6 +555,7 @@ class _LanguagePairCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final colors = context.appColors;
+    final l10n = AppLocalizations.of(context);
     return SectionCard(
       child: Row(
         children: [
@@ -415,7 +565,7 @@ class _LanguagePairCard extends StatelessWidget {
                 LanguageBadge(code: profile.nativeLanguageCode),
                 const SizedBox(height: AppSpacing.sm),
                 Text(profile.nativeLanguage, style: TextStyle(fontWeight: FontWeight.w700, color: colors.textPrimary)),
-                Text('Native', style: TextStyle(color: colors.textMuted, fontSize: 11)),
+                Text(l10n.profileNative, style: TextStyle(color: colors.textMuted, fontSize: 11)),
               ],
             ),
           ),
@@ -453,6 +603,7 @@ class _SheetScaffold extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final colors = context.appColors;
+    final l10n = AppLocalizations.of(context);
     return Padding(
       padding: EdgeInsets.only(bottom: MediaQuery.of(context).viewInsets.bottom),
       child: Container(
@@ -472,7 +623,7 @@ class _SheetScaffold extends StatelessWidget {
                   Expanded(child: Text(title, style: Theme.of(context).textTheme.titleLarge)),
                   if (trailing != null) trailing!,
                   IconButton(
-                    tooltip: 'Close',
+                    tooltip: l10n.profileClose,
                     onPressed: () => Navigator.of(context).pop(),
                     icon: const Icon(Icons.close_rounded),
                   ),
@@ -549,48 +700,50 @@ class _LanguageSheet extends StatelessWidget {
   }
 }
 
-/// Multi-select for "Learning Purpose", backed by [MockData.learningPurposes].
+/// Multi-select for "Learning Purpose", backed by the API's reference list.
 class _PurposesSheet extends StatefulWidget {
-  const _PurposesSheet({required this.initial});
+  const _PurposesSheet({required this.allPurposes, required this.initial});
 
-  final Set<String> initial;
+  final List<LearningPurposeData> allPurposes;
+  final Set<int> initial;
 
   @override
   State<_PurposesSheet> createState() => _PurposesSheetState();
 }
 
 class _PurposesSheetState extends State<_PurposesSheet> {
-  late final Set<String> _selected = Set.of(widget.initial);
+  late final Set<int> _selected = Set.of(widget.initial);
 
   @override
   Widget build(BuildContext context) {
     final colors = context.appColors;
+    final l10n = AppLocalizations.of(context);
     return _SheetScaffold(
-      title: 'Learning Purpose',
+      title: l10n.profileLearningPurpose,
       trailing: Text(
-        '${_selected.length} selected',
+        l10n.profileSelectedCount(_selected.length),
         style: TextStyle(color: colors.primary, fontSize: 12, fontWeight: FontWeight.w700),
       ),
       child: SingleChildScrollView(
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text('Why are you learning? Pick as many as apply.', style: TextStyle(color: colors.textMuted, fontSize: 13)),
+            Text(l10n.profileWhyLearning, style: TextStyle(color: colors.textMuted, fontSize: 13)),
             const SizedBox(height: AppSpacing.lg),
             Wrap(
               spacing: AppSpacing.sm,
               runSpacing: AppSpacing.sm,
-              children: MockData.learningPurposes
+              children: widget.allPurposes
                   .map((purpose) => ChoiceChipButton(
-                        label: purpose,
-                        selected: _selected.contains(purpose),
+                        label: purpose.name,
+                        selected: _selected.contains(purpose.id),
                         onTap: () => setState(() =>
-                            _selected.contains(purpose) ? _selected.remove(purpose) : _selected.add(purpose)),
+                            _selected.contains(purpose.id) ? _selected.remove(purpose.id) : _selected.add(purpose.id)),
                       ))
                   .toList(),
             ),
             const SizedBox(height: AppSpacing.xl),
-            PrimaryButton(label: 'Save', onPressed: () => Navigator.of(context).pop(_selected)),
+            PrimaryButton(label: l10n.commonSave, onPressed: () => Navigator.of(context).pop(_selected)),
           ],
         ),
       ),
@@ -620,29 +773,33 @@ class _EditProfileSheetState extends State<_EditProfileSheet> {
     super.dispose();
   }
 
-  String? get _nameError => _nameController.text.trim().isEmpty ? 'Name is required' : null;
+  String? get _nameError => _nameController.text.trim().isEmpty ? AppLocalizations.of(context).profileNameRequired : null;
 
   String? get _emailError {
     final value = _emailController.text.trim();
-    if (value.isEmpty) return 'Email is required';
+    final l10n = AppLocalizations.of(context);
+    if (value.isEmpty) return l10n.profileEmailRequired;
     if (!value.contains('@') || value.startsWith('@') || value.endsWith('@')) {
-      return 'Enter a valid email address';
+      return l10n.forgotInvalidEmail;
     }
     return null;
   }
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
     return _SheetScaffold(
-      title: 'Edit Profile',
+      title: l10n.profileEditProfile,
       child: SingleChildScrollView(
         child: AnimatedBuilder(
           animation: Listenable.merge([_nameController, _emailController]),
-          builder: (context, _) => Column(
+          builder: (context, _) {
+            final l10n = AppLocalizations.of(context);
+            return Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               AppTextField(
-                label: 'Full Name',
+                label: l10n.profileFullName,
                 required: true,
                 hint: 'Sarah Johnson',
                 controller: _nameController,
@@ -651,7 +808,7 @@ class _EditProfileSheetState extends State<_EditProfileSheet> {
               ),
               const SizedBox(height: AppSpacing.lg),
               AppTextField(
-                label: 'Email Address',
+                label: l10n.profileEmailAddress,
                 required: true,
                 hint: 'sarah@example.com',
                 controller: _emailController,
@@ -670,7 +827,8 @@ class _EditProfileSheetState extends State<_EditProfileSheet> {
                         )),
               ),
             ],
-          ),
+            );
+          },
         ),
       ),
     );

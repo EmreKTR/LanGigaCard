@@ -1,7 +1,10 @@
-import 'package:flutter/material.dart';
+﻿import 'package:flutter/material.dart';
+import 'package:intl/intl.dart';
+import '../../data/deck_store.dart';
 import '../../data/mock_data.dart';
 import '../../data/review_log.dart';
 import '../../models/app_models.dart';
+import '../../l10n/app_localizations.dart';
 import '../../theme/app_theme.dart';
 import '../../widgets/progress_ring.dart';
 import '../../widgets/refreshable.dart';
@@ -10,10 +13,10 @@ import '../../widgets/section_card.dart';
 enum _StatsRange { daily, weekly, monthly }
 
 extension _StatsRangeX on _StatsRange {
-  String get label => switch (this) {
-        _StatsRange.daily => 'Daily',
-        _StatsRange.weekly => 'Weekly',
-        _StatsRange.monthly => 'Monthly',
+  String label(AppLocalizations l10n) => switch (this) {
+        _StatsRange.daily => l10n.statsDaily,
+        _StatsRange.weekly => l10n.statsWeekly,
+        _StatsRange.monthly => l10n.statsMonthly,
       };
 
   /// Bars for this range, counted from the real review log. The switcher used
@@ -48,26 +51,27 @@ extension _StatsRangeX on _StatsRange {
     return total;
   }
 
-  List<String> labelsFor(DateTime now) {
-    const weekdays = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
+  List<String> labelsFor(DateTime now, String locale) {
+    final weekday = DateFormat.E(locale);
+    final monthFormat = DateFormat.MMM(locale);
     final today = ReviewLog.dayOf(now);
     return switch (this) {
       _StatsRange.daily => List.generate(
           7,
-          (i) => weekdays[today.subtract(Duration(days: 6 - i)).weekday - 1],
+          (i) => weekday.format(today.subtract(Duration(days: 6 - i))),
         ),
       _StatsRange.weekly => const ['W1', 'W2', 'W3', 'W4'],
       _StatsRange.monthly => List.generate(6, (month) {
           final date = DateTime(now.year, now.month - (5 - month), 1);
-          return _monthNames[date.month - 1];
+          return monthFormat.format(date);
         }),
     };
   }
 
-  String get chartTitle => switch (this) {
-        _StatsRange.daily => 'Reviews, last 7 days',
-        _StatsRange.weekly => 'Reviews, last 4 weeks',
-        _StatsRange.monthly => 'Reviews, last 6 months',
+  String chartTitle(AppLocalizations l10n) => switch (this) {
+        _StatsRange.daily => l10n.statsChartDaily,
+        _StatsRange.weekly => l10n.statsChartWeekly,
+        _StatsRange.monthly => l10n.statsChartMonthly,
       };
 }
 
@@ -110,23 +114,27 @@ class _StatisticsScreenState extends State<StatisticsScreen> {
   @override
   Widget build(BuildContext context) {
     final colors = context.appColors;
+    final l10n = AppLocalizations.of(context);
+    // Month and weekday names are formatted by intl for whichever locale the
+    // app is currently showing, so they follow the interface language.
+    final localeName = Localizations.localeOf(context).toString();
     final earnedCount = MockData.achievements.where((a) => a.earned).length;
     final stats = _stats ?? ReviewStats.empty;
 
     return Scaffold(
-      appBar: AppBar(title: const Text('Statistics')),
+      appBar: AppBar(title: Text(l10n.statsTitle)),
       body: SafeArea(
         top: false,
         // The library breakdown reads live card data, so redraw when cards
         // are added, rated or deleted on another screen.
         child: ValueListenableBuilder<int>(
-          valueListenable: MockData.revision,
+          valueListenable: DeckStore.revision,
           builder: (context, _, __) => Refreshable(
             child: ListView(
           physics: const AlwaysScrollableScrollPhysics(),
           padding: const EdgeInsets.all(AppSpacing.lg),
           children: [
-            Text('Your learning journey in numbers', style: TextStyle(color: colors.textMuted, fontSize: 13)),
+            Text(l10n.statsSubtitle, style: TextStyle(color: colors.textMuted, fontSize: 13)),
             const SizedBox(height: AppSpacing.lg),
             _RangeSwitcher(range: _range, onChanged: (r) => setState(() => _range = r)),
             const SizedBox(height: AppSpacing.lg),
@@ -136,10 +144,10 @@ class _StatisticsScreenState extends State<StatisticsScreen> {
               children: [
                 Expanded(
                   child: _MetricCard(
-                    icon: Icons.local_fire_department_rounded,
+                    icon: Icons.bolt_rounded,
                     value: '${stats.streakDays}',
                     delta: stats.streakDays == 1 ? 'day' : 'days',
-                    label: 'Streak',
+                    label: l10n.statsStreak,
                     color: colors.primary,
                   ),
                 ),
@@ -148,8 +156,8 @@ class _StatisticsScreenState extends State<StatisticsScreen> {
                   child: _MetricCard(
                     icon: Icons.menu_book_rounded,
                     value: '${stats.total}',
-                    delta: '+${stats.reviewedToday} today',
-                    label: 'Reviews',
+                    delta: l10n.statsTodayDelta(stats.reviewedToday),
+                    label: l10n.statsReviews,
                     color: colors.srsHard,
                   ),
                 ),
@@ -158,8 +166,8 @@ class _StatisticsScreenState extends State<StatisticsScreen> {
                   child: _MetricCard(
                     icon: Icons.track_changes_rounded,
                     value: stats.total == 0 ? '—' : '${stats.accuracyPercent}%',
-                    delta: stats.total == 0 ? 'no data' : '${stats.correct}/${stats.total}',
-                    label: 'Recall',
+                    delta: stats.total == 0 ? l10n.statsNoData : '${stats.correct}/${stats.total}',
+                    label: l10n.statsRecall,
                     color: colors.success,
                   ),
                 ),
@@ -169,8 +177,8 @@ class _StatisticsScreenState extends State<StatisticsScreen> {
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                Text('Learning Heatmap', style: Theme.of(context).textTheme.titleLarge),
-                Text(_monthLabel(DateTime.now()), style: TextStyle(color: colors.textMuted, fontSize: 12)),
+                Text(l10n.statsHeatmap, style: Theme.of(context).textTheme.titleLarge),
+                Text(_monthLabel(DateTime.now(), localeName), style: TextStyle(color: colors.textMuted, fontSize: 12)),
               ],
             ),
             const SizedBox(height: AppSpacing.md),
@@ -181,8 +189,8 @@ class _StatisticsScreenState extends State<StatisticsScreen> {
               const SizedBox(height: AppSpacing.sm),
               Text(
                 stats.streakDays > 0
-                    ? '${stats.streakDays}-day streak · ${stats.total} reviews logged'
-                    : '${stats.total} reviews logged',
+                    ? l10n.statsStreakSummary(stats.streakDays, stats.total)
+                    : l10n.statsReviewsLogged(stats.total),
                 style: TextStyle(color: colors.textMuted, fontSize: 12),
               ),
             ],
@@ -190,12 +198,12 @@ class _StatisticsScreenState extends State<StatisticsScreen> {
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                Expanded(child: Text(_range.chartTitle, style: Theme.of(context).textTheme.titleLarge)),
+                Expanded(child: Text(_range.chartTitle(l10n), style: Theme.of(context).textTheme.titleLarge)),
                 Container(
                   padding: const EdgeInsets.symmetric(horizontal: AppSpacing.sm + 2, vertical: 3),
                   decoration: BoxDecoration(color: colors.primary.withValues(alpha: 0.14), borderRadius: BorderRadius.circular(AppRadius.pill)),
                   child: Text(
-                    '${_range.seriesFrom(stats.perDay, DateTime.now()).fold<int>(0, (a, b) => a + b)} total',
+                    l10n.statsChartTotal(_range.seriesFrom(stats.perDay, DateTime.now()).fold<int>(0, (a, b) => a + b)),
                     style: TextStyle(color: colors.primary, fontSize: 11, fontWeight: FontWeight.w700),
                   ),
                 ),
@@ -204,18 +212,18 @@ class _StatisticsScreenState extends State<StatisticsScreen> {
             const SizedBox(height: AppSpacing.md),
             _WordsReviewedChart(
               data: _range.seriesFrom(stats.perDay, DateTime.now()),
-              labels: _range.labelsFor(DateTime.now()),
+              labels: _range.labelsFor(DateTime.now(), localeName),
             ),
             const SizedBox(height: AppSpacing.xxl),
-            Text('Library Breakdown', style: Theme.of(context).textTheme.titleLarge),
+            Text(l10n.statsLibraryBreakdown, style: Theme.of(context).textTheme.titleLarge),
             const SizedBox(height: AppSpacing.md),
-            _LibraryBreakdown(cards: List.unmodifiable(MockData.cards)),
+            _LibraryBreakdown(cards: List.unmodifiable(DeckStore.cards)),
             const SizedBox(height: AppSpacing.xxl),
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                Text('Achievements', style: Theme.of(context).textTheme.titleLarge),
-                Text('$earnedCount / ${MockData.achievements.length} earned', style: TextStyle(color: colors.textMuted, fontSize: 12)),
+                Text(l10n.statsAchievements, style: Theme.of(context).textTheme.titleLarge),
+                Text(l10n.statsEarned(earnedCount, MockData.achievements.length), style: TextStyle(color: colors.textMuted, fontSize: 12)),
               ],
             ),
             const SizedBox(height: AppSpacing.md),
@@ -229,9 +237,9 @@ class _StatisticsScreenState extends State<StatisticsScreen> {
   }
 }
 
-const _monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
 
-String _monthLabel(DateTime now) => '${_monthNames[now.month - 1]} ${now.year}';
+
+String _monthLabel(DateTime now, String locale) => DateFormat.yMMM(locale).format(now);
 
 class _RangeSwitcher extends StatelessWidget {
   const _RangeSwitcher({required this.range, required this.onChanged});
@@ -242,6 +250,7 @@ class _RangeSwitcher extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final colors = context.appColors;
+    final l10n = AppLocalizations.of(context);
     return Container(
       padding: const EdgeInsets.all(4),
       decoration: BoxDecoration(color: colors.surfaceElevated, borderRadius: BorderRadius.circular(AppRadius.md)),
@@ -260,7 +269,7 @@ class _RangeSwitcher extends StatelessWidget {
                 ),
                 alignment: Alignment.center,
                 child: Text(
-                  r.label,
+                  r.label(l10n),
                   style: TextStyle(color: selected ? Colors.white : colors.textSecondary, fontWeight: FontWeight.w600, fontSize: 13),
                 ),
               ),
@@ -314,6 +323,7 @@ class _HeatmapCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final colors = context.appColors;
+    final l10n = AppLocalizations.of(context);
     return SectionCard(
       child: Column(
         children: [
@@ -347,7 +357,7 @@ class _HeatmapCard extends StatelessWidget {
           Row(
             mainAxisAlignment: MainAxisAlignment.end,
             children: [
-              Text('Less', style: TextStyle(color: colors.textMuted, fontSize: 10)),
+              Text(l10n.statsLess, style: TextStyle(color: colors.textMuted, fontSize: 10)),
               const SizedBox(width: AppSpacing.xs),
               for (int i = 0; i <= 3; i++)
                 Container(
@@ -357,7 +367,7 @@ class _HeatmapCard extends StatelessWidget {
                   decoration: BoxDecoration(color: _cellColor(colors, i), borderRadius: BorderRadius.circular(2)),
                 ),
               const SizedBox(width: AppSpacing.xs),
-              Text('More', style: TextStyle(color: colors.textMuted, fontSize: 10)),
+              Text(l10n.statsMore, style: TextStyle(color: colors.textMuted, fontSize: 10)),
             ],
           ),
         ],
@@ -375,11 +385,12 @@ class _WordsReviewedChart extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final colors = context.appColors;
+    final l10n = AppLocalizations.of(context);
     if (data.isEmpty) {
       return SectionCard(
         child: SizedBox(
           height: 140,
-          child: Center(child: Text('No activity yet', style: TextStyle(color: colors.textMuted))),
+          child: Center(child: Text(l10n.statsNoActivity, style: TextStyle(color: colors.textMuted))),
         ),
       );
     }
@@ -444,6 +455,7 @@ class _LibraryBreakdown extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final colors = context.appColors;
+    final l10n = AppLocalizations.of(context);
     final total = cards.length;
 
     if (total == 0) {
@@ -451,7 +463,7 @@ class _LibraryBreakdown extends StatelessWidget {
         child: SizedBox(
           height: 76,
           child: Center(
-            child: Text('Add some cards to see your progress', style: TextStyle(color: colors.textMuted)),
+            child: Text(l10n.statsAddCards, style: TextStyle(color: colors.textMuted)),
           ),
         ),
       );
@@ -480,11 +492,11 @@ class _LibraryBreakdown extends StatelessWidget {
           Expanded(
             child: Column(
               children: [
-                _breakdownRow(colors, 'Mastered', mastered, colors.mastered, 'breakdown-mastered'),
+                _breakdownRow(colors, l10n.detailMastered, mastered, colors.mastered, 'breakdown-mastered'),
                 const SizedBox(height: AppSpacing.sm),
-                _breakdownRow(colors, 'Learning', learning, colors.learning, 'breakdown-learning'),
+                _breakdownRow(colors, l10n.detailLearning, learning, colors.learning, 'breakdown-learning'),
                 const SizedBox(height: AppSpacing.sm),
-                _breakdownRow(colors, 'Review Due', due, colors.reviewDue, 'breakdown-due'),
+                _breakdownRow(colors, l10n.decksReviewDue, due, colors.reviewDue, 'breakdown-due'),
               ],
             ),
           ),
