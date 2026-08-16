@@ -3,6 +3,7 @@ import '../../data/deck_store.dart';
 import '../../data/pronunciation_service.dart';
 import '../../data/review_log.dart';
 import '../../models/app_models.dart';
+import '../../l10n/app_localizations.dart';
 import '../../theme/app_theme.dart';
 import '../../widgets/app_buttons.dart';
 import '../../widgets/flip_card.dart';
@@ -118,7 +119,9 @@ class _StudySessionScreenState extends State<StudySessionScreen> {
     }
 
     final colors = context.appColors;
-    final deckName = widget.deck?.name ?? 'All decks';
+
+    final l10n = AppLocalizations.of(context);
+    final deckName = widget.deck?.name ?? l10n.studyAllDecks;
     final dueCount = queue.where((c) => c.strength == MemoryStrength.reviewDue).length;
 
     return Scaffold(
@@ -126,7 +129,7 @@ class _StudySessionScreenState extends State<StudySessionScreen> {
         child: Column(
           children: [
             FocusHeader(progress: (_index + 1) / queue.length, trailing: CountPill(count: queue.length - _index)),
-            StudyMetaBar(title: 'Daily Review · $deckName', dueCount: dueCount),
+            StudyMetaBar(title: l10n.studyDailyReview(deckName), dueCount: dueCount),
             Expanded(
               child: Padding(
                 padding: const EdgeInsets.symmetric(horizontal: AppSpacing.lg),
@@ -143,8 +146,8 @@ class _StudySessionScreenState extends State<StudySessionScreen> {
                       child: Semantics(
                         button: true,
                         label: _flipped
-                            ? 'Answer: ${_current.translation}. Tap to see the word again. Swipe to skip, or rate below.'
-                            : 'Word: ${_current.term}. Tap to reveal the translation.',
+                            ? l10n.studyAnswerHint(_current.translation)
+                            : l10n.studyWordHint(_current.term),
                         child: SwipeToRate(
                           // Swipe only arms once the answer is showing — skipping
                           // a card you haven't checked yet makes no sense.
@@ -172,8 +175,8 @@ class _StudySessionScreenState extends State<StudySessionScreen> {
               padding: const EdgeInsets.symmetric(vertical: AppSpacing.sm),
               child: Text(
                 _flipped
-                    ? 'Rate below, or swipe to skip without rating'
-                    : 'Recall the translation, then flip to check',
+                    ? l10n.studyRateBelow
+                    : l10n.studyRecallHint,
                 textAlign: TextAlign.center,
                 style: TextStyle(color: colors.textMuted, fontSize: 12),
               ),
@@ -207,6 +210,7 @@ class _NothingDueView extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final colors = context.appColors;
+    final l10n = AppLocalizations.of(context);
     return Scaffold(
       appBar: AppBar(leading: const CloseButton()),
       body: SafeArea(
@@ -217,12 +221,12 @@ class _NothingDueView extends StatelessWidget {
             children: [
               Icon(Icons.check_circle_outline_rounded, size: 72, color: colors.success),
               const SizedBox(height: AppSpacing.lg),
-              Text('Nothing due right now', style: Theme.of(context).textTheme.headlineMedium, textAlign: TextAlign.center),
+              Text(l10n.studyNothingDue, style: Theme.of(context).textTheme.headlineMedium, textAlign: TextAlign.center),
               const SizedBox(height: AppSpacing.sm),
               Text(
                 deckName == null
-                    ? 'Every card you\'re learning is up to date. Add new words or come back when reviews are due.'
-                    : 'You\'ve mastered everything in $deckName. Add new words to keep going.',
+                    ? l10n.studyAllUpToDate
+                    : l10n.studyDeckMastered(deckName!),
                 textAlign: TextAlign.center,
                 style: TextStyle(color: colors.textMuted),
               ),
@@ -231,7 +235,7 @@ class _NothingDueView extends StatelessWidget {
                 width: double.infinity,
                 child: OutlinedButton(
                   onPressed: () => Navigator.of(context).maybePop(),
-                  child: const Text('Back to Decks'),
+                  child: Text(l10n.studyBackToDecks),
                 ),
               ),
             ],
@@ -252,6 +256,7 @@ class _QueueLoadErrorView extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final colors = context.appColors;
+    final l10n = AppLocalizations.of(context);
     return Scaffold(
       body: SafeArea(
         child: Padding(
@@ -261,7 +266,7 @@ class _QueueLoadErrorView extends StatelessWidget {
             children: [
               Icon(Icons.cloud_off_rounded, size: 56, color: colors.textMuted),
               const SizedBox(height: AppSpacing.lg),
-              Text("Couldn't load your review queue", style: Theme.of(context).textTheme.headlineMedium, textAlign: TextAlign.center),
+              Text(l10n.studyQueueFailed, style: Theme.of(context).textTheme.headlineMedium, textAlign: TextAlign.center),
               const SizedBox(height: AppSpacing.sm),
               Text(
                 "Check your connection and try again.",
@@ -269,7 +274,7 @@ class _QueueLoadErrorView extends StatelessWidget {
                 style: TextStyle(color: colors.textMuted),
               ),
               const SizedBox(height: AppSpacing.xxl),
-              SizedBox(width: double.infinity, child: PrimaryButton(label: 'Try Again', onPressed: onRetry)),
+              SizedBox(width: double.infinity, child: PrimaryButton(label: l10n.commonTryAgain, onPressed: onRetry)),
             ],
           ),
         ),
@@ -289,6 +294,7 @@ class _QuestionFace extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final colors = context.appColors;
+    final l10n = AppLocalizations.of(context);
     return Container(
       width: double.infinity,
       constraints: const BoxConstraints(minHeight: 280),
@@ -324,11 +330,11 @@ class _QuestionFace extends StatelessWidget {
                     ),
                   )
                 else
-                  Text('[ tap to see example ]', style: TextStyle(color: Colors.white.withValues(alpha: 0.6), fontStyle: FontStyle.italic, fontSize: 13)),
+                  Text(l10n.studyTapToSeeExample, style: TextStyle(color: Colors.white.withValues(alpha: 0.6), fontStyle: FontStyle.italic, fontSize: 13)),
                 const SizedBox(height: AppSpacing.lg),
-                _pillButton(Icons.article_outlined, 'Show Example Sentence', onShowExample),
+                _pillButton(Icons.article_outlined, l10n.studyShowExample, onShowExample),
                 const SizedBox(height: AppSpacing.sm),
-                _pillButton(Icons.touch_app_outlined, 'Tap to reveal translation', onFlip),
+                _pillButton(Icons.touch_app_outlined, l10n.studyTapToReveal, onFlip),
               ],
             ),
           ),
@@ -393,9 +399,10 @@ class _PronounceChipState extends State<_PronounceChip> {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
     return Semantics(
       button: true,
-      label: 'Hear ${widget.term} pronounced',
+      label: l10n.studyHearPronounced(widget.term),
       child: InkWell(
         onTap: _speak,
         borderRadius: BorderRadius.circular(AppRadius.pill),
@@ -410,7 +417,7 @@ class _PronounceChipState extends State<_PronounceChip> {
             children: [
               Icon(_speaking ? Icons.graphic_eq_rounded : Icons.volume_up_rounded, size: 15, color: Colors.white),
               const SizedBox(width: 6),
-              const Text('Hear it', style: TextStyle(color: Colors.white, fontSize: 12, fontWeight: FontWeight.w600)),
+              Text(l10n.studyHearIt, style: TextStyle(color: Colors.white, fontSize: 12, fontWeight: FontWeight.w600)),
             ],
           ),
         ),
@@ -427,6 +434,7 @@ class _AnswerFace extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final colors = context.appColors;
+    final l10n = AppLocalizations.of(context);
     return Container(
       width: double.infinity,
       constraints: const BoxConstraints(minHeight: 280),
@@ -437,7 +445,7 @@ class _AnswerFace extends StatelessWidget {
           crossAxisAlignment: CrossAxisAlignment.start,
           mainAxisSize: MainAxisSize.min,
           children: [
-            Text('TRANSLATION', style: TextStyle(color: colors.textMuted, fontSize: 11, fontWeight: FontWeight.w700, letterSpacing: 1)),
+            Text(l10n.studyTranslationLabel, style: TextStyle(color: colors.textMuted, fontSize: 11, fontWeight: FontWeight.w700, letterSpacing: 1)),
             const SizedBox(height: AppSpacing.sm),
             Text(card.translation, style: TextStyle(color: colors.textPrimary, fontSize: 26, fontWeight: FontWeight.w800)),
             if (card.imageUrl != null) ...[
@@ -445,7 +453,7 @@ class _AnswerFace extends StatelessWidget {
               _CardImage(url: card.imageUrl!),
             ],
             const SizedBox(height: AppSpacing.xl),
-            Text('EXAMPLE', style: TextStyle(color: colors.textMuted, fontSize: 11, fontWeight: FontWeight.w700, letterSpacing: 1)),
+            Text(l10n.studyExampleLabel, style: TextStyle(color: colors.textMuted, fontSize: 11, fontWeight: FontWeight.w700, letterSpacing: 1)),
             const SizedBox(height: AppSpacing.sm),
             Text(card.exampleSentence, style: TextStyle(color: colors.textSecondary, fontStyle: FontStyle.italic, fontSize: 14)),
           ],
@@ -465,6 +473,7 @@ class _CardImage extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final colors = context.appColors;
+    final l10n = AppLocalizations.of(context);
     return ClipRRect(
       borderRadius: BorderRadius.circular(AppRadius.md),
       child: Image.network(
@@ -481,7 +490,7 @@ class _CardImage extends StatelessWidget {
             children: [
               Icon(Icons.broken_image_outlined, size: 18, color: colors.textMuted),
               const SizedBox(width: AppSpacing.sm),
-              Text("Image didn't load", style: TextStyle(color: colors.textMuted, fontSize: 12)),
+              Text(l10n.studyImageFailed, style: TextStyle(color: colors.textMuted, fontSize: 12)),
             ],
           ),
         ),
@@ -508,6 +517,7 @@ class _ResultsView extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final colors = context.appColors;
+    final l10n = AppLocalizations.of(context);
     final confidence = total == 0 ? 0 : (((tally[SrsRating.easy] ?? 0) + (tally[SrsRating.medium] ?? 0)) / total * 100).round();
 
     return Scaffold(
@@ -519,10 +529,10 @@ class _ResultsView extends StatelessWidget {
             children: [
               const Text('🎉', style: TextStyle(fontSize: 56)),
               const SizedBox(height: AppSpacing.lg),
-              Text('All Caught Up!', style: Theme.of(context).textTheme.headlineLarge),
+              Text(l10n.studyAllCaughtUp, style: Theme.of(context).textTheme.headlineLarge),
               const SizedBox(height: AppSpacing.sm),
               Text(
-                total == 1 ? 'You reviewed the 1 card due today' : 'You reviewed all $total cards due today',
+                l10n.studyReviewedCount(total),
                 style: TextStyle(color: colors.textMuted),
                 textAlign: TextAlign.center,
               ),
@@ -536,7 +546,7 @@ class _ResultsView extends StatelessWidget {
                   mainAxisSize: MainAxisSize.min,
                   children: [
                     Text('$confidence%', style: TextStyle(fontSize: 26, fontWeight: FontWeight.w800, color: colors.textPrimary)),
-                    Text('confidence', style: TextStyle(fontSize: 11, color: colors.textMuted)),
+                    Text(l10n.studyConfidence, style: TextStyle(fontSize: 11, color: colors.textMuted)),
                   ],
                 ),
               ),
@@ -553,12 +563,12 @@ class _ResultsView extends StatelessWidget {
               Row(
                 children: [
                   Expanded(
-                    child: OutlinedButton(onPressed: () => Navigator.of(context).maybePop(), child: const Text('Back to Decks')),
+                    child: OutlinedButton(onPressed: () => Navigator.of(context).maybePop(), child: Text(l10n.studyBackToDecks)),
                   ),
                   const SizedBox(width: AppSpacing.md),
                   Expanded(
                     child: PrimaryButton(
-                      label: 'View Stats',
+                      label: l10n.studyViewStats,
                       onPressed: () => Navigator.of(context).pushReplacement(MaterialPageRoute(builder: (_) => const StatisticsScreen())),
                     ),
                   ),

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../../data/deck_store.dart';
 import '../../models/app_models.dart';
+import '../../l10n/app_localizations.dart';
 import '../../theme/app_theme.dart';
 import '../../widgets/app_buttons.dart';
 
@@ -33,7 +34,7 @@ class _AddWordScreenState extends State<AddWordScreen> {
     if (raw.isEmpty) return null;
     final uri = Uri.tryParse(raw);
     if (uri == null || !uri.isAbsolute || (uri.scheme != 'http' && uri.scheme != 'https')) {
-      return 'Enter a full image URL starting with http:// or https://';
+      return AppLocalizations.of(context).cardImageError;
     }
     return null;
   }
@@ -71,9 +72,10 @@ class _AddWordScreenState extends State<AddWordScreen> {
           );
 
     if (!mounted) return;
+    final l10n = AppLocalizations.of(context);
     if (!ok) {
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(_isEditing ? "Couldn't save changes. Please try again." : "Couldn't add the card. Please try again.")),
+        SnackBar(content: Text(_isEditing ? l10n.decksSaveFailed : l10n.cardAddFailed)),
       );
       return;
     }
@@ -83,9 +85,10 @@ class _AddWordScreenState extends State<AddWordScreen> {
   @override
   Widget build(BuildContext context) {
     final colors = context.appColors;
+    final l10n = AppLocalizations.of(context);
     return Scaffold(
       appBar: AppBar(
-        title: Text(_isEditing ? 'Edit Card' : 'Add New Card'),
+        title: Text(_isEditing ? l10n.cardEditTitle : l10n.cardAddTitle),
         actions: [IconButton(onPressed: () => Navigator.of(context).maybePop(), icon: const Icon(Icons.close_rounded))],
       ),
       body: SafeArea(
@@ -95,7 +98,7 @@ class _AddWordScreenState extends State<AddWordScreen> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text('DECK *', style: TextStyle(color: colors.textMuted, fontWeight: FontWeight.w700, fontSize: 11)),
+              Text(l10n.cardDeckLabel, style: TextStyle(color: colors.textMuted, fontWeight: FontWeight.w700, fontSize: 11)),
               const SizedBox(height: AppSpacing.sm),
               DropdownButtonFormField<String>(
                 initialValue: _deckId,
@@ -105,36 +108,36 @@ class _AddWordScreenState extends State<AddWordScreen> {
               const SizedBox(height: AppSpacing.lg),
               Row(
                 children: [
-                  Expanded(child: _label(colors, 'FRONT (TARGET WORD) *')),
+                  Expanded(child: _label(colors, l10n.cardFrontLabel)),
                   const SizedBox(width: AppSpacing.md),
-                  Expanded(child: _label(colors, 'BACK (TRANSLATION) *')),
+                  Expanded(child: _label(colors, l10n.cardBackLabel)),
                 ],
               ),
               const SizedBox(height: AppSpacing.sm),
               Row(
                 children: [
                   Expanded(
-                    child: TextField(controller: _frontController, decoration: const InputDecoration(hintText: 'e.g. Bonjour')),
+                    child: TextField(controller: _frontController, decoration: InputDecoration(hintText: l10n.cardFrontHint)),
                   ),
                   const SizedBox(width: AppSpacing.md),
                   Expanded(
-                    child: TextField(controller: _backController, decoration: const InputDecoration(hintText: 'e.g. Hello')),
+                    child: TextField(controller: _backController, decoration: InputDecoration(hintText: l10n.cardBackHint)),
                   ),
                 ],
               ),
               const SizedBox(height: AppSpacing.lg),
-              _label(colors, 'EXAMPLE SENTENCE'),
+              _label(colors, l10n.cardExampleLabel),
               const SizedBox(height: AppSpacing.sm),
-              TextField(controller: _exampleController, maxLines: 3, decoration: const InputDecoration(hintText: 'Write an example sentence...')),
+              TextField(controller: _exampleController, maxLines: 3, decoration: InputDecoration(hintText: l10n.cardExampleHint)),
               const SizedBox(height: AppSpacing.lg),
-              _label(colors, 'IMAGE URL'),
+              _label(colors, l10n.cardImageLabel),
               const SizedBox(height: AppSpacing.sm),
               AnimatedBuilder(
                 animation: _imageUrlController,
                 builder: (context, _) => TextField(
                   controller: _imageUrlController,
                   keyboardType: TextInputType.url,
-                  decoration: InputDecoration(hintText: 'https://...', errorText: _imageUrlError),
+                  decoration: InputDecoration(hintText: l10n.cardImageHint, errorText: _imageUrlError),
                 ),
               ),
               const SizedBox(height: AppSpacing.xxl),
@@ -143,7 +146,7 @@ class _AddWordScreenState extends State<AddWordScreen> {
                 builder: (context, _) {
                   final incomplete = _frontController.text.trim().isEmpty || _backController.text.trim().isEmpty;
                   return PrimaryButton(
-                    label: _isEditing ? 'Save Changes' : 'Add Card',
+                    label: _isEditing ? l10n.decksSaveChanges : l10n.cardAdd,
                     onPressed: incomplete || _imageUrlError != null ? null : _submit,
                   );
                 },

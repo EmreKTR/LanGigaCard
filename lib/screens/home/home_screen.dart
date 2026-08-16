@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../../data/deck_store.dart';
+import '../../l10n/app_localizations.dart';
 import '../../models/app_models.dart';
 import '../../theme/app_theme.dart';
 import '../../widgets/progress_ring.dart';
@@ -9,13 +10,24 @@ import '../decks/add_word_screen.dart';
 import '../decks/card_library_screen.dart';
 import '../study/quiz_screen.dart';
 
-/// Time-of-day greeting shown above the learner's name on Home.
-/// Top-level and pure so it can be unit-tested without pumping a widget.
-String greetingFor(DateTime now) {
-  if (now.hour < 12) return 'Good morning,';
-  if (now.hour < 18) return 'Good afternoon,';
-  return 'Good evening,';
+/// Which time-of-day greeting Home should show above the learner's name.
+enum DayPart { morning, afternoon, evening }
+
+/// Picks the greeting slot for [now]. Returns the slot rather than the words
+/// themselves so the copy can be localized at the call site — this stays pure
+/// and unit-testable without pumping a widget.
+DayPart greetingFor(DateTime now) {
+  if (now.hour < 12) return DayPart.morning;
+  if (now.hour < 18) return DayPart.afternoon;
+  return DayPart.evening;
 }
+
+/// The localized greeting for [part].
+String greetingText(AppLocalizations l10n, DayPart part) => switch (part) {
+      DayPart.morning => l10n.homeGreetingMorning,
+      DayPart.afternoon => l10n.homeGreetingAfternoon,
+      DayPart.evening => l10n.homeGreetingEvening,
+    };
 
 /// Two-letter initials for an avatar, safe for empty/single-word names.
 String initialsFor(String name) {
@@ -49,6 +61,7 @@ class HomeScreen extends StatelessWidget {
   }
 
   Widget _buildContent(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
     final recentCards = DeckStore.cards.take(5).toList();
     // Empty when the signed-in account hasn't completed onboarding yet (no
     // language pair selected server-side, so MainShell._maybeCreateStarterContent
@@ -66,11 +79,11 @@ class HomeScreen extends StatelessWidget {
           padding: const EdgeInsets.all(AppSpacing.lg),
           sliver: SliverList(
             delegate: SliverChildListDelegate([
-              Text('QUICK ACTIONS', style: Theme.of(context).textTheme.titleMedium),
+              Text(l10n.homeQuickActions, style: Theme.of(context).textTheme.titleMedium),
               const SizedBox(height: AppSpacing.md),
               const _QuickActionsRow(),
               const SizedBox(height: AppSpacing.xxl),
-              Text('Your Topics', style: Theme.of(context).textTheme.titleLarge),
+              Text(l10n.homeYourTopics, style: Theme.of(context).textTheme.titleLarge),
               const SizedBox(height: AppSpacing.md),
               Wrap(
                 spacing: AppSpacing.sm,
@@ -81,10 +94,10 @@ class HomeScreen extends StatelessWidget {
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  Text('Recently Learned', style: Theme.of(context).textTheme.titleLarge),
+                  Text(l10n.homeRecentlyLearned, style: Theme.of(context).textTheme.titleLarge),
                   TextButton(
                     onPressed: () => Navigator.of(context).push(MaterialPageRoute(builder: (_) => const CardLibraryScreen())),
-                    child: const Text('See all'),
+                    child: Text(l10n.homeSeeAll),
                   ),
                 ],
               ),
@@ -109,6 +122,7 @@ class _GradientHeader extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final colors = context.appColors;
+    final l10n = AppLocalizations.of(context);
     // TODO: read from a real session log once study sessions are persisted.
     const minutesDone = 6;
     final progress = (minutesDone / profile.dailyGoalMinutes).clamp(0.0, 1.0);
@@ -133,7 +147,7 @@ class _GradientHeader extends StatelessWidget {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text(greetingFor(DateTime.now()), style: TextStyle(color: Colors.white.withValues(alpha: 0.75), fontSize: 13)),
+                    Text(greetingText(l10n, greetingFor(DateTime.now())), style: TextStyle(color: Colors.white.withValues(alpha: 0.75), fontSize: 13)),
                     Text(profile.name, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w700, fontSize: 20)),
                   ],
                 ),
@@ -184,7 +198,7 @@ class _GradientHeader extends StatelessWidget {
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          Text('CONTINUE LEARNING', style: TextStyle(color: Colors.white.withValues(alpha: 0.7), fontSize: 10, letterSpacing: 1)),
+                          Text(l10n.homeContinueLearning, style: TextStyle(color: Colors.white.withValues(alpha: 0.7), fontSize: 10, letterSpacing: 1)),
                           const SizedBox(height: 2),
                           // The deck's own name — this used to strip the word
                           // "French" out and append "Vocabulary", which only
@@ -200,8 +214,8 @@ class _GradientHeader extends StatelessWidget {
                             spacing: AppSpacing.sm,
                             runSpacing: 4,
                             children: [
-                              _headerChip('${deck!.dueCount} cards due'),
-                              _headerChip('🔥 ${profile.dailyGoalMinutes} min goal'),
+                              _headerChip(l10n.homeCardsDue(deck!.dueCount)),
+                              _headerChip('🔥 ${l10n.homeMinGoal(profile.dailyGoalMinutes)}'),
                             ],
                           ),
                         ],
@@ -228,14 +242,14 @@ class _GradientHeader extends StatelessWidget {
                 borderRadius: BorderRadius.circular(AppRadius.lg),
                 border: Border.all(color: Colors.white.withValues(alpha: 0.16)),
               ),
-              child: const Row(
+              child: Row(
                 children: [
-                  Icon(Icons.auto_stories_rounded, color: Colors.white),
-                  SizedBox(width: AppSpacing.md),
+                  const Icon(Icons.auto_stories_rounded, color: Colors.white),
+                  const SizedBox(width: AppSpacing.md),
                   Expanded(
                     child: Text(
-                      'Finish setting up your profile to get your first deck.',
-                      style: TextStyle(color: Colors.white, fontSize: 13),
+                      l10n.homeFinishSetup,
+                      style: const TextStyle(color: Colors.white, fontSize: 13),
                     ),
                   ),
                 ],
@@ -244,9 +258,9 @@ class _GradientHeader extends StatelessWidget {
           const SizedBox(height: AppSpacing.lg),
           Row(
             children: [
-              _StatColumn(value: '${profile.wordsLearned}', label: 'Words'),
-              _StatColumn(value: '${profile.accuracyPercent}%', label: 'Accuracy'),
-              _StatColumn(value: '${profile.streakDays}d', label: 'Streak'),
+              _StatColumn(value: '${profile.wordsLearned}', label: l10n.homeWords),
+              _StatColumn(value: '${profile.accuracyPercent}%', label: l10n.homeAccuracy),
+              _StatColumn(value: '${profile.streakDays}d', label: l10n.homeStreak),
             ],
           ),
         ],
@@ -289,16 +303,17 @@ class _QuickActionsRow extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final colors = context.appColors;
+    final l10n = AppLocalizations.of(context);
     final actions = [
       (
         icon: Icons.quiz_rounded,
-        label: 'Quiz',
+        label: l10n.navQuiz,
         color: colors.srsHard,
         onTap: () => Navigator.of(context).push(MaterialPageRoute(builder: (_) => const QuizScreen())),
       ),
       (
         icon: Icons.add_rounded,
-        label: 'Add Word',
+        label: l10n.homeAddWord,
         color: colors.srsMedium,
         onTap: () => Navigator.of(context).push(MaterialPageRoute(builder: (_) => const AddWordScreen())),
       ),

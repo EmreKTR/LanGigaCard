@@ -4,12 +4,14 @@ import 'package:langigacards/screens/home/home_screen.dart';
 void main() {
   group('greetingFor', () {
     test('greets by time of day instead of always saying "Good morning"', () {
-      expect(greetingFor(DateTime(2026, 8, 8, 0)), 'Good morning,');
-      expect(greetingFor(DateTime(2026, 8, 8, 11, 59)), 'Good morning,');
-      expect(greetingFor(DateTime(2026, 8, 8, 12)), 'Good afternoon,');
-      expect(greetingFor(DateTime(2026, 8, 8, 17, 59)), 'Good afternoon,');
-      expect(greetingFor(DateTime(2026, 8, 8, 18)), 'Good evening,');
-      expect(greetingFor(DateTime(2026, 8, 8, 23, 59)), 'Good evening,');
+      // Asserts the slot rather than the wording: the copy is localized now,
+      // and the boundary hours are what this function actually decides.
+      expect(greetingFor(DateTime(2026, 8, 8, 0)), DayPart.morning);
+      expect(greetingFor(DateTime(2026, 8, 8, 11, 59)), DayPart.morning);
+      expect(greetingFor(DateTime(2026, 8, 8, 12)), DayPart.afternoon);
+      expect(greetingFor(DateTime(2026, 8, 8, 17, 59)), DayPart.afternoon);
+      expect(greetingFor(DateTime(2026, 8, 8, 18)), DayPart.evening);
+      expect(greetingFor(DateTime(2026, 8, 8, 23, 59)), DayPart.evening);
     });
   });
 

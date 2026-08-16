@@ -73,7 +73,7 @@ void main() {
     });
 
     test('the chosen time is remembered', () async {
-      await ReminderService.apply(const ReminderSetting(enabled: true, hour: 7, minute: 30));
+      await ReminderService.apply(const ReminderSetting(enabled: true, hour: 7, minute: 30), title: 'Time to review', body: 'Your cards are waiting.');
 
       final loaded = await ReminderService.load();
       expect(loaded.hour, 7);
@@ -81,8 +81,8 @@ void main() {
     });
 
     test('turning reminders off is remembered too', () async {
-      await ReminderService.apply(const ReminderSetting(enabled: true, hour: 7, minute: 30));
-      await ReminderService.apply(const ReminderSetting(enabled: false, hour: 7, minute: 30));
+      await ReminderService.apply(const ReminderSetting(enabled: true, hour: 7, minute: 30), title: 'Time to review', body: 'Your cards are waiting.');
+      await ReminderService.apply(const ReminderSetting(enabled: false, hour: 7, minute: 30), title: 'Time to review', body: 'Your cards are waiting.');
 
       final loaded = await ReminderService.load();
       expect(loaded.enabled, isFalse);
@@ -100,13 +100,15 @@ void main() {
       // that refuses permission. The caller needs a false to undo the switch.
       final ok = await ReminderService.apply(
         const ReminderSetting(enabled: true, hour: 8, minute: 0),
+        title: 'Time to review',
+        body: 'Your cards are waiting.',
       );
 
       expect(ok, isFalse);
     });
 
     test('disabling always succeeds, plugin or not', () async {
-      final ok = await ReminderService.apply(ReminderSetting.off);
+      final ok = await ReminderService.apply(ReminderSetting.off, title: 'Time to review', body: 'Your cards are waiting.');
 
       expect(ok, isTrue);
     });

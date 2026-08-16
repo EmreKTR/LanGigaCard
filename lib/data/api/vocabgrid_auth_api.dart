@@ -65,6 +65,47 @@ class VocabGridAuthApi implements AuthApi {
     await _clearSession();
   }
 
+  @override
+  Future<bool> sendVerificationCode(String email) async {
+    try {
+      await _client.dio.post('/api/Auth/send-verification-code', data: {'email': email});
+      return true;
+    } catch (_) {
+      return false;
+    }
+  }
+
+  @override
+  Future<VerificationResult> verifyEmail({required String email, required String code}) async {
+    try {
+      await _client.dio.post('/api/Auth/verify-email', data: {'email': email, 'code': code});
+      return const VerificationResult.success();
+    } on DioException catch (e) {
+      const networkErrorTypes = {
+        DioExceptionType.connectionError,
+        DioExceptionType.connectionTimeout,
+        DioExceptionType.sendTimeout,
+        DioExceptionType.receiveTimeout,
+      };
+      if (networkErrorTypes.contains(e.type)) {
+        return const VerificationResult.networkError();
+      }
+
+      // The server returns 400 with a plain-text body for both a wrong code
+      // and a spent attempt budget; only the text tells them apart.
+      final body = e.response?.data;
+      if (e.response?.statusCode == 400 && body is String && body.contains('Too many attempts')) {
+        return const VerificationResult.tooManyAttempts();
+      }
+      if (e.response?.statusCode == 400) {
+        return const VerificationResult.invalidCode();
+      }
+      return const VerificationResult.networkError();
+    } catch (_) {
+      return const VerificationResult.networkError();
+    }
+  }
+
   AuthResult _resultFromAuthResponse(Map<String, dynamic> data) {
     final user = data['user'] as Map<String, dynamic>;
     final session = AuthSession(

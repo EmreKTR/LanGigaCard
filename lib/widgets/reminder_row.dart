@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../data/reminder_service.dart';
+import '../l10n/app_localizations.dart';
 import '../theme/app_theme.dart';
 import 'section_card.dart';
 
@@ -36,7 +37,12 @@ class _ReminderRowState extends State<ReminderRow> {
       _busy = true;
     });
 
-    final ok = await ReminderService.apply(next);
+    final l10n = AppLocalizations.of(context);
+    final ok = await ReminderService.apply(
+      next,
+      title: l10n.reminderNotificationTitle,
+      body: l10n.reminderNotificationBody,
+    );
     if (!mounted) return;
     setState(() => _busy = false);
 
@@ -45,9 +51,9 @@ class _ReminderRowState extends State<ReminderRow> {
       // never arrive.
       setState(() => _setting = next.copyWith(enabled: false));
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Reminders need notification permission. Enable it in your system settings.'),
-          duration: Duration(seconds: 4),
+        SnackBar(
+          content: Text(AppLocalizations.of(context).reminderPermissionNeeded),
+          duration: const Duration(seconds: 4),
         ),
       );
       return;
@@ -55,7 +61,7 @@ class _ReminderRowState extends State<ReminderRow> {
 
     if (next.enabled) {
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Daily reminder set for ${next.label}'), duration: const Duration(seconds: 2)),
+        SnackBar(content: Text(AppLocalizations.of(context).reminderSetFor(next.label)), duration: const Duration(seconds: 2)),
       );
     }
   }
@@ -64,7 +70,7 @@ class _ReminderRowState extends State<ReminderRow> {
     final picked = await showTimePicker(
       context: context,
       initialTime: TimeOfDay(hour: _setting.hour, minute: _setting.minute),
-      helpText: 'Remind me at',
+      helpText: AppLocalizations.of(context).reminderPickTime,
     );
     if (picked == null) return;
     await _apply(_setting.copyWith(hour: picked.hour, minute: picked.minute, enabled: true));
@@ -76,7 +82,7 @@ class _ReminderRowState extends State<ReminderRow> {
 
     return SettingsRow(
       icon: Icons.notifications_active_rounded,
-      label: 'Daily Reminder',
+      label: AppLocalizations.of(context).profileDailyReminder,
       trailing: Row(
         mainAxisSize: MainAxisSize.min,
         children: [

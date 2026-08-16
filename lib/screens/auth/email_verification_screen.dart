@@ -1,4 +1,7 @@
-import 'package:flutter/material.dart';
+﻿import 'package:flutter/material.dart';
+import '../../data/api/auth_api.dart';
+import '../../data/auth_store.dart';
+import '../../l10n/app_localizations.dart';
 import '../../theme/app_theme.dart';
 import '../../widgets/app_buttons.dart';
 import '../onboarding_setup/onboarding_setup_screen.dart';
@@ -6,10 +9,9 @@ import 'login_screen.dart';
 
 const _codeLength = 6;
 
-/// Shown right after "Create Account". There's no real backend/email
-/// service in this project, so the 6-digit code is generated locally
-/// (and printed to the debug console) and "verification" is simulated —
-/// entering the matching code moves on to the onboarding wizard.
+/// Shown right after "Create Account". Registering already caused the server
+/// to mail a code, so this screen only submits what the learner types — the
+/// code itself is never known to the app.
 class EmailVerificationScreen extends StatefulWidget {
   const EmailVerificationScreen({super.key, required this.firstName, required this.lastName, required this.email});
 
@@ -22,19 +24,11 @@ class EmailVerificationScreen extends StatefulWidget {
 }
 
 class _EmailVerificationScreenState extends State<EmailVerificationScreen> {
-  late String _sentCode = _generateCode();
   final _controllers = List.generate(_codeLength, (_) => TextEditingController());
   final _focusNodes = List.generate(_codeLength, (_) => FocusNode());
   String? _error;
   bool _verifying = false;
-
-  String _generateCode() {
-    // TEMPORARY: hardcoded so the flow can be tested end-to-end without a
-    // real email service. Swap back to a random code once one exists.
-    const code = '123456';
-    debugPrint('[LanGigaCards] Email verification code for ${widget.email}: $code');
-    return code;
-  }
+  bool _resending = false;
 
   @override
   void dispose() {
@@ -47,16 +41,24 @@ class _EmailVerificationScreenState extends State<EmailVerificationScreen> {
     super.dispose();
   }
 
-  void _resend() {
+  Future<void> _resend() async {
+    setState(() => _resending = true);
+    final sent = await AuthStore.api.sendVerificationCode(widget.email);
+    if (!mounted) return;
+
     setState(() {
-      _sentCode = _generateCode();
+      _resending = false;
       _error = null;
       for (final c in _controllers) {
         c.clear();
       }
     });
     _focusNodes.first.requestFocus();
-    ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('A new code was sent to your email')));
+    ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+      content: Text(sent
+          ? AppLocalizations.of(context).verifyResent
+          : "Couldn't reach the server. Check your connection and try again."),
+    ));
   }
 
   void _onDigitChanged(int index, String value) {
@@ -71,13 +73,14 @@ class _EmailVerificationScreenState extends State<EmailVerificationScreen> {
   Future<void> _verify() async {
     final entered = _controllers.map((c) => c.text).join();
     if (entered.length != _codeLength) {
-      setState(() => _error = 'Enter all $_codeLength digits');
+      setState(() => _error = AppLocalizations.of(context).verifyEnterAllDigits(_codeLength));
       return;
     }
     setState(() => _verifying = true);
-    await Future.delayed(const Duration(milliseconds: 400));
+    final result = await AuthStore.api.verifyEmail(email: widget.email, code: entered);
     if (!mounted) return;
-    if (entered == _sentCode) {
+
+    if (result.isSuccess) {
       Navigator.of(context).pushReplacement(
         MaterialPageRoute(
           builder: (_) => OnboardingSetupScreen(firstName: widget.firstName, lastName: widget.lastName, email: widget.email),
@@ -85,9 +88,16 @@ class _EmailVerificationScreenState extends State<EmailVerificationScreen> {
       );
       return;
     }
+
     setState(() {
       _verifying = false;
-      _error = 'Incorrect code, please try again';
+      _error = switch (result.outcome) {
+        // The code is dead at this point, so point at the fix rather than
+        // inviting another doomed attempt.
+        VerificationOutcome.tooManyAttempts => AppLocalizations.of(context).verifyTooManyAttempts,
+        VerificationOutcome.networkError => "Can't reach the server. Check your connection and try again.",
+        _ => AppLocalizations.of(context).verifyIncorrect,
+      };
       for (final c in _controllers) {
         c.clear();
       }
@@ -102,6 +112,7 @@ class _EmailVerificationScreenState extends State<EmailVerificationScreen> {
   @override
   Widget build(BuildContext context) {
     final colors = context.appColors;
+    final l10n = AppLocalizations.of(context);
     return Scaffold(
       body: SafeArea(
         child: Column(
@@ -113,7 +124,7 @@ class _EmailVerificationScreenState extends State<EmailVerificationScreen> {
                   TextButton.icon(
                     onPressed: _backToSignIn,
                     icon: const Icon(Icons.arrow_back_rounded, size: 16),
-                    label: const Text('Back to sign in'),
+                    label: Text(l10n.registerBackToSignIn),
                   ),
                 ],
               ),
@@ -124,10 +135,10 @@ class _EmailVerificationScreenState extends State<EmailVerificationScreen> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text('Verify Your Email', style: Theme.of(context).textTheme.headlineLarge),
+                    Text(l10n.verifyTitle, style: Theme.of(context).textTheme.headlineLarge),
                     const SizedBox(height: AppSpacing.xs),
                     Text(
-                      'We sent a 6-digit code to ${widget.email}. Enter it below to confirm your account.',
+                      l10n.verifySubtitle(widget.email),
                       style: Theme.of(context).textTheme.bodyLarge,
                     ),
                     const SizedBox(height: AppSpacing.xxl),
@@ -157,8 +168,11 @@ class _EmailVerificationScreenState extends State<EmailVerificationScreen> {
                     Row(
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
-                        Text("Didn't get a code?", style: TextStyle(color: colors.textSecondary)),
-                        TextButton(onPressed: _resend, child: const Text('Resend code')),
+                        Text(l10n.verifyNoCode, style: TextStyle(color: colors.textSecondary)),
+                        TextButton(
+                          onPressed: _resending ? null : _resend,
+                          child: Text(_resending ? l10n.verifySending : l10n.verifyResend),
+                        ),
                       ],
                     ),
                   ],
@@ -167,7 +181,7 @@ class _EmailVerificationScreenState extends State<EmailVerificationScreen> {
             ),
             Padding(
               padding: const EdgeInsets.all(AppSpacing.lg),
-              child: PrimaryButton(label: 'Verify', onPressed: _verifying ? null : _verify, loading: _verifying),
+              child: PrimaryButton(label: l10n.verifyAction, onPressed: _verifying ? null : _verify, loading: _verifying),
             ),
           ],
         ),

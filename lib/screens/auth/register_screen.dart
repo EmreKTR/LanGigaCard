@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../../data/api/auth_api.dart';
 import '../../data/auth_store.dart';
+import '../../l10n/app_localizations.dart';
 import '../../theme/app_theme.dart';
 import '../../widgets/app_buttons.dart';
 import '../../widgets/app_text_field.dart';
@@ -78,20 +79,20 @@ class _RegisterScreenState extends State<RegisterScreen> {
       _passwordController.text == _confirmController.text;
 
   String? get _firstNameError =>
-      (_step1Submitted || _firstNameTouched) && _firstNameController.text.isEmpty ? 'This field is required' : null;
+      (_step1Submitted || _firstNameTouched) && _firstNameController.text.isEmpty ? AppLocalizations.of(context).commonRequiredField : null;
 
   String? get _lastNameError =>
-      (_step1Submitted || _lastNameTouched) && _lastNameController.text.isEmpty ? 'This field is required' : null;
+      (_step1Submitted || _lastNameTouched) && _lastNameController.text.isEmpty ? AppLocalizations.of(context).commonRequiredField : null;
 
   String? get _emailError =>
-      (_step1Submitted || _emailTouched) && !_emailController.text.contains('@') ? 'Please enter a valid email address' : null;
+      (_step1Submitted || _emailTouched) && !_emailController.text.contains('@') ? AppLocalizations.of(context).registerInvalidEmail : null;
 
   String? get _passwordError =>
-      (_step1Submitted || _passwordTouched) && _passwordController.text.length < 8 ? 'Password must be at least 8 characters' : null;
+      (_step1Submitted || _passwordTouched) && _passwordController.text.length < 8 ? AppLocalizations.of(context).registerPasswordTooShort : null;
 
   String? get _confirmError =>
       (_step1Submitted || _confirmTouched) && _passwordController.text != _confirmController.text
-          ? "Passwords don't match"
+          ? AppLocalizations.of(context).registerPasswordsDontMatch
           : null;
 
   /// Registers the account against the real backend, then hands off to
@@ -127,12 +128,13 @@ class _RegisterScreenState extends State<RegisterScreen> {
       if (!mounted) return;
 
       if (!result.isSuccess) {
+        final l10n = AppLocalizations.of(context);
         setState(() {
           _creating = false;
           _errorText = switch (result.outcome) {
-            AuthOutcome.emailTaken => 'An account with this email already exists.',
-            AuthOutcome.networkError => "Can't reach the server. Check your connection and try again.",
-            _ => result.message ?? 'Something went wrong. Please try again.',
+            AuthOutcome.emailTaken => l10n.registerEmailTaken,
+            AuthOutcome.networkError => l10n.commonNetworkError,
+            _ => result.message ?? l10n.commonSomethingWrong,
           };
         });
         return;
@@ -158,6 +160,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
   @override
   Widget build(BuildContext context) {
     final colors = context.appColors;
+    final l10n = AppLocalizations.of(context);
     return Scaffold(
       body: SafeArea(
         child: Column(
@@ -169,7 +172,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                   TextButton.icon(
                     onPressed: () => Navigator.of(context).maybePop(),
                     icon: const Icon(Icons.arrow_back_rounded, size: 16),
-                    label: const Text('Back to sign in'),
+                    label: Text(l10n.registerBackToSignIn),
                   ),
                 ],
               ),
@@ -180,10 +183,10 @@ class _RegisterScreenState extends State<RegisterScreen> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text('Create Account', style: Theme.of(context).textTheme.headlineLarge),
+                    Text(l10n.registerTitle, style: Theme.of(context).textTheme.headlineLarge),
                     const SizedBox(height: 4),
                     Text(
-                      'Your details — languages and study preferences come next.',
+                      l10n.registerSubtitle,
                       style: TextStyle(color: colors.textMuted, fontSize: 13),
                     ),
                     const SizedBox(height: AppSpacing.xxl),
@@ -238,7 +241,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
             Padding(
               padding: const EdgeInsets.all(AppSpacing.lg),
               child: PrimaryButton(
-                label: 'Create Account',
+                label: l10n.registerTitle,
                 loading: _creating,
                 onPressed: _createAccount,
               ),
@@ -290,6 +293,7 @@ class _PersonalDetailsStep extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -298,7 +302,7 @@ class _PersonalDetailsStep extends StatelessWidget {
           children: [
             Expanded(
               child: AppTextField(
-                label: 'First Name',
+                label: l10n.registerFirstName,
                 required: true,
                 hint: 'Sarah',
                 controller: firstNameController,
@@ -309,7 +313,7 @@ class _PersonalDetailsStep extends StatelessWidget {
             const SizedBox(width: AppSpacing.md),
             Expanded(
               child: AppTextField(
-                label: 'Last Name',
+                label: l10n.registerLastName,
                 required: true,
                 hint: 'Johnson',
                 controller: lastNameController,
@@ -321,7 +325,7 @@ class _PersonalDetailsStep extends StatelessWidget {
         ),
         const SizedBox(height: AppSpacing.lg),
         AppTextField(
-          label: 'Email Address',
+          label: l10n.registerEmail,
           required: true,
           hint: 'sarah@example.com',
           controller: emailController,
@@ -331,9 +335,9 @@ class _PersonalDetailsStep extends StatelessWidget {
         ),
         const SizedBox(height: AppSpacing.lg),
         AppTextField(
-          label: 'Password',
+          label: l10n.registerPassword,
           required: true,
-          hint: 'Min. 8 characters',
+          hint: l10n.registerPasswordHint,
           obscureText: true,
           controller: passwordController,
           focusNode: passwordFocusNode,
@@ -342,9 +346,9 @@ class _PersonalDetailsStep extends StatelessWidget {
         PasswordStrengthMeter(password: passwordController.text),
         const SizedBox(height: AppSpacing.lg),
         AppTextField(
-          label: 'Confirm Password',
+          label: l10n.registerConfirmPassword,
           required: true,
-          hint: 'Re-enter your password',
+          hint: l10n.registerConfirmHint,
           obscureText: true,
           controller: confirmController,
           focusNode: confirmFocusNode,

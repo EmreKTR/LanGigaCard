@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../l10n/app_localizations.dart';
 import '../theme/app_theme.dart';
 
 /// 5-tab bottom navigation: Home, Decks, Quiz, Stats, Profile — all
@@ -18,17 +19,23 @@ class AppBottomNav extends StatelessWidget {
   final ValueChanged<int> onTabSelected;
   final VoidCallback onQuizTap;
 
-  static const _items = [
-    (icon: Icons.home_rounded, label: 'Home'),
-    (icon: Icons.style_rounded, label: 'Decks'),
-    (icon: Icons.quiz_rounded, label: 'Quiz'),
-    (icon: Icons.bar_chart_rounded, label: 'Stats'),
-    (icon: Icons.person_outline_rounded, label: 'Profile'),
+  static const _icons = [
+    Icons.home_rounded,
+    Icons.style_rounded,
+    Icons.quiz_rounded,
+    Icons.bar_chart_rounded,
+    Icons.person_outline_rounded,
   ];
+
+  /// Labels are resolved per build rather than sitting beside the icons in a
+  /// `const` list, because they're localized.
+  static List<String> _labels(AppLocalizations l10n) =>
+      [l10n.navHome, l10n.navDecks, l10n.navQuiz, l10n.navStats, l10n.navProfile];
 
   @override
   Widget build(BuildContext context) {
     final colors = context.appColors;
+    final labels = _labels(AppLocalizations.of(context));
     return DecoratedBox(
       decoration: BoxDecoration(color: colors.surface, border: Border(top: BorderSide(color: colors.border))),
       child: SafeArea(
@@ -36,8 +43,7 @@ class AppBottomNav extends StatelessWidget {
         child: SizedBox(
           height: 62,
           child: Row(
-            children: List.generate(_items.length, (index) {
-              final item = _items[index];
+            children: List.generate(_icons.length, (index) {
               final isQuiz = index == 2;
               final selected = !isQuiz && currentIndex == index;
               final color = selected ? colors.primary : colors.textMuted;
@@ -47,10 +53,10 @@ class AppBottomNav extends StatelessWidget {
                   child: Column(
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
-                      Icon(item.icon, size: 22, color: color),
+                      Icon(_icons[index], size: 22, color: color),
                       const SizedBox(height: 3),
                       Text(
-                        item.label,
+                        labels[index],
                         style: TextStyle(fontSize: 11, fontWeight: selected ? FontWeight.w700 : FontWeight.w500, color: color),
                       ),
                     ],

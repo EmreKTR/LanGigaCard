@@ -1,11 +1,15 @@
-import 'package:flutter/material.dart';
+﻿import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:langigacards/l10n/app_localizations.dart';
 import 'package:langigacards/data/mock_data.dart';
 import 'package:langigacards/data/pronunciation_service.dart';
 import 'package:langigacards/theme/app_theme.dart';
 import 'package:langigacards/widgets/status_indicators.dart';
 
 Widget _wrap(Widget child) => MaterialApp(
+      localizationsDelegates: AppLocalizations.localizationsDelegates,
+      supportedLocales: AppLocalizations.supportedLocales,
+
       theme: AppTheme.dark(AccentColor.purple),
       home: Scaffold(body: Center(child: child)),
     );

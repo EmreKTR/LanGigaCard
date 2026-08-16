@@ -2,21 +2,24 @@ import 'package:flutter/material.dart';
 import '../../data/api/user_api.dart';
 import '../../data/api/vocabgrid_user_api.dart';
 import '../../data/onboarding_store.dart';
+import '../../l10n/app_localizations.dart';
 import '../../theme/app_theme.dart';
 import '../../widgets/app_buttons.dart';
 import '../../widgets/language_search_list.dart';
 import '../main_shell.dart';
 import 'onboarding_steps.dart';
 
-const _stepLabels = [
-  'NATIVE LANGUAGE',
-  'TARGET LANGUAGE',
-  'TARGET LANGUAGE LEVEL',
-  'LEARNING PURPOSE',
-  'YOUR AGE',
-  'TOPICS & CATEGORIES',
-  'DAILY GOAL',
-];
+/// Resolved per build rather than held in a `const` list — the step names are
+/// localized, so they need a context to come from.
+List<String> _stepLabels(AppLocalizations l10n) => [
+      l10n.wizardNativeLanguage,
+      l10n.wizardTargetLanguage,
+      l10n.wizardTargetLevel,
+      l10n.wizardLearningPurpose,
+      l10n.wizardAge,
+      l10n.wizardTopics,
+      l10n.wizardDailyGoal,
+    ];
 
 /// 7-step profile wizard, run once right after email verification: native
 /// language -> target language -> target level -> learning purpose -> age
@@ -131,13 +134,14 @@ class _OnboardingSetupScreenState extends State<OnboardingSetupScreen> {
       dailyGoalMinutes: _dailyGoalMinutes,
     );
     if (!mounted) return;
+    final l10n = AppLocalizations.of(context);
 
     if (!profileResult.isSuccess) {
       setState(() {
         _saving = false;
         _errorText = profileResult.outcome == ProfileOutcome.networkError
-            ? "Can't reach the server. Check your connection and try again."
-            : (profileResult.message ?? 'Something went wrong. Please try again.');
+            ? l10n.commonNetworkError
+            : (profileResult.message ?? l10n.commonSomethingWrong);
       });
       return;
     }
@@ -149,7 +153,7 @@ class _OnboardingSetupScreenState extends State<OnboardingSetupScreen> {
     if (categoryResult.length != _categoryIds.length || purposeResult.length != _learningPurposeIds.length) {
       setState(() {
         _saving = false;
-        _errorText = "Couldn't save your topics or learning purpose. Please try again.";
+        _errorText = l10n.wizardSaveFailed;
       });
       return;
     }
@@ -178,6 +182,7 @@ class _OnboardingSetupScreenState extends State<OnboardingSetupScreen> {
   @override
   Widget build(BuildContext context) {
     final colors = context.appColors;
+    final l10n = AppLocalizations.of(context);
 
     if (_referenceLoadFailed) {
       return _ReferenceLoadErrorView(onRetry: _loadReferenceData);
@@ -200,7 +205,7 @@ class _OnboardingSetupScreenState extends State<OnboardingSetupScreen> {
                   IconButton(onPressed: _back, icon: const Icon(Icons.arrow_back_rounded)),
                   Expanded(
                     child: Text(
-                      'STEP ${_step + 1} OF $_stepCount — ${_stepLabels[_step]}',
+                      l10n.wizardStep(_step + 1, _stepCount, _stepLabels(l10n)[_step]),
                       style: TextStyle(color: colors.textMuted, fontWeight: FontWeight.w700, fontSize: 11, letterSpacing: 0.6),
                     ),
                   ),
@@ -258,7 +263,7 @@ class _OnboardingSetupScreenState extends State<OnboardingSetupScreen> {
             Padding(
               padding: const EdgeInsets.all(AppSpacing.lg),
               child: PrimaryButton(
-                label: _step == _stepCount - 1 ? "Let's Start Learning 🚀" : 'Continue',
+                label: _step == _stepCount - 1 ? l10n.wizardStart : l10n.commonContinue,
                 onPressed: _canContinue && !_saving ? _continue : null,
                 loading: _saving,
               ),
@@ -270,12 +275,13 @@ class _OnboardingSetupScreenState extends State<OnboardingSetupScreen> {
   }
 
   Widget _buildStep(AppColorsExt colors) {
+    final l10n = AppLocalizations.of(context);
     switch (_step) {
       case 0:
         return Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text('What is your native language?', style: Theme.of(context).textTheme.headlineMedium),
+            Text(l10n.wizardNativeQuestion, style: Theme.of(context).textTheme.headlineMedium),
             const SizedBox(height: AppSpacing.xl),
             LanguageSearchList(
               selected: _nativeLanguage,
@@ -290,17 +296,17 @@ class _OnboardingSetupScreenState extends State<OnboardingSetupScreen> {
         return Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text('Which language do you want to learn?', style: Theme.of(context).textTheme.headlineMedium),
+            Text(l10n.wizardTargetQuestion, style: Theme.of(context).textTheme.headlineMedium),
             const SizedBox(height: AppSpacing.xl),
             LanguageSearchList(
               selected: _targetLanguage,
               unavailable: _nativeLanguage,
-              unavailableNote: 'you speak this',
+              unavailableNote: l10n.profileYouSpeakThis,
               header: Row(
                 children: [
                   Icon(Icons.language_rounded, size: 16, color: colors.textMuted),
                   const SizedBox(width: AppSpacing.xs),
-                  Text('Native: ', style: TextStyle(color: colors.textMuted, fontSize: 13)),
+                  Text(l10n.wizardNativePrefix, style: TextStyle(color: colors.textMuted, fontSize: 13)),
                   Text(_nativeLanguage ?? '', style: TextStyle(color: colors.primary, fontWeight: FontWeight.w700, fontSize: 13)),
                 ],
               ),
@@ -356,6 +362,7 @@ class _ReferenceLoadErrorView extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final colors = context.appColors;
+    final l10n = AppLocalizations.of(context);
     return Scaffold(
       body: SafeArea(
         child: Padding(
@@ -365,15 +372,15 @@ class _ReferenceLoadErrorView extends StatelessWidget {
             children: [
               Icon(Icons.cloud_off_rounded, size: 56, color: colors.textMuted),
               const SizedBox(height: AppSpacing.lg),
-              Text("Couldn't load your setup options", style: Theme.of(context).textTheme.headlineMedium, textAlign: TextAlign.center),
+              Text(l10n.wizardLoadFailed, style: Theme.of(context).textTheme.headlineMedium, textAlign: TextAlign.center),
               const SizedBox(height: AppSpacing.sm),
               Text(
-                "Check your connection and try again.",
+                l10n.shellCheckConnection,
                 textAlign: TextAlign.center,
                 style: TextStyle(color: colors.textMuted),
               ),
               const SizedBox(height: AppSpacing.xxl),
-              SizedBox(width: double.infinity, child: PrimaryButton(label: 'Try Again', onPressed: onRetry)),
+              SizedBox(width: double.infinity, child: PrimaryButton(label: l10n.commonTryAgain, onPressed: onRetry)),
             ],
           ),
         ),

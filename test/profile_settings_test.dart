@@ -1,5 +1,6 @@
-import 'package:flutter/material.dart';
+﻿import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:langigacards/l10n/app_localizations.dart';
 import 'package:langigacards/app_controller.dart';
 import 'package:langigacards/data/api/user_api.dart';
 import 'package:langigacards/data/api/vocabgrid_user_api.dart';
@@ -18,6 +19,9 @@ Future<UserProfile Function()> _pumpProfile(WidgetTester tester) async {
     AppControllerScope(
       controller: AppController(),
       child: MaterialApp(
+      localizationsDelegates: AppLocalizations.localizationsDelegates,
+      supportedLocales: AppLocalizations.supportedLocales,
+
         theme: AppTheme.dark(AccentColor.purple),
         home: StatefulBuilder(
           builder: (context, setState) => ProfileScreen(

@@ -1,9 +1,10 @@
-import 'dart:async';
+﻿import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import '../../data/deck_store.dart';
 import '../../data/quiz_builder.dart';
 import '../../models/app_models.dart';
+import '../../l10n/app_localizations.dart';
 import '../../theme/app_theme.dart';
 import '../../widgets/app_buttons.dart';
 import '../../widgets/focus_header.dart';
@@ -65,9 +66,10 @@ class _QuizScreenState extends State<QuizScreen> {
       if (_secondsLeft <= 1) {
         t.cancel();
         if (_selected == null) {
+          final l10n = AppLocalizations.of(context);
           setState(() => _selected = -1);
           ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text("⏰ Time's up! Here's the correct answer."), duration: Duration(seconds: 2)),
+            SnackBar(content: Text(l10n.quizTimeUp), duration: const Duration(seconds: 2)),
           );
         }
         return;
@@ -124,6 +126,8 @@ class _QuizScreenState extends State<QuizScreen> {
     }
 
     final colors = context.appColors;
+
+    final l10n = AppLocalizations.of(context);
     final question = _questions[_index];
 
     return Scaffold(
@@ -152,7 +156,7 @@ class _QuizScreenState extends State<QuizScreen> {
                         children: [
                           Row(
                             children: [
-                              _badge('Q${_index + 1} of ${_questions.length}'),
+                              _badge(l10n.quizProgress(_index + 1, _questions.length)),
                               const SizedBox(width: AppSpacing.sm),
                               _badge('★ $_points pts'),
                             ],
@@ -179,7 +183,7 @@ class _QuizScreenState extends State<QuizScreen> {
             ),
             FrostedBottomBar(
               child: PrimaryButton(
-                label: _index == _questions.length - 1 ? 'Finish' : 'Next Question →',
+                label: _index == _questions.length - 1 ? l10n.quizFinish : l10n.quizNextQuestion,
                 onPressed: _selected != null ? _next : null,
               ),
             ),
@@ -215,6 +219,7 @@ class _NotEnoughCardsView extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final colors = context.appColors;
+    final l10n = AppLocalizations.of(context);
     return Scaffold(
       appBar: AppBar(leading: const CloseButton()),
       body: SafeArea(
@@ -225,12 +230,12 @@ class _NotEnoughCardsView extends StatelessWidget {
             children: [
               Icon(Icons.quiz_outlined, size: 72, color: colors.textMuted),
               const SizedBox(height: AppSpacing.lg),
-              Text('Not enough cards to quiz', style: Theme.of(context).textTheme.headlineMedium, textAlign: TextAlign.center),
+              Text(l10n.quizNotEnough, style: Theme.of(context).textTheme.headlineMedium, textAlign: TextAlign.center),
               const SizedBox(height: AppSpacing.sm),
               Text(
                 deckName == null
-                    ? 'Add at least $kMinCardsForQuiz cards with different translations and the quiz will build itself from them.'
-                    : '$deckName needs at least $kMinCardsForQuiz cards with different translations before it can be quizzed.',
+                    ? l10n.quizNotEnoughAll(kMinCardsForQuiz)
+                    : l10n.quizNotEnoughDeck(deckName!, kMinCardsForQuiz),
                 textAlign: TextAlign.center,
                 style: TextStyle(color: colors.textMuted, height: 1.5),
               ),
@@ -239,7 +244,7 @@ class _NotEnoughCardsView extends StatelessWidget {
                 width: double.infinity,
                 child: OutlinedButton(
                   onPressed: () => Navigator.of(context).maybePop(),
-                  child: const Text('Back'),
+                  child: Text(l10n.quizBack),
                 ),
               ),
             ],
@@ -262,12 +267,13 @@ class _QuizResultsView extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final colors = context.appColors;
+    final l10n = AppLocalizations.of(context);
     final percent = total == 0 ? 0 : (score / total * 100).round();
     final (emoji, headline) = switch (percent) {
-      100 => ('🏆', 'Perfect score!'),
-      >= 80 => ('🎉', 'Great work!'),
-      >= 50 => ('👍', 'Nice progress'),
-      _ => ('📚', 'Keep practising'),
+      100 => ('🏆', l10n.quizPerfect),
+      >= 80 => ('🎉', l10n.quizGreat),
+      >= 50 => ('👍', l10n.quizNice),
+      _ => ('📚', l10n.quizKeepPractising),
     };
     final ringColor = percent >= 80
         ? colors.success
@@ -286,7 +292,7 @@ class _QuizResultsView extends StatelessWidget {
               const SizedBox(height: AppSpacing.lg),
               Text(headline, style: Theme.of(context).textTheme.headlineLarge, textAlign: TextAlign.center),
               const SizedBox(height: AppSpacing.sm),
-              Text('You answered $score of $total correctly', style: TextStyle(color: colors.textMuted)),
+              Text(l10n.quizAnsweredCorrectly(score, total), style: TextStyle(color: colors.textMuted)),
               const SizedBox(height: AppSpacing.xxxl),
               ProgressRing(
                 size: 132,
@@ -297,7 +303,7 @@ class _QuizResultsView extends StatelessWidget {
                   mainAxisSize: MainAxisSize.min,
                   children: [
                     Text('$percent%', style: TextStyle(fontSize: 28, fontWeight: FontWeight.w800, color: colors.textPrimary)),
-                    Text('score', style: TextStyle(fontSize: 11, color: colors.textMuted)),
+                    Text(l10n.quizScore, style: TextStyle(fontSize: 11, color: colors.textMuted)),
                   ],
                 ),
               ),
@@ -307,11 +313,11 @@ class _QuizResultsView extends StatelessWidget {
                   Expanded(
                     child: OutlinedButton(
                       onPressed: () => Navigator.of(context).maybePop(),
-                      child: const Text('Done'),
+                      child: Text(l10n.quizDone),
                     ),
                   ),
                   const SizedBox(width: AppSpacing.md),
-                  Expanded(child: PrimaryButton(label: 'Try Again', onPressed: onRetry)),
+                  Expanded(child: PrimaryButton(label: l10n.commonTryAgain, onPressed: onRetry)),
                 ],
               ),
             ],

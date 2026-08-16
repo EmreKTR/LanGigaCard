@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:langigacards/l10n/app_localizations.dart';
 import 'package:langigacards/app_controller.dart';
 import 'package:langigacards/data/api/deck_api.dart';
 import 'package:langigacards/data/api/user_api.dart';
@@ -14,7 +15,10 @@ import 'package:langigacards/theme/app_theme.dart';
 /// demo data ("Sarah Johnson") when that fetch fails.
 Widget _wrap(Widget child) => AppControllerScope(
       controller: AppController(),
-      child: MaterialApp(theme: AppTheme.dark(AccentColor.purple), home: child),
+      child: MaterialApp(
+      localizationsDelegates: AppLocalizations.localizationsDelegates,
+      supportedLocales: AppLocalizations.supportedLocales,
+theme: AppTheme.dark(AccentColor.purple), home: child),
     );
 
 Future<void> _pumpMainShell(WidgetTester tester) async {

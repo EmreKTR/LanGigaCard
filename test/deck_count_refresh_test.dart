@@ -1,5 +1,6 @@
-import 'package:flutter/material.dart';
+﻿import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:langigacards/l10n/app_localizations.dart';
 import 'package:langigacards/data/library_storage.dart';
 import 'package:langigacards/data/deck_store.dart';
 import 'package:langigacards/data/mock_data.dart';
@@ -27,6 +28,9 @@ void main() {
 
     await tester.pumpWidget(
       MaterialApp(
+      localizationsDelegates: AppLocalizations.localizationsDelegates,
+      supportedLocales: AppLocalizations.supportedLocales,
+
         theme: AppTheme.dark(AccentColor.purple),
         // `const` on purpose: this is exactly what MainShell does, and it is
         // what made the screen skip rebuilding before DeckStore.revision.
@@ -64,6 +68,9 @@ void main() {
   testWidgets('a newly created deck is counted in the header immediately', (tester) async {
     await tester.pumpWidget(
       MaterialApp(
+      localizationsDelegates: AppLocalizations.localizationsDelegates,
+      supportedLocales: AppLocalizations.supportedLocales,
+
         theme: AppTheme.dark(AccentColor.purple),
         home: const DeckDashboardScreen(),
       ),

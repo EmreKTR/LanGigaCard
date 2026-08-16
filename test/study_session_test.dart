@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:langigacards/l10n/app_localizations.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:langigacards/data/api/deck_api.dart';
 import 'package:langigacards/data/library_storage.dart';
@@ -8,7 +9,10 @@ import 'package:langigacards/models/app_models.dart';
 import 'package:langigacards/screens/study/study_session_screen.dart';
 import 'package:langigacards/theme/app_theme.dart';
 
-Widget _wrap(Widget child) => MaterialApp(theme: AppTheme.dark(AccentColor.purple), home: child);
+Widget _wrap(Widget child) => MaterialApp(
+      localizationsDelegates: AppLocalizations.localizationsDelegates,
+      supportedLocales: AppLocalizations.supportedLocales,
+theme: AppTheme.dark(AccentColor.purple), home: child);
 
 void main() {
   // StudySessionScreen no longer reads cards from DeckStore.cards — it loads
