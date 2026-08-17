@@ -57,7 +57,7 @@ class _EmailVerificationScreenState extends State<EmailVerificationScreen> {
     ScaffoldMessenger.of(context).showSnackBar(SnackBar(
       content: Text(sent
           ? AppLocalizations.of(context).verifyResent
-          : "Couldn't reach the server. Check your connection and try again."),
+          : AppLocalizations.of(context).profileServerUnreachable),
     ));
   }
 
@@ -95,7 +95,7 @@ class _EmailVerificationScreenState extends State<EmailVerificationScreen> {
         // The code is dead at this point, so point at the fix rather than
         // inviting another doomed attempt.
         VerificationOutcome.tooManyAttempts => AppLocalizations.of(context).verifyTooManyAttempts,
-        VerificationOutcome.networkError => "Can't reach the server. Check your connection and try again.",
+        VerificationOutcome.networkError => AppLocalizations.of(context).commonNetworkError,
         _ => AppLocalizations.of(context).verifyIncorrect,
       };
       for (final c in _controllers) {

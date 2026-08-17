@@ -269,7 +269,7 @@ class _QueueLoadErrorView extends StatelessWidget {
               Text(l10n.studyQueueFailed, style: Theme.of(context).textTheme.headlineMedium, textAlign: TextAlign.center),
               const SizedBox(height: AppSpacing.sm),
               Text(
-                "Check your connection and try again.",
+                l10n.shellCheckConnection,
                 textAlign: TextAlign.center,
                 style: TextStyle(color: colors.textMuted),
               ),
