@@ -24,10 +24,22 @@ class PendingWrite {
     this.imageUrl,
     this.rating,
     this.durationSeconds,
+    this.starterKey,
   });
 
-  factory PendingWrite.createDeck({required String localId, required String title, String? description}) =>
-      PendingWrite._(kind: PendingWriteKind.createDeck, localId: localId, title: title, description: description);
+  factory PendingWrite.createDeck({
+    required String localId,
+    required String title,
+    String? description,
+    String? starterKey,
+  }) =>
+      PendingWrite._(
+        kind: PendingWriteKind.createDeck,
+        localId: localId,
+        title: title,
+        description: description,
+        starterKey: starterKey,
+      );
 
   factory PendingWrite.updateDeck({required String localId, required String title, String? description}) =>
       PendingWrite._(kind: PendingWriteKind.updateDeck, localId: localId, title: title, description: description);
@@ -87,6 +99,9 @@ class PendingWrite {
   final SrsRating? rating;
   final int? durationSeconds;
 
+  /// Only ever set on a `createDeck` for the app's own starter content.
+  final String? starterKey;
+
   /// Returns a copy with every id reference (`localId` and, for a card
   /// write, `deckId`) rewritten from [from] to [to] — used when an earlier
   /// queued create flushes and this entry pointed at its temporary id.
@@ -103,6 +118,7 @@ class PendingWrite {
       imageUrl: imageUrl,
       rating: rating,
       durationSeconds: durationSeconds,
+      starterKey: starterKey,
     );
   }
 
@@ -118,6 +134,7 @@ class PendingWrite {
         'imageUrl': imageUrl,
         'rating': rating?.name,
         'durationSeconds': durationSeconds,
+        'starterKey': starterKey,
       };
 
   static PendingWrite? fromJson(Map<String, dynamic> json) {
@@ -134,6 +151,7 @@ class PendingWrite {
         imageUrl: json['imageUrl'] as String?,
         rating: json['rating'] == null ? null : SrsRating.values.byName(json['rating'] as String),
         durationSeconds: json['durationSeconds'] as int?,
+        starterKey: json['starterKey'] as String?,
       );
     } catch (_) {
       return null;
@@ -247,7 +265,11 @@ class DeckWriteQueue {
   Future<_ApplyOutcome> _apply(DeckApi api, PendingWrite write) async {
     switch (write.kind) {
       case PendingWriteKind.createDeck:
-        final result = await api.createDeck(title: write.title!, description: write.description);
+        final result = await api.createDeck(
+          title: write.title!,
+          description: write.description,
+          starterKey: write.starterKey,
+        );
         if (result.isSuccess) return _Applied(result.deck!.id);
         return result.outcome == DeckOutcome.validationError ? const _ValidationFailed() : const _NetworkFailed();
 

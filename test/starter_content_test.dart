@@ -43,7 +43,7 @@ void main() {
         nativeCode: 'TR',
       );
 
-      expect(starter.decks.first.name, 'English Basics');
+      expect(starter.decks.first.name, 'Basics');
       // The word to learn is English, the answer is in Turkish. This is the
       // whole bug: the app used to hand this learner French decks.
       final hello = starter.cards.firstWhere((c) => c.term == 'Hello');
@@ -58,7 +58,7 @@ void main() {
         nativeCode: 'GB',
       );
 
-      expect(starter.decks.first.name, 'Japanese Basics');
+      expect(starter.decks.first.name, '基礎');
       expect(starter.cards.firstWhere((c) => c.term == 'こんにちは').translation, 'Hello');
     });
 
@@ -141,7 +141,7 @@ void main() {
       await _applyStarterContent(targetCode: 'GB', targetName: 'English', nativeCode: 'TR');
 
       expect(DeckStore.decks, isNotEmpty);
-      expect(DeckStore.decks.first.name, 'English Basics');
+      expect(DeckStore.decks.first.name, 'Basics');
       expect(DeckStore.cards.any((c) => c.term == 'Hello'), isTrue);
     });
 

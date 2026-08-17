@@ -12,6 +12,7 @@ class DeckData {
     required this.title,
     required this.description,
     this.coverImageUrl,
+    this.starterKey,
     this.cardCount = 0,
     this.dueCount = 0,
     this.masteryPercentage = 0,
@@ -22,6 +23,14 @@ class DeckData {
   final String title;
   final String description;
   final String? coverImageUrl;
+
+  /// Set only on the decks the app created for the learner at sign-up
+  /// ("basics_DE"); null on anything they made themselves. It is what lets
+  /// the app replace starter decks when the target language changes without
+  /// having to guess from the title — two of the eight titles carry no
+  /// language at all, and any of them can be renamed.
+  final String? starterKey;
+
   final int cardCount;
   final int dueCount;
   final double masteryPercentage;
@@ -33,6 +42,7 @@ class DeckData {
       title: title ?? this.title,
       description: description ?? this.description,
       coverImageUrl: coverImageUrl,
+      starterKey: starterKey,
       cardCount: cardCount,
       dueCount: dueCount,
       masteryPercentage: masteryPercentage,
@@ -144,7 +154,7 @@ class ReviewResult {
 /// [UserApi].
 abstract class DeckApi {
   Future<List<DeckData>> getDecks();
-  Future<DeckResult> createDeck({required String title, String? description});
+  Future<DeckResult> createDeck({required String title, String? description, String? starterKey});
   Future<DeckResult> updateDeck(String id, {required String title, String? description});
   Future<bool> deleteDeck(String id);
 
@@ -183,12 +193,17 @@ class FakeDeckApi implements DeckApi {
   Future<List<DeckData>> getDecks() async => _decks.values.toList();
 
   @override
-  Future<DeckResult> createDeck({required String title, String? description}) async {
+  Future<DeckResult> createDeck({required String title, String? description, String? starterKey}) async {
     if (title.trim().isEmpty) {
       return const DeckResult.validationError('Title is required.');
     }
     final id = '${_nextDeckId++}';
-    final deck = DeckData(id: id, title: title.trim(), description: description?.trim() ?? '');
+    final deck = DeckData(
+      id: id,
+      title: title.trim(),
+      description: description?.trim() ?? '',
+      starterKey: starterKey,
+    );
     _decks[id] = deck;
     return DeckResult.success(deck);
   }
@@ -346,6 +361,10 @@ class FakeDeckApi implements DeckApi {
       title: deck.title,
       description: deck.description,
       coverImageUrl: deck.coverImageUrl,
+      // Every field has to be carried across, not just the one being changed:
+      // rebuilding the record silently reset starterKey to null here, which
+      // made starter decks look like the learner's own.
+      starterKey: deck.starterKey,
       cardCount: deck.cardCount + delta,
       dueCount: deck.dueCount,
       masteryPercentage: deck.masteryPercentage,

@@ -89,7 +89,7 @@ class _NetworkErrorDeckApi implements DeckApi {
   @override
   Future<List<DeckData>> getDecks() async => throw Exception('offline');
   @override
-  Future<DeckResult> createDeck({required String title, String? description}) async => const DeckResult.networkError();
+  Future<DeckResult> createDeck({required String title, String? description, String? starterKey}) async => const DeckResult.networkError();
   @override
   Future<DeckResult> updateDeck(String id, {required String title, String? description}) async => const DeckResult.networkError();
   @override

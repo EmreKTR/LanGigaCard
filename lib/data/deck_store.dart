@@ -113,8 +113,12 @@ class DeckStore {
     return (mastered / total * 100).round();
   }
 
-  static Future<bool> addDeck({required String title, String? description}) async {
-    final result = await api.createDeck(title: title, description: description);
+  /// [starterKey] is set only by the app's own starter content
+  /// (`StarterContent.buildFor`), never by a deck the learner creates. It
+  /// marks the deck server-side so the starter set can be replaced when the
+  /// target language changes.
+  static Future<bool> addDeck({required String title, String? description, String? starterKey}) async {
+    final result = await api.createDeck(title: title, description: description, starterKey: starterKey);
     if (result.isSuccess) {
       decks.add(_deckFromApi(result.deck!));
       revision.value++;
@@ -137,7 +141,9 @@ class DeckStore {
       emoji: '📘',
       accentColor: const Color(0xFF6C5CE7),
     ));
-    writeQueue.enqueue(PendingWrite.createDeck(localId: localId, title: title, description: description));
+    writeQueue.enqueue(
+      PendingWrite.createDeck(localId: localId, title: title, description: description, starterKey: starterKey),
+    );
     await writeQueue.persist();
     revision.value++;
     await _persist();

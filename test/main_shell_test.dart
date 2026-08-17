@@ -90,7 +90,12 @@ void main() {
 
     final createdDecks = await fakeDeckApi.getDecks();
     expect(createdDecks, isNotEmpty);
-    expect(createdDecks.map((d) => d.title), contains('French Basics'));
+    // Deck names follow the target language, so a French learner's basics deck
+    // is called "Les bases" rather than "French Basics".
+    expect(createdDecks.map((d) => d.title), contains('Les bases'));
+    // And the marker that lets the app replace these when the target language
+    // changes has to survive the round trip through the API.
+    expect(createdDecks.map((d) => d.starterKey), contains('starter_basics_FR'));
 
     // A second MainShell mount for the same (now non-empty) account must not
     // duplicate the starter decks.

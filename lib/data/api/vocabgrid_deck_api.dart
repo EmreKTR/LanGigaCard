@@ -20,12 +20,13 @@ class VocabGridDeckApi implements DeckApi {
   }
 
   @override
-  Future<DeckResult> createDeck({required String title, String? description}) async {
+  Future<DeckResult> createDeck({required String title, String? description, String? starterKey}) async {
     try {
       final response = await _client.dio.post('/api/Deck', data: {
         'title': title,
         'description': description ?? '',
         'coverImageUrl': null,
+        'starterKey': starterKey,
       });
       return DeckResult.success(_deckFromJson(response.data as Map<String, dynamic>));
     } on DioException catch (e) {
@@ -240,6 +241,7 @@ class VocabGridDeckApi implements DeckApi {
         title: json['title'] as String,
         description: json['description'] as String? ?? '',
         coverImageUrl: json['coverImageUrl'] as String?,
+        starterKey: json['starterKey'] as String?,
         cardCount: json['cardCount'] as int? ?? 0,
         dueCount: json['dueCount'] as int? ?? 0,
         masteryPercentage: (json['masteryPercentage'] as num?)?.toDouble() ?? 0,
