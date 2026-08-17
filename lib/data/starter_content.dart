@@ -353,6 +353,183 @@ const _timeAndDays = <_Word>[
   }),
 ];
 
+/// A deck's name and description in every language the app offers.
+///
+/// These follow the *target* language, not the learner's own: someone learning
+/// German sees "Grundlagen · Begrüßungen und alltägliche Höflichkeit". The deck
+/// is a piece of the language being learned, and reading its name is the first
+/// small exposure to it.
+///
+/// Falls back to English for a language with no entry, so adding a language to
+/// the picker can never produce a nameless deck.
+class _DeckLabel {
+  const _DeckLabel(this.titles, this.descriptions);
+
+  final Map<String, String> titles;
+  final Map<String, String> descriptions;
+
+  String titleFor(String code) =>
+      titles[_normalizeLanguageCode(code)] ?? titles['GB']!;
+
+  String descriptionFor(String code) =>
+      descriptions[_normalizeLanguageCode(code)] ?? descriptions['GB']!;
+}
+
+const _deckLabels = <String, _DeckLabel>{
+  'basics': _DeckLabel(
+    {
+      'GB': 'Basics', 'ES': 'Fundamentos', 'FR': 'Les bases', 'DE': 'Grundlagen',
+      'IT': 'Le basi', 'PT': 'Fundamentos', 'JP': '基礎', 'KR': '기초',
+      'CN': '基础', 'TR': 'Temeller',
+    },
+    {
+      'GB': 'Greetings and everyday courtesy',
+      'ES': 'Saludos y cortesía diaria',
+      'FR': 'Salutations et politesse au quotidien',
+      'DE': 'Begrüßungen und alltägliche Höflichkeit',
+      'IT': 'Saluti e cortesia quotidiana',
+      'PT': 'Saudações e cortesia do dia a dia',
+      'JP': 'あいさつと日常の礼儀',
+      'KR': '인사와 일상 예절',
+      'CN': '问候与日常礼貌',
+      'TR': 'Selamlaşma ve günlük nezaket',
+    },
+  ),
+  'everyday': _DeckLabel(
+    {
+      'GB': 'Everyday Words', 'ES': 'Palabras cotidianas', 'FR': 'Mots du quotidien',
+      'DE': 'Alltagswörter', 'IT': 'Parole di ogni giorno', 'PT': 'Palavras do dia a dia',
+      'JP': '日常の言葉', 'KR': '일상 단어', 'CN': '日常词汇', 'TR': 'Günlük Kelimeler',
+    },
+    {
+      'GB': 'Words you will meet on your first day',
+      'ES': 'Palabras que verás el primer día',
+      'FR': 'Les mots de votre première journée',
+      'DE': 'Wörter für den ersten Tag',
+      'IT': 'Le parole del primo giorno',
+      'PT': 'Palavras que verá no primeiro dia',
+      'JP': '初日に出会う言葉',
+      'KR': '첫날 만나는 단어',
+      'CN': '第一天就会遇到的词',
+      'TR': 'İlk gün karşılaşacağın kelimeler',
+    },
+  ),
+  'numbers': _DeckLabel(
+    {
+      'GB': 'Numbers', 'ES': 'Números', 'FR': 'Les nombres', 'DE': 'Zahlen',
+      'IT': 'I numeri', 'PT': 'Números', 'JP': '数字', 'KR': '숫자',
+      'CN': '数字', 'TR': 'Sayılar',
+    },
+    {
+      'GB': 'Counting from one to ten',
+      'ES': 'Contar del uno al diez',
+      'FR': 'Compter de un à dix',
+      'DE': 'Von eins bis zehn zählen',
+      'IT': 'Contare da uno a dieci',
+      'PT': 'Contar de um a dez',
+      'JP': '1から10まで数える',
+      'KR': '하나부터 열까지 세기',
+      'CN': '从一数到十',
+      'TR': 'Birden ona kadar saymak',
+    },
+  ),
+  'food': _DeckLabel(
+    {
+      'GB': 'Food & Drink', 'ES': 'Comida y bebida', 'FR': 'Manger et boire',
+      'DE': 'Essen & Trinken', 'IT': 'Cibo e bevande', 'PT': 'Comida e bebida',
+      'JP': '食べ物と飲み物', 'KR': '음식과 음료', 'CN': '食物与饮品', 'TR': 'Yiyecek ve İçecek',
+    },
+    {
+      'GB': 'What you order, buy and cook',
+      'ES': 'Lo que pides, compras y cocinas',
+      'FR': 'Ce que vous commandez, achetez et cuisinez',
+      'DE': 'Was man bestellt, kauft und kocht',
+      'IT': 'Ciò che ordini, compri e cucini',
+      'PT': 'O que você pede, compra e cozinha',
+      'JP': '注文し、買い、料理するもの',
+      'KR': '주문하고 사고 요리하는 것',
+      'CN': '你点的、买的和做的',
+      'TR': 'Sipariş ettiğin, aldığın ve pişirdiğin şeyler',
+    },
+  ),
+  'travel': _DeckLabel(
+    {
+      'GB': 'Travel & Directions', 'ES': 'Viajes y direcciones', 'FR': 'Voyage et directions',
+      'DE': 'Reisen & Wegbeschreibung', 'IT': 'Viaggi e indicazioni', 'PT': 'Viagem e direções',
+      'JP': '旅行と道案内', 'KR': '여행과 길 찾기', 'CN': '旅行与问路', 'TR': 'Seyahat ve Yön Tarifi',
+    },
+    {
+      'GB': 'Getting around a city you do not know yet',
+      'ES': 'Moverse por una ciudad que aún no conoces',
+      'FR': 'Se repérer dans une ville encore inconnue',
+      'DE': 'Sich in einer fremden Stadt zurechtfinden',
+      'IT': 'Muoversi in una città che non conosci ancora',
+      'PT': 'Circular por uma cidade que ainda não conhece',
+      'JP': 'まだ知らない街を歩く',
+      'KR': '아직 낯선 도시를 다니기',
+      'CN': '在陌生的城市里找路',
+      'TR': 'Henüz tanımadığın bir şehirde yol bulmak',
+    },
+  ),
+  'colours': _DeckLabel(
+    {
+      'GB': 'Colours', 'ES': 'Colores', 'FR': 'Les couleurs', 'DE': 'Farben',
+      'IT': 'I colori', 'PT': 'Cores', 'JP': '色', 'KR': '색깔',
+      'CN': '颜色', 'TR': 'Renkler',
+    },
+    {
+      'GB': 'The colours you need every day',
+      'ES': 'Los colores que necesitas cada día',
+      'FR': 'Les couleurs dont vous avez besoin chaque jour',
+      'DE': 'Die Farben für jeden Tag',
+      'IT': 'I colori che servono ogni giorno',
+      'PT': 'As cores que precisa todos os dias',
+      'JP': '毎日使う色',
+      'KR': '매일 쓰는 색',
+      'CN': '每天都用得上的颜色',
+      'TR': 'Her gün ihtiyaç duyduğun renkler',
+    },
+  ),
+  'family': _DeckLabel(
+    {
+      'GB': 'Family & People', 'ES': 'Familia y personas', 'FR': 'Famille et personnes',
+      'DE': 'Familie & Menschen', 'IT': 'Famiglia e persone', 'PT': 'Família e pessoas',
+      'JP': '家族と人々', 'KR': '가족과 사람들', 'CN': '家人与他人', 'TR': 'Aile ve İnsanlar',
+    },
+    {
+      'GB': 'The people around you',
+      'ES': 'Las personas que te rodean',
+      'FR': 'Les gens qui vous entourent',
+      'DE': 'Die Menschen um dich herum',
+      'IT': 'Le persone intorno a te',
+      'PT': 'As pessoas à sua volta',
+      'JP': 'あなたのまわりの人たち',
+      'KR': '당신 주변의 사람들',
+      'CN': '你身边的人',
+      'TR': 'Etrafındaki insanlar',
+    },
+  ),
+  'time': _DeckLabel(
+    {
+      'GB': 'Time & Days', 'ES': 'Tiempo y días', 'FR': 'Temps et jours',
+      'DE': 'Zeit & Tage', 'IT': 'Tempo e giorni', 'PT': 'Tempo e dias',
+      'JP': '時間と曜日', 'KR': '시간과 요일', 'CN': '时间与星期', 'TR': 'Zaman ve Günler',
+    },
+    {
+      'GB': 'Saying when something happens',
+      'ES': 'Decir cuándo pasa algo',
+      'FR': 'Dire quand quelque chose se passe',
+      'DE': 'Sagen, wann etwas passiert',
+      'IT': 'Dire quando succede qualcosa',
+      'PT': 'Dizer quando algo acontece',
+      'JP': 'いつ起こるかを言う',
+      'KR': '언제 일어나는지 말하기',
+      'CN': '说明事情发生的时间',
+      'TR': 'Bir şeyin ne zaman olduğunu söylemek',
+    },
+  ),
+};
+
 /// The sample decks a learner starts with, built for their own language pair.
 class StarterContent {
   StarterContent._();
@@ -369,6 +546,45 @@ class StarterContent {
   static bool isStarterDeck(String deckId) =>
       deckId.startsWith(idPrefix) || legacyIds.contains(deckId);
 
+  /// Every title this deck has been shipped under: the current one first, then
+  /// the names earlier versions of the app wrote.
+  ///
+  /// The swap logic uses this to tell "untouched" from "renamed by the
+  /// learner". Without the older names, every deck created before the titles
+  /// were translated would look renamed and never be cleaned up — so the app
+  /// would keep decks for a language the learner had already left behind.
+  ///
+  /// Returns an empty list for a key that names a deck or language the app no
+  /// longer offers, which the caller reads as "don't touch it".
+  static List<String> knownTitlesFor(String starterKey, String targetName) {
+    if (!starterKey.startsWith(idPrefix)) return const [];
+
+    final body = starterKey.substring(idPrefix.length);
+    final cut = body.lastIndexOf('_');
+    if (cut <= 0) return const [];
+
+    final slug = body.substring(0, cut);
+    final label = _deckLabels[slug];
+    if (label == null) return const [];
+
+    return [label.titleFor(body.substring(cut + 1)), ..._legacyTitles(slug, targetName)];
+  }
+
+  /// Titles from before the deck names followed the target language. The first
+  /// two embedded the language's English name, which is why [targetName] is
+  /// still needed here.
+  static List<String> _legacyTitles(String slug, String targetName) => switch (slug) {
+        'basics' => ['$targetName Basics'],
+        'everyday' => ['Everyday $targetName'],
+        'numbers' => const ['Numbers'],
+        'food' => const ['Food & Drink'],
+        'travel' => const ['Travel & Directions'],
+        'colours' => const ['Colours'],
+        'family' => const ['Family & People'],
+        'time' => const ['Time & Days'],
+        _ => const [],
+      };
+
   /// Builds the starter decks and cards for a learner whose native language is
   /// [nativeCode] and who is learning [targetCode].
   ///
@@ -384,12 +600,13 @@ class StarterContent {
 
     void addDeck({
       required String slug,
-      required String name,
-      required String description,
       required String emoji,
       required Color color,
       required List<_Word> words,
     }) {
+      final label = _deckLabels[slug]!;
+      final name = label.titleFor(targetCode);
+      final description = label.descriptionFor(targetCode);
       final deckId = '$idPrefix${slug}_${_normalizeLanguageCode(targetCode)}';
       final deckCards = <FlashCard>[];
 
@@ -425,70 +642,14 @@ class StarterContent {
       cards.addAll(deckCards);
     }
 
-    addDeck(
-      slug: 'basics',
-      name: '$targetName Basics',
-      description: 'Greetings and everyday courtesy',
-      emoji: '👋',
-      color: const Color(0xFF6C5CE7),
-      words: _basics,
-    );
-    addDeck(
-      slug: 'everyday',
-      name: 'Everyday $targetName',
-      description: 'Words you will meet on your first day',
-      emoji: '☕',
-      color: const Color(0xFF3B82F6),
-      words: _everyday,
-    );
-    addDeck(
-      slug: 'numbers',
-      name: 'Numbers',
-      description: 'Counting from one to ten',
-      emoji: '🔢',
-      color: const Color(0xFF10B981),
-      words: _numbers,
-    );
-    addDeck(
-      slug: 'food',
-      name: 'Food & Drink',
-      description: 'What you order, buy and cook',
-      emoji: '🍎',
-      color: const Color(0xFFF97316),
-      words: _food,
-    );
-    addDeck(
-      slug: 'travel',
-      name: 'Travel & Directions',
-      description: 'Getting around a city you do not know yet',
-      emoji: '✈️',
-      color: const Color(0xFF0EA5E9),
-      words: _travel,
-    );
-    addDeck(
-      slug: 'colours',
-      name: 'Colours',
-      description: 'The colours you need every day',
-      emoji: '🎨',
-      color: const Color(0xFFEC4899),
-      words: _colours,
-    );
-    addDeck(
-      slug: 'family',
-      name: 'Family & People',
-      description: 'The people around you',
-      emoji: '👨‍👩‍👧',
-      color: const Color(0xFF8B5CF6),
-      words: _family,
-    );
-    addDeck(
-      slug: 'time',
-      name: 'Time & Days',
-      description: 'Saying when something happens',
-      emoji: '🗓️',
-      color: const Color(0xFFF59E0B),
-      words: _timeAndDays,
-    );
+    addDeck(slug: 'basics',   emoji: '👋',   color: const Color(0xFF6C5CE7), words: _basics);
+    addDeck(slug: 'everyday', emoji: '☕',   color: const Color(0xFF3B82F6), words: _everyday);
+    addDeck(slug: 'numbers',  emoji: '🔢',   color: const Color(0xFF10B981), words: _numbers);
+    addDeck(slug: 'food',     emoji: '🍎',   color: const Color(0xFFF97316), words: _food);
+    addDeck(slug: 'travel',   emoji: '✈️',   color: const Color(0xFF0EA5E9), words: _travel);
+    addDeck(slug: 'colours',  emoji: '🎨',   color: const Color(0xFFEC4899), words: _colours);
+    addDeck(slug: 'family',   emoji: '👨‍👩‍👧', color: const Color(0xFF8B5CF6), words: _family);
+    addDeck(slug: 'time',     emoji: '🗓️',   color: const Color(0xFFF59E0B), words: _timeAndDays);
 
     return (decks: decks, cards: cards);
   }

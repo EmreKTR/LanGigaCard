@@ -1,9 +1,62 @@
 import 'package:flutter/material.dart';
 import '../data/api/user_api.dart';
+import '../data/api/vocabgrid_user_api.dart';
 import '../l10n/app_localizations.dart';
+import '../models/app_models.dart';
 import '../theme/app_theme.dart';
 import '../theme/category_icons.dart';
 import 'app_buttons.dart';
+
+/// Opens the category picker for [profile], saves the selection through the
+/// API, and reports the updated profile via [onProfileChanged]. Shared by
+/// Profile's "Study Categories" row and Home's "Your Topics" edit action so
+/// both stay in sync with a single flow.
+Future<void> editCategories(
+  BuildContext context, {
+  required UserProfile profile,
+  required ValueChanged<UserProfile> onProfileChanged,
+}) async {
+  final l10n = AppLocalizations.of(context);
+  final allCategories = await userApi.getCategories();
+  if (!context.mounted) return;
+
+  // An empty list is indistinguishable from "the fetch failed" (the API
+  // never throws), so don't open a picker with nothing in it — opening it
+  // anyway would let Save silently wipe the real server-side selection.
+  if (allCategories.isEmpty) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text(l10n.profileLoadCategoriesFailed)),
+    );
+    return;
+  }
+
+  final myIds = await userApi.getMyCategoryIds();
+  if (!context.mounted) return;
+
+  showModalBottomSheet(
+    context: context,
+    isScrollControlled: true,
+    backgroundColor: Colors.transparent,
+    builder: (_) => CategoryPickerSheet(
+      allCategories: allCategories,
+      initial: myIds.toSet(),
+      onSave: (categoryIds) async {
+        final saved = await userApi.updateMyCategories(categoryIds.toList());
+        if (!context.mounted) return;
+
+        if (saved.length != categoryIds.length) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text(l10n.profileSaveCategoriesFailed)),
+          );
+          return;
+        }
+
+        final categoryNames = allCategories.where((c) => categoryIds.contains(c.id)).map((c) => c.name).toList();
+        onProfileChanged(profile.copyWith(categories: categoryNames));
+      },
+    ),
+  );
+}
 
 /// "Edit Categories" bottom sheet: header with a live selected-count and
 /// close button, a search box, a 3-column icon grid (selected = accent

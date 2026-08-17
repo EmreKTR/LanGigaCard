@@ -14,7 +14,10 @@ ReviewEntry _entry(int daysAgo, {SrsRating rating = SrsRating.medium}) => Review
     );
 
 void main() {
-  setUp(() => SharedPreferences.setMockInitialValues({}));
+  setUp(() {
+    SharedPreferences.setMockInitialValues({});
+    ReviewLog.entries = [];
+  });
 
   group('streak', () {
     test('no history means no streak', () {
@@ -126,6 +129,34 @@ void main() {
 
       expect(lastWeek.first, greaterThan(0), reason: 'today is Monday');
       expect(lastWeek.sublist(1).every((c) => c == 0), isTrue);
+    });
+  });
+
+  group('minutesStudiedToday', () {
+    test('no reviews today means zero minutes', () {
+      expect(ReviewLog.minutesStudiedToday([_entry(1)], _now), 0);
+    });
+
+    test('close-together reviews sum their real gaps', () {
+      final start = ReviewLog.dayOf(_now).add(const Duration(hours: 9));
+      final entries = [
+        ReviewEntry(cardId: 'a', rating: SrsRating.easy, reviewedAt: start),
+        ReviewEntry(cardId: 'b', rating: SrsRating.easy, reviewedAt: start.add(const Duration(minutes: 2))),
+        ReviewEntry(cardId: 'c', rating: SrsRating.easy, reviewedAt: start.add(const Duration(minutes: 4))),
+      ];
+
+      expect(ReviewLog.minutesStudiedToday(entries, _now), 4);
+    });
+
+    test('a long gap between sessions is capped, not counted in full', () {
+      final start = ReviewLog.dayOf(_now).add(const Duration(hours: 9));
+      final entries = [
+        ReviewEntry(cardId: 'a', rating: SrsRating.easy, reviewedAt: start),
+        // Picked studying back up hours later — that idle time isn't "study".
+        ReviewEntry(cardId: 'b', rating: SrsRating.easy, reviewedAt: start.add(const Duration(hours: 5))),
+      ];
+
+      expect(ReviewLog.minutesStudiedToday(entries, _now), lessThan(5));
     });
   });
 

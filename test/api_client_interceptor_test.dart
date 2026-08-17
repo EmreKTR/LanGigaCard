@@ -57,7 +57,8 @@ void main() {
   });
 
   test('attaches the Authorization header once a token is set', () async {
-    adapter.responses['GET /api/Categories'] = const _CannedResponse(200, {'ok': true});
+    adapter.responses['GET /api/Categories'] =
+        const _CannedResponse(200, {'ok': true});
     client.updateSession(token: 'abc123', refreshToken: 'refresh123');
 
     await client.dio.get('/api/Categories');
@@ -66,7 +67,8 @@ void main() {
   });
 
   test('does not attach a header to the auth endpoints themselves', () async {
-    adapter.responses['POST /api/Auth/login'] = const _CannedResponse(200, {'ok': true});
+    adapter.responses['POST /api/Auth/login'] =
+        const _CannedResponse(200, {'ok': true});
     client.updateSession(token: 'abc123', refreshToken: 'refresh123');
 
     await client.dio.post('/api/Auth/login');
@@ -75,7 +77,8 @@ void main() {
   });
 
   test('a 401 on a real request triggers exactly one silent refresh', () async {
-    adapter.responses['GET /api/Categories'] = const _CannedResponse(401, {'message': 'expired'});
+    adapter.responses['GET /api/Categories'] =
+        const _CannedResponse(401, {'message': 'expired'});
     adapter.responses['POST /api/Auth/refresh'] = const _CannedResponse(200, {
       'token': 'new-token',
       'refreshToken': 'new-refresh',
@@ -96,12 +99,15 @@ void main() {
       await client.dio.get('/api/Categories');
     } catch (_) {}
 
-    expect(adapter.requestedPaths.where((p) => p == '/api/Auth/refresh').length, 1);
+    expect(adapter.requestedPaths.where((p) => p == '/api/Auth/refresh').length,
+        1);
     expect(refreshedToken, 'new-token');
   });
 
-  test('a failed refresh clears the session and calls onSessionExpired', () async {
-    adapter.responses['GET /api/Categories'] = const _CannedResponse(401, {'message': 'expired'});
+  test('a failed refresh clears the session and calls onSessionExpired',
+      () async {
+    adapter.responses['GET /api/Categories'] =
+        const _CannedResponse(401, {'message': 'expired'});
     adapter.responses['POST /api/Auth/refresh'] =
         const _CannedResponse(401, {'message': 'refresh expired too'});
     client.updateSession(token: 'old-token', refreshToken: 'old-refresh');
@@ -111,7 +117,8 @@ void main() {
       expiredCalled = true;
     };
 
-    await expectLater(client.dio.get('/api/Categories'), throwsA(isA<DioException>()));
+    await expectLater(
+        client.dio.get('/api/Categories'), throwsA(isA<DioException>()));
 
     expect(expiredCalled, isTrue);
   });

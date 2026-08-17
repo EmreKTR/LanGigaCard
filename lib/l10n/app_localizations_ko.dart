@@ -254,10 +254,33 @@ class AppLocalizationsKo extends AppLocalizations {
   String get homeStreak => '연속 학습';
 
   @override
-  String get homeQuickActions => '빠른 작업';
+  String get homeContinueQuizLabel => '퀴즈';
 
   @override
-  String get homeAddWord => '단어 추가';
+  String get homeContinueQuizTitle => '퀴즈 이어가기';
+
+  @override
+  String homeContinueQuizSubtitle(String deck, int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count문제',
+    );
+    return '$deck · $_temp0';
+  }
+
+  @override
+  String homeReviewDueBadge(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '복습 $count개',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get homeReviewDoneBadge => '완료';
 
   @override
   String get homeYourTopics => '내 주제';
@@ -431,6 +454,23 @@ class AppLocalizationsKo extends AppLocalizations {
 
   @override
   String get decksSaveFailed => '변경 사항을 저장하지 못했습니다. 다시 시도해 주세요.';
+
+  @override
+  String get quizDecksTitle => '퀴즈 덱';
+
+  @override
+  String get quizDecksStartQuiz => '퀴즈 시작';
+
+  @override
+  String get quizDecksEmpty => '아직 덱이 없습니다';
+
+  @override
+  String get quizDecksEmptyHelp => '덱 탭에서 덱을 만든 다음 여기로 돌아와 퀴즈를 풀어보세요.';
+
+  @override
+  String quizDecksNotEnoughCards(int min) {
+    return '퀴즈를 사용하려면 카드를 최소 $min장 추가하세요';
+  }
 
   @override
   String get detailNotFound => '이 덱은 더 이상 존재하지 않습니다';
@@ -826,6 +866,9 @@ class AppLocalizationsKo extends AppLocalizations {
 
   @override
   String get profileDarkMode => '다크 모드';
+
+  @override
+  String get profileAppLanguage => '앱 언어';
 
   @override
   String get profileSoundEffects => '효과음';

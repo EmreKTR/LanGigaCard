@@ -123,7 +123,7 @@ class _CreateDeckSucceedsCardsFailApi implements DeckApi {
   @override
   Future<List<DeckData>> getDecks() => _inner.getDecks();
   @override
-  Future<DeckResult> createDeck({required String title, String? description}) =>
+  Future<DeckResult> createDeck({required String title, String? description, String? starterKey}) =>
       _inner.createDeck(title: title, description: description);
   @override
   Future<DeckResult> updateDeck(String id, {required String title, String? description}) =>
@@ -153,7 +153,7 @@ class _AlwaysNetworkErrorApi implements DeckApi {
   @override
   Future<List<DeckData>> getDecks() async => throw Exception('offline');
   @override
-  Future<DeckResult> createDeck({required String title, String? description}) async => const DeckResult.networkError();
+  Future<DeckResult> createDeck({required String title, String? description, String? starterKey}) async => const DeckResult.networkError();
   @override
   Future<DeckResult> updateDeck(String id, {required String title, String? description}) async => const DeckResult.networkError();
   @override

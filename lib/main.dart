@@ -3,7 +3,9 @@ import 'package:flutter_localizations/flutter_localizations.dart';
 import 'app_controller.dart';
 import 'data/app_language.dart';
 import 'data/deck_store.dart';
+import 'data/language_store.dart';
 import 'data/onboarding_store.dart';
+import 'data/review_log.dart';
 import 'l10n/app_localizations.dart';
 import 'models/text_size_option.dart';
 import 'screens/splash_screen.dart';
@@ -14,9 +16,17 @@ Future<void> main() async {
   // Restores the saved decks and cards before the first screen reads them.
   // The splash screen's delay covers this comfortably.
   await DeckStore.load();
+  // Same idea for today's review log, so Home's progress ring shows real
+  // minutes studied instead of a placeholder on the very first frame.
+  await ReviewLog.hydrate();
   // Read the stored language before the first frame so the app never flashes
   // English on its way to the user's actual language.
   final savedLanguage = await OnboardingStore.loadAppLanguage();
+  // Not awaited: the language pickers already render the built-in list and
+  // rebuild when this lands, so blocking the first frame on a network call
+  // would only make a cold start slower — and an unreachable server would
+  // hold the app on a blank screen instead of degrading quietly.
+  LanguageStore.refresh();
   runApp(LanGigaCardsApp(
     controller: AppController(locale: AppLanguage.localeFor(savedLanguage)),
   ));

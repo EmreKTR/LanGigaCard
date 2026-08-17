@@ -1,6 +1,7 @@
 ﻿import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:langigacards/l10n/app_localizations.dart';
+import 'package:langigacards/data/api/stats_api.dart';
 import 'package:langigacards/data/library_storage.dart';
 import 'package:langigacards/data/deck_store.dart';
 import 'package:langigacards/data/mock_data.dart';
@@ -40,6 +41,11 @@ theme: AppTheme.dark(AccentColor.purple), home: const StatisticsScreen()),
 void main() {
   // Keep the library in memory: these tests exercise data rules, not disk.
   setUp(() async {
+    // Without a stand-in the screen's real stats fetch leaves Dio's timeout
+    // timer pending and pumpAndSettle never settles. Failing the fetch is the
+    // right stand-in: these tests assert on the local library breakdown, which
+    // is exactly what the offline fallback path shows.
+    statsApi = FakeStatsApi(shouldFail: true);
     DeckStore.storage = InMemoryLibraryStorage();
     // The app now starts empty and seeds by language; these tests assert
     // against the fixed sample library, so install it explicitly.

@@ -29,7 +29,7 @@ class AppController extends ChangeNotifier {
   bool _soundEnabled = true;
   bool _notificationsEnabled = true;
   TextSizeOption _textSize = TextSizeOption.medium;
-  DifficultyMode _difficulty = DifficultyMode.adaptive;
+  DifficultyMode _difficulty = DifficultyMode.b1;
 
   ThemeMode get themeMode => _themeMode;
   Locale get locale => _locale;

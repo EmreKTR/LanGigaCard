@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'package:flutter/foundation.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../models/app_models.dart';
 
@@ -77,6 +78,23 @@ class ReviewLog {
   /// Keeps storage bounded — far more than any streak or heatmap needs.
   static const _maxEntries = 5000;
 
+  /// In-memory mirror of the persisted log, kept in sync by [hydrate] and
+  /// [record] so screens can read today's activity synchronously — the same
+  /// pattern DeckStore uses for decks/cards — instead of awaiting
+  /// SharedPreferences on every build.
+  static List<ReviewEntry> entries = [];
+
+  /// Bumped whenever [entries] changes, so screens can rebuild via
+  /// ValueListenableBuilder.
+  static final ValueNotifier<int> revision = ValueNotifier<int>(0);
+
+  /// Restores the saved log into [entries]. Call once at startup, before the
+  /// first screen reads it.
+  static Future<void> hydrate() async {
+    entries = await load();
+    revision.value++;
+  }
+
   static Future<List<ReviewEntry>> load() async {
     try {
       final prefs = await SharedPreferences.getInstance();
@@ -93,22 +111,21 @@ class ReviewLog {
   }
 
   static Future<void> record(String cardId, SrsRating rating, DateTime at) async {
+    final updated = [...entries, ReviewEntry(cardId: cardId, rating: rating, reviewedAt: at)];
+    entries = updated.length > _maxEntries ? updated.sublist(updated.length - _maxEntries) : updated;
+    revision.value++;
+
     try {
       final prefs = await SharedPreferences.getInstance();
-      final entries = await load()
-        ..add(ReviewEntry(cardId: cardId, rating: rating, reviewedAt: at));
-
-      final trimmed = entries.length > _maxEntries
-          ? entries.sublist(entries.length - _maxEntries)
-          : entries;
-
-      await prefs.setString(_prefsKey, jsonEncode(trimmed.map((e) => e.toJson()).toList()));
+      await prefs.setString(_prefsKey, jsonEncode(entries.map((e) => e.toJson()).toList()));
     } catch (_) {
       // Best-effort; a lost entry only costs a little history.
     }
   }
 
   static Future<void> clear() async {
+    entries = [];
+    revision.value++;
     try {
       final prefs = await SharedPreferences.getInstance();
       await prefs.remove(_prefsKey);
@@ -160,6 +177,30 @@ class ReviewLog {
       cursor = cursor.subtract(const Duration(days: 1));
     }
     return streak;
+  }
+
+  /// Minutes spent studying today, estimated from the gaps between
+  /// consecutive review timestamps.
+  ///
+  /// There's no separate session-start/stop log, so this is the closest
+  /// thing to real elapsed time: sum the time between one answer and the
+  /// next, capping each gap at [maxGapMinutes] so a break (or an abandoned
+  /// session) doesn't inflate the total. A small fixed amount per card is
+  /// added on top since the time spent on the very first (gap-less) card
+  /// would otherwise be lost.
+  static int minutesStudiedToday(List<ReviewEntry> entries, DateTime now, {int maxGapMinutes = 3}) {
+    final today = dayOf(now);
+    final todays = entries.where((e) => dayOf(e.reviewedAt) == today).toList()
+      ..sort((a, b) => a.reviewedAt.compareTo(b.reviewedAt));
+    if (todays.isEmpty) return 0;
+
+    final maxGap = Duration(minutes: maxGapMinutes);
+    var studied = const Duration(seconds: 5);
+    for (var i = 1; i < todays.length; i++) {
+      final gap = todays[i].reviewedAt.difference(todays[i - 1].reviewedAt);
+      studied += gap < maxGap ? gap : const Duration(seconds: 5);
+    }
+    return (studied.inSeconds / 60).round();
   }
 
   /// A weeks × 7 grid of study intensity (0–4) ending on the week containing

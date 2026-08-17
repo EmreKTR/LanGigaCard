@@ -1,11 +1,12 @@
 import 'package:flutter/material.dart';
-import '../app_controller.dart';
 import '../data/api/deck_api.dart';
 import '../data/api/vocabgrid_user_api.dart';
 import '../data/deck_store.dart';
+import '../data/language_store.dart';
 import '../data/mock_data.dart';
 import '../data/onboarding_store.dart';
 import '../data/pronunciation_service.dart';
+import '../data/starter_content.dart';
 import '../l10n/app_localizations.dart';
 import '../models/app_models.dart';
 import '../theme/app_theme.dart';
@@ -15,12 +16,12 @@ import 'decks/deck_dashboard_screen.dart';
 import 'home/home_screen.dart';
 import 'profile/profile_screen.dart';
 import 'stats/statistics_screen.dart';
-import 'study/quiz_screen.dart';
+import 'study/quiz_decks_screen.dart';
 import 'study/study_session_screen.dart';
 
 /// Root shell hosting the 4 persistent tabs (Home, Decks, Stats, Profile)
 /// behind [AppBottomNav]. The 5th nav item ("Quiz") is an action that
-/// pushes [QuizScreen] on top instead of switching tabs.
+/// pushes [QuizDecksScreen] on top instead of switching tabs.
 class MainShell extends StatefulWidget {
   const MainShell({super.key, this.profile});
 
@@ -114,46 +115,36 @@ class _MainShellState extends State<MainShell> {
   }
 
   /// Brings everything that depends on the language pair in line with
-  /// [profile]: the interface language, the speaking voice, and the starter
-  /// decks.
+  /// [profile]: the speaking voice and the starter decks.
+  ///
+  /// Deliberately does *not* touch the interface language — that's a
+  /// separate setting (Profile > App Preferences > App Language / the
+  /// pre-login [AppLanguageSelectScreen]) and must not be overridden just
+  /// because the learner changed their native language.
   void _applyProfile(UserProfile profile) {
-    // The interface is shown in the learner's *native* language — the one
-    // they already speak — not the one they're learning. Driving it from here
-    // means the two can never drift apart: this runs on first load and again
-    // on every profile change, so editing Native Language in Profile
-    // re-translates the app immediately.
-    // maybeOf, not appController: this also runs from initState (when the
-    // wizard hands the profile straight over), where a dependency lookup
-    // would assert.
-    AppControllerScope.maybeOf(context)?.setLanguageCode(profile.nativeLanguageCode);
     // Cards are written in the language being learned, so that's the voice
     // the speaker buttons should use.
     PronunciationService.useLanguageCode(profile.targetLanguageCode);
-    _maybeCreateStarterContent(profile);
+    _syncStarterContent(profile);
   }
 
-  /// Creates the learner's starter decks for real via the API, but only
-  /// once — if they already have any decks (their own, or starter content
-  /// from a previous session on another device), nothing happens.
-  Future<void> _maybeCreateStarterContent(UserProfile profile) async {
-    await DeckStore.refresh();
-    if (!mounted || DeckStore.decks.isNotEmpty) return;
-
-    // DeckStore.decks being empty here is ambiguous -- refresh() swallows a
-    // fetch failure and just leaves the cache as it was, so an empty cache
-    // could mean "genuinely a new account" or "the fetch just failed" (e.g.
-    // right after logout, which now always leaves the cache empty). Confirm
-    // directly against the API before concluding "new account" -- getting
-    // this wrong duplicates the entire starter set once the real decks
-    // reappear on a later successful refresh.
-    final List<DeckData> freshDecks;
-    try {
-      freshDecks = await DeckStore.api.getDecks();
-    } catch (_) {
-      return; // Fetch failed -- don't guess, skip starter content this time.
-    }
-    if (!mounted || freshDecks.isNotEmpty) return;
-
+  /// Keeps the learner's starter decks in step with their target language.
+  ///
+  /// Runs on load and again whenever the language pair changes, and does
+  /// three things:
+  ///
+  /// 1. Removes starter decks belonging to a language they are no longer
+  ///    learning — but only untouched ones. A deck with reviews behind it, or
+  ///    one they renamed, has become theirs and stays.
+  /// 2. Creates whatever is missing for the current target language.
+  /// 3. Leaves decks with no starter key completely alone. Accounts created
+  ///    before that marker existed can't be told apart from decks the learner
+  ///    made, and the safe reading of an unknown deck is that it is theirs.
+  ///
+  /// Deleting a starter deck on purpose therefore doesn't stick: the next
+  /// language change brings it back. Recreating a deck is recoverable;
+  /// deleting the wrong one is not, so the guard errs that way.
+  Future<void> _syncStarterContent(UserProfile profile) async {
     final starter = MockData.buildStarterContent(
       targetCode: profile.targetLanguageCode,
       targetName: profile.targetLanguage,
@@ -161,8 +152,47 @@ class _MainShellState extends State<MainShell> {
     );
     if (starter == null) return;
 
+    // Reconcile the local cache with the server first. Without this the deck
+    // list keeps showing decks another session already deleted — the cache
+    // survives a reinstall, so it drifts further every language change.
+    await DeckStore.refresh();
+    if (!mounted) return;
+
+    // The decision below still reads straight from the API rather than
+    // DeckStore.decks: refresh() swallows a fetch failure and leaves the cache
+    // as it was, so an empty cache could mean "new account" or "the fetch just
+    // failed". Getting that wrong would duplicate the whole starter set.
+    final List<DeckData> existing;
+    try {
+      existing = await DeckStore.api.getDecks();
+    } catch (_) {
+      return; // Fetch failed -- don't guess; try again next time.
+    }
+    if (!mounted) return;
+
+    final wantedKeys = {for (final deck in starter.decks) deck.id};
+
+    for (final deck in existing) {
+      final key = deck.starterKey;
+      if (key == null || key.isEmpty || wantedKeys.contains(key)) continue;
+      if (deck.reviewsCount > 0) continue;
+      if (!_starterTitlesFor(key).contains(deck.title)) continue;
+      await DeckStore.removeDeck(deck.id);
+      if (!mounted) return;
+    }
+
+    final alreadyHave = {
+      for (final deck in existing)
+        if (deck.starterKey != null) deck.starterKey,
+    };
+
     for (final deck in starter.decks) {
-      final created = await DeckStore.addDeck(title: deck.name, description: deck.description);
+      if (alreadyHave.contains(deck.id)) continue;
+      final created = await DeckStore.addDeck(
+        title: deck.name,
+        description: deck.description,
+        starterKey: deck.id,
+      );
       if (!mounted) return;
       if (!created) continue;
       final realDeckId = DeckStore.decks.last.id;
@@ -177,6 +207,20 @@ class _MainShellState extends State<MainShell> {
         if (!mounted) return;
       }
     }
+  }
+
+  /// The titles a starter deck may legitimately still carry — the name the app
+  /// gives it today plus the ones older versions used.
+  ///
+  /// A deck whose title is not in this list has been renamed by the learner,
+  /// which makes it theirs, and the swap leaves it alone. An empty list (a key
+  /// naming a language or deck the app no longer offers) reads the same way.
+  List<String> _starterTitlesFor(String starterKey) {
+    final code = starterKey.split('_').last;
+    final language = LanguageStore.languages.where((entry) => entry.$2 == code);
+    if (language.isEmpty) return const [];
+
+    return StarterContent.knownTitlesFor(starterKey, language.first.$1);
   }
 
   /// Profile edits can change the language pair, so re-apply when they do.
@@ -203,7 +247,12 @@ class _MainShellState extends State<MainShell> {
     }
 
     final tabs = [
-      HomeScreen(profile: profile, onStudyTap: _startStudySession, onProfileTap: () => setState(() => _tabIndex = 3)),
+      HomeScreen(
+        profile: profile,
+        onStudyTap: _startStudySession,
+        onProfileTap: () => setState(() => _tabIndex = 3),
+        onProfileChanged: _onProfileChanged,
+      ),
       const DeckDashboardScreen(),
       StatisticsScreen(profile: profile),
       ProfileScreen(profile: profile, onProfileChanged: _onProfileChanged),
@@ -216,7 +265,7 @@ class _MainShellState extends State<MainShell> {
         // "Quiz" has no tab content, so map our 4-tab index back onto the
         // 5-item nav bar index for correct highlighting.
         currentIndex: _tabIndex >= 2 ? _tabIndex + 1 : _tabIndex,
-        onQuizTap: () => Navigator.of(context).push(MaterialPageRoute(builder: (_) => const QuizScreen())),
+        onQuizTap: () => Navigator.of(context).push(MaterialPageRoute(builder: (_) => const QuizDecksScreen())),
         onTabSelected: (i) => setState(() => _tabIndex = i > 2 ? i - 1 : i),
       ),
     );

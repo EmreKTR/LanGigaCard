@@ -44,7 +44,9 @@ void main() {
     final profile = await _pumpProfile(tester);
     expect(profile().nativeLanguage, 'English');
 
-    await tester.tap(find.text('Native Language'));
+    // The Native Language picker now opens from the language pair card at
+    // the top of Profile, not a Study Preferences row.
+    await tester.tap(find.text('English'));
     await tester.pumpAndSettle();
 
     // Sheet is open, and the language already being learned is blocked.
@@ -60,7 +62,9 @@ void main() {
   testWidgets('the target language cannot be set to the native language', (tester) async {
     final profile = await _pumpProfile(tester);
 
-    await tester.tap(find.text('Target Language'));
+    // The Target Language picker now opens from the language pair card at
+    // the top of Profile, not a Study Preferences row.
+    await tester.tap(find.text('French'));
     await tester.pumpAndSettle();
 
     // "English" is the native language, so it is shown as unavailable.

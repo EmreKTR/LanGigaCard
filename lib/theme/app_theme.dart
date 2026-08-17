@@ -298,6 +298,16 @@ class AppTheme {
           side: BorderSide(color: colors.border),
         ),
       ),
+      dialogTheme: DialogThemeData(
+        backgroundColor: colors.surface,
+        surfaceTintColor: Colors.transparent,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(AppRadius.lg),
+          side: BorderSide(color: colors.border),
+        ),
+        titleTextStyle: textTheme.titleLarge,
+        contentTextStyle: textTheme.bodyLarge,
+      ),
       dividerTheme: DividerThemeData(color: colors.border, thickness: 1),
       elevatedButtonTheme: ElevatedButtonThemeData(
         style: ElevatedButton.styleFrom(
@@ -348,6 +358,27 @@ class AppTheme {
         trackColor: WidgetStateProperty.resolveWith(
           (states) => states.contains(WidgetState.selected) ? colors.primary.withValues(alpha: 0.5) : null,
         ),
+      ),
+      bottomSheetTheme: BottomSheetThemeData(
+        backgroundColor: colors.surface,
+        shape: const RoundedRectangleBorder(
+          borderRadius: BorderRadius.vertical(top: Radius.circular(AppRadius.xl)),
+        ),
+      ),
+      timePickerTheme: TimePickerThemeData(
+        backgroundColor: colors.surface,
+        hourMinuteColor: colors.surfaceElevated,
+        hourMinuteTextColor: colors.textPrimary,
+        dayPeriodColor: colors.surfaceElevated,
+        dayPeriodTextColor: colors.textSecondary,
+        dialBackgroundColor: colors.surfaceElevated,
+        dialHandColor: colors.primary,
+        dialTextColor: colors.textPrimary,
+        entryModeIconColor: colors.textSecondary,
+        helpTextStyle: TextStyle(color: colors.textMuted),
+        cancelButtonStyle: TextButton.styleFrom(foregroundColor: colors.textSecondary),
+        confirmButtonStyle: TextButton.styleFrom(foregroundColor: colors.primary),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(AppRadius.lg)),
       ),
     );
   }
