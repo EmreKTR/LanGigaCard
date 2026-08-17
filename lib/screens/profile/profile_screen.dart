@@ -4,7 +4,7 @@ import '../../data/api/user_api.dart';
 import '../../data/api/vocabgrid_user_api.dart';
 import '../../data/auth_store.dart';
 import '../../data/deck_store.dart';
-import '../../data/mock_data.dart';
+import '../../data/language_store.dart';
 import '../../data/review_log.dart';
 import '../../models/app_models.dart';
 import '../../models/text_size_option.dart';
@@ -663,10 +663,12 @@ class _LanguageSheet extends StatelessWidget {
       title: title,
       child: ListView.separated(
         shrinkWrap: true,
-        itemCount: MockData.languages.length,
+        // Served by the API (see LanguageStore) rather than compiled in, so a
+        // language can be added or switched off without a new build.
+        itemCount: LanguageStore.languages.length,
         separatorBuilder: (_, __) => const SizedBox(height: AppSpacing.sm),
         itemBuilder: (context, i) {
-          final lang = MockData.languages[i];
+          final lang = LanguageStore.languages[i];
           final isSelected = lang.$1 == selected;
           final isBlocked = lang.$1 == unavailable;
 

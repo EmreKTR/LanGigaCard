@@ -4,6 +4,7 @@ import '../data/api/deck_api.dart';
 import '../data/api/vocabgrid_user_api.dart';
 import '../data/deck_store.dart';
 import '../data/mock_data.dart';
+import '../data/language_store.dart';
 import '../data/onboarding_store.dart';
 import '../data/pronunciation_service.dart';
 import '../data/starter_content.dart';
@@ -222,7 +223,7 @@ class _MainShellState extends State<MainShell> {
   /// naming a language or deck the app no longer offers) reads the same way.
   List<String> _starterTitlesFor(String starterKey) {
     final code = starterKey.split('_').last;
-    final language = MockData.languages.where((entry) => entry.$2 == code);
+    final language = LanguageStore.languages.where((entry) => entry.$2 == code);
     if (language.isEmpty) return const [];
 
     return StarterContent.knownTitlesFor(starterKey, language.first.$1);

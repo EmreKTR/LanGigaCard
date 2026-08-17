@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import '../data/mock_data.dart';
+import '../data/language_store.dart';
 import '../l10n/app_localizations.dart';
 import '../theme/app_theme.dart';
 import 'status_indicators.dart';
@@ -42,9 +42,24 @@ class _LanguageSearchListState extends State<LanguageSearchList> {
 
   @override
   Widget build(BuildContext context) {
+    // Rebuild when the language list arrives from the server. The fetch runs at
+    // startup and this picker is the first screen a new learner reaches, so
+    // without the listener it could render the built-in fallback a moment
+    // before the real list lands and then never update.
+    return ValueListenableBuilder<int>(
+      valueListenable: LanguageStore.revision,
+      builder: (context, _, __) => _buildList(context),
+    );
+  }
+
+  Widget _buildList(BuildContext context) {
     final colors = context.appColors;
     final l10n = AppLocalizations.of(context);
-    final results = MockData.languages.where((l) => l.$1.toLowerCase().contains(_query.toLowerCase())).toList();
+    // LanguageStore, not the compiled-in list: the server owns the order and
+    // the display names.
+    final results = LanguageStore.languages
+        .where((l) => l.$1.toLowerCase().contains(_query.toLowerCase()))
+        .toList();
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
