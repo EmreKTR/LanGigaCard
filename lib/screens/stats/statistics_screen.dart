@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
+import '../../data/api/stats_api.dart';
 import '../../data/deck_store.dart';
 import '../../data/mock_data.dart';
 import '../../data/review_log.dart';
@@ -105,10 +106,57 @@ class _StatisticsScreenState extends State<StatisticsScreen> {
     _loadHistory();
   }
 
+  /// Server first, local log as the fallback.
+  ///
+  /// The local log lives in shared preferences and is capped at 5000 entries,
+  /// so it resets on reinstall and never follows the learner to another device
+  /// — someone who studied for a month on their phone saw an empty heatmap on
+  /// a tablet. The server has the whole history. It stays as the fallback
+  /// because offline stats are better than none.
   Future<void> _loadHistory() async {
+    try {
+      final summary = await statsApi.getDailySummary();
+      if (!mounted) return;
+      setState(() => _stats = _statsFromServer(summary, DateTime.now()));
+      return;
+    } catch (_) {
+      // Unreachable server — fall through to what this device remembers.
+    }
+
     final entries = await ReviewLog.load();
     if (!mounted) return;
     setState(() => _stats = ReviewLog.summarise(entries, DateTime.now()));
+  }
+
+  static ReviewStats _statsFromServer(DailyStudySummary summary, DateTime now) {
+    final perDay = {for (final day in summary.days) day.day: day.reviewCount};
+    final today = ReviewLog.dayOf(now);
+
+    return ReviewStats(
+      total: summary.totalReviews,
+      correct: summary.totalCorrect,
+      streakDays: _streakFrom(perDay, today),
+      reviewedToday: perDay[today] ?? 0,
+      perDay: perDay,
+    );
+  }
+
+  /// Consecutive days with at least one review, counting backwards.
+  ///
+  /// An empty today does not break the streak — the day isn't over yet — so
+  /// counting starts from yesterday in that case. Each step is re-normalized
+  /// through [ReviewLog.dayOf] so a daylight-saving shift can't drift the key
+  /// off midnight and make a studied day look empty.
+  static int _streakFrom(Map<DateTime, int> perDay, DateTime today) {
+    var day = (perDay[today] ?? 0) > 0 ? today : ReviewLog.dayOf(today.subtract(const Duration(days: 1)));
+    var streak = 0;
+
+    while ((perDay[day] ?? 0) > 0) {
+      streak++;
+      day = ReviewLog.dayOf(day.subtract(const Duration(days: 1)));
+    }
+
+    return streak;
   }
 
   @override
