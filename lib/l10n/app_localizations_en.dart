@@ -259,10 +259,35 @@ class AppLocalizationsEn extends AppLocalizations {
   String get homeStreak => 'Streak';
 
   @override
-  String get homeQuickActions => 'QUICK ACTIONS';
+  String get homeContinueQuizLabel => 'QUIZ';
 
   @override
-  String get homeAddWord => 'Add Word';
+  String get homeContinueQuizTitle => 'Continue Quiz';
+
+  @override
+  String homeContinueQuizSubtitle(String deck, int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count questions',
+      one: '1 question',
+    );
+    return '$deck · $_temp0';
+  }
+
+  @override
+  String homeReviewDueBadge(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count due',
+      one: '1 due',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get homeReviewDoneBadge => 'Done';
 
   @override
   String get homeYourTopics => 'Your Topics';
@@ -444,6 +469,24 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get decksSaveFailed => 'Couldn\'t save changes. Please try again.';
+
+  @override
+  String get quizDecksTitle => 'Quiz Decks';
+
+  @override
+  String get quizDecksStartQuiz => 'Start Quiz';
+
+  @override
+  String get quizDecksEmpty => 'No decks yet';
+
+  @override
+  String get quizDecksEmptyHelp =>
+      'Create a deck from the Decks tab, then come back here to quiz yourself on it.';
+
+  @override
+  String quizDecksNotEnoughCards(int min) {
+    return 'Add at least $min cards to unlock quiz';
+  }
 
   @override
   String get detailNotFound => 'This deck no longer exists';
@@ -845,6 +888,9 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get profileDarkMode => 'Dark Mode';
+
+  @override
+  String get profileAppLanguage => 'App Language';
 
   @override
   String get profileSoundEffects => 'Sound Effects';

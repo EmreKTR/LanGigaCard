@@ -570,17 +570,35 @@ abstract class AppLocalizations {
   /// **'Streak'**
   String get homeStreak;
 
-  /// No description provided for @homeQuickActions.
+  /// No description provided for @homeContinueQuizLabel.
   ///
   /// In en, this message translates to:
-  /// **'QUICK ACTIONS'**
-  String get homeQuickActions;
+  /// **'QUIZ'**
+  String get homeContinueQuizLabel;
 
-  /// No description provided for @homeAddWord.
+  /// No description provided for @homeContinueQuizTitle.
   ///
   /// In en, this message translates to:
-  /// **'Add Word'**
-  String get homeAddWord;
+  /// **'Continue Quiz'**
+  String get homeContinueQuizTitle;
+
+  /// No description provided for @homeContinueQuizSubtitle.
+  ///
+  /// In en, this message translates to:
+  /// **'{deck} · {count, plural, =1{1 question} other{{count} questions}}'**
+  String homeContinueQuizSubtitle(String deck, int count);
+
+  /// No description provided for @homeReviewDueBadge.
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, =1{1 due} other{{count} due}}'**
+  String homeReviewDueBadge(int count);
+
+  /// No description provided for @homeReviewDoneBadge.
+  ///
+  /// In en, this message translates to:
+  /// **'Done'**
+  String get homeReviewDoneBadge;
 
   /// No description provided for @homeYourTopics.
   ///
@@ -857,6 +875,36 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Couldn\'t save changes. Please try again.'**
   String get decksSaveFailed;
+
+  /// No description provided for @quizDecksTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Quiz Decks'**
+  String get quizDecksTitle;
+
+  /// No description provided for @quizDecksStartQuiz.
+  ///
+  /// In en, this message translates to:
+  /// **'Start Quiz'**
+  String get quizDecksStartQuiz;
+
+  /// No description provided for @quizDecksEmpty.
+  ///
+  /// In en, this message translates to:
+  /// **'No decks yet'**
+  String get quizDecksEmpty;
+
+  /// No description provided for @quizDecksEmptyHelp.
+  ///
+  /// In en, this message translates to:
+  /// **'Create a deck from the Decks tab, then come back here to quiz yourself on it.'**
+  String get quizDecksEmptyHelp;
+
+  /// No description provided for @quizDecksNotEnoughCards.
+  ///
+  /// In en, this message translates to:
+  /// **'Add at least {min} cards to unlock quiz'**
+  String quizDecksNotEnoughCards(int min);
 
   /// No description provided for @detailNotFound.
   ///
@@ -1553,6 +1601,12 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Dark Mode'**
   String get profileDarkMode;
+
+  /// No description provided for @profileAppLanguage.
+  ///
+  /// In en, this message translates to:
+  /// **'App Language'**
+  String get profileAppLanguage;
 
   /// No description provided for @profileSoundEffects.
   ///

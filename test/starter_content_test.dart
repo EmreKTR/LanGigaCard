@@ -5,7 +5,7 @@ import 'package:langigacards/data/deck_store.dart';
 import 'package:langigacards/data/mock_data.dart';
 import 'package:langigacards/data/starter_content.dart';
 
-/// Mirrors MainShell._maybeCreateStarterContent's own build-then-apply loop
+/// Mirrors MainShell._syncStarterContent's own build-then-apply loop
 /// (lib/screens/main_shell.dart): MockData.buildStarterContent (Task 8) only
 /// *builds* decks/cards, it doesn't persist them — the caller decides how.
 Future<void> _applyStarterContent({required String targetCode, required String targetName, required String nativeCode}) async {
@@ -116,21 +116,23 @@ void main() {
     // pure builder with no side effects and no bookkeeping at all. The
     // "replace on language change" and "no duplicates on reapply" behaviors
     // that used to live inside MockData now live entirely in
-    // MainShell._maybeCreateStarterContent (lib/screens/main_shell.dart),
-    // which only ever creates starter content once, when the learner's
-    // library is completely empty (`if (!mounted ||
-    // DeckStore.decks.isNotEmpty) return;`) — it never replaces or dedupes
-    // anything afterward. So three of the original tests here no longer
-    // have a real behavior to test:
+    // MainShell._syncStarterContent (lib/screens/main_shell.dart), which
+    // reconciles the learner's decks against DeckData.starterKey every time
+    // the profile is (re)applied: it creates whatever starter decks are
+    // missing for the current target language and removes untouched starter
+    // decks left over from a language the learner is no longer studying (a
+    // deck with reviews behind it, or one they renamed, is left alone). So
+    // the original tests here no longer have a real behavior to test against
+    // this file's pure builder:
     //  - "changing target language replaces untouched sample decks" and
-    //    "the legacy French sample is treated as replaceable too" both
-    //    tested the old replace-stale-decks logic, which was dropped, not
-    //    ported — changing the target language later only changes the
-    //    pronunciation voice now, decks are untouched.
+    //    "the legacy French sample is treated as replaceable too" now test
+    //    MainShell's starterKey-based swap logic, which needs the API layer
+    //    (DeckData.starterKey, DeckStore.api.getDecks()) this file's
+    //    _applyStarterContent helper doesn't touch — see
+    //    test/main_shell_test.dart instead.
     //  - "a deck the learner made is never thrown away" and "applying the
     //    same language twice does not duplicate decks" both tested
-    //    behavior that is now MainShell's "only if empty" gate, not
-    //    MockData's — and that gate is already covered by
+    //    behavior that is also MainShell's, covered by
     //    test/main_shell_test.dart's "a zero-deck account gets real starter
     //    decks created via the API, exactly once" test. Re-testing it here
     //    against a hand-rolled apply loop (this file's _applyStarterContent)

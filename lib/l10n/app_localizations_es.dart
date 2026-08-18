@@ -259,10 +259,35 @@ class AppLocalizationsEs extends AppLocalizations {
   String get homeStreak => 'Racha';
 
   @override
-  String get homeQuickActions => 'ACCIONES RÁPIDAS';
+  String get homeContinueQuizLabel => 'TEST';
 
   @override
-  String get homeAddWord => 'Añadir palabra';
+  String get homeContinueQuizTitle => 'Continuar Test';
+
+  @override
+  String homeContinueQuizSubtitle(String deck, int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count preguntas',
+      one: '1 pregunta',
+    );
+    return '$deck · $_temp0';
+  }
+
+  @override
+  String homeReviewDueBadge(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count pendientes',
+      one: '1 pendiente',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get homeReviewDoneBadge => 'Completado';
 
   @override
   String get homeYourTopics => 'Tus temas';
@@ -447,6 +472,24 @@ class AppLocalizationsEs extends AppLocalizations {
   @override
   String get decksSaveFailed =>
       'No se pudieron guardar los cambios. Inténtalo de nuevo.';
+
+  @override
+  String get quizDecksTitle => 'Mazos de Test';
+
+  @override
+  String get quizDecksStartQuiz => 'Iniciar Test';
+
+  @override
+  String get quizDecksEmpty => 'Aún no hay mazos';
+
+  @override
+  String get quizDecksEmptyHelp =>
+      'Crea un mazo desde la pestaña Mazos y vuelve aquí para ponerte a prueba.';
+
+  @override
+  String quizDecksNotEnoughCards(int min) {
+    return 'Añade al menos $min tarjetas para desbloquear el test';
+  }
 
   @override
   String get detailNotFound => 'Este mazo ya no existe';
@@ -850,6 +893,9 @@ class AppLocalizationsEs extends AppLocalizations {
 
   @override
   String get profileDarkMode => 'Modo oscuro';
+
+  @override
+  String get profileAppLanguage => 'Idioma de la app';
 
   @override
   String get profileSoundEffects => 'Efectos de sonido';

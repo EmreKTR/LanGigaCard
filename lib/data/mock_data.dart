@@ -30,7 +30,7 @@ class MockData {
   /// Deliberately not shipped to learners: the app instead builds starter
   /// content in the language they actually chose via [buildStarterContent]
   /// and creates it for real through `DeckStore.addDeck`/`addCard` (see
-  /// `MainShell._maybeCreateStarterContent`). This method exists so tests
+  /// `MainShell._syncStarterContent`). This method exists so tests
   /// have a known, stable library to assert against.
   @visibleForTesting
   static Future<void> seedSampleLibrary() async {
@@ -47,7 +47,7 @@ class MockData {
   /// Builds the starter decks/cards for a learner's language pair, or
   /// returns null if starter content doesn't apply (blank codes, or nothing
   /// to build for this pair). Does not persist anything — the caller
-  /// decides how (see [MainShell._maybeCreateStarterContent]).
+  /// decides how (see [MainShell._syncStarterContent]).
   static ({List<Deck> decks, List<FlashCard> cards})? buildStarterContent({
     required String targetCode,
     required String targetName,
