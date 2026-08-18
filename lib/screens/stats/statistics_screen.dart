@@ -76,6 +76,25 @@ extension _StatsRangeX on _StatsRange {
       };
 }
 
+/// Derives `earned` for each fixed achievement definition from real data.
+///
+/// "Perfect Score", "Speed Learner" and "Polyglot" have no backing data
+/// anywhere in the app (no persisted quiz history, no per-card timing, no
+/// second-language tracking), so they stay locked rather than showing a
+/// fabricated `true`.
+List<Achievement> _achievementsFor(ReviewStats stats) {
+  return MockData.achievements.map((a) {
+    final earned = switch (a.title) {
+      '7-Day Streak' => stats.streakDays >= 7,
+      // Counting all cards rather than only mastered ones, since "collector"
+      // reads as "how many words have you added" rather than "mastered".
+      'Word Collector' => DeckStore.cards.length >= 100,
+      _ => false,
+    };
+    return Achievement(emoji: a.emoji, title: a.title, description: a.description, earned: earned);
+  }).toList();
+}
+
 /// Statistics: range switcher, 3 metric cards, a learning heatmap, a
 /// 7-day words-reviewed bar chart, an accuracy breakdown ring, and an
 /// achievements checklist.
@@ -166,8 +185,9 @@ class _StatisticsScreenState extends State<StatisticsScreen> {
     // Month and weekday names are formatted by intl for whichever locale the
     // app is currently showing, so they follow the interface language.
     final localeName = Localizations.localeOf(context).toString();
-    final earnedCount = MockData.achievements.where((a) => a.earned).length;
     final stats = _stats ?? ReviewStats.empty;
+    final achievements = _achievementsFor(stats);
+    final earnedCount = achievements.where((a) => a.earned).length;
 
     return Scaffold(
       appBar: AppBar(title: Text(l10n.statsTitle)),
@@ -271,11 +291,11 @@ class _StatisticsScreenState extends State<StatisticsScreen> {
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
                 Text(l10n.statsAchievements, style: Theme.of(context).textTheme.titleLarge),
-                Text(l10n.statsEarned(earnedCount, MockData.achievements.length), style: TextStyle(color: colors.textMuted, fontSize: 12)),
+                Text(l10n.statsEarned(earnedCount, achievements.length), style: TextStyle(color: colors.textMuted, fontSize: 12)),
               ],
             ),
             const SizedBox(height: AppSpacing.md),
-            for (final a in MockData.achievements) _AchievementRow(achievement: a),
+            for (final a in achievements) _AchievementRow(achievement: a),
             ],
             ),
           ),

@@ -2,6 +2,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:langigacards/l10n/app_localizations.dart';
+import 'package:langigacards/data/api/stats_api.dart';
 import 'package:langigacards/screens/stats/statistics_screen.dart';
 import 'package:langigacards/theme/app_theme.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -39,7 +40,13 @@ Future<void> _pumpStats(WidgetTester tester) async {
 }
 
 void main() {
-  setUp(() => SharedPreferences.setMockInitialValues({}));
+  setUp(() {
+    // These tests assert on the review-log fallback; without a stand-in the
+    // screen's real stats fetch leaves Dio's timeout timer pending and
+    // pumpAndSettle never settles (see statistics_breakdown_test.dart).
+    statsApi = FakeStatsApi(shouldFail: true);
+    SharedPreferences.setMockInitialValues({});
+  });
 
   testWidgets('with no history the screen reports zero rather than invented numbers', (tester) async {
     await _pumpStats(tester);

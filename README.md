@@ -92,9 +92,10 @@ level, and learning purposes, then creates your first decks with starter content
 
 ## Interface language
 
-The app language follows the **native language** in your profile. Tap *Native Language* on
-the Profile tab, pick another one, and the entire interface switches immediately — there
-is no separate app-language setting to keep in sync.
+The app language is a separate setting from your profile's native/target language pair —
+change it any time from **Profile > App Preferences > App Language**, or from the
+language-select screen shown before you sign in. Changing your Native Language in Profile
+no longer changes the interface language for you.
 
 Ten languages are supported: English, Turkish, Spanish, French, German, Italian,
 Portuguese, Japanese, Korean, and Chinese. Translations live in `lib/l10n/app_*.arb`, with

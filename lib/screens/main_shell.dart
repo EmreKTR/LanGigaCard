@@ -1,10 +1,9 @@
 import 'package:flutter/material.dart';
-import '../app_controller.dart';
 import '../data/api/deck_api.dart';
 import '../data/api/vocabgrid_user_api.dart';
 import '../data/deck_store.dart';
-import '../data/mock_data.dart';
 import '../data/language_store.dart';
+import '../data/mock_data.dart';
 import '../data/onboarding_store.dart';
 import '../data/pronunciation_service.dart';
 import '../data/starter_content.dart';
@@ -17,12 +16,12 @@ import 'decks/deck_dashboard_screen.dart';
 import 'home/home_screen.dart';
 import 'profile/profile_screen.dart';
 import 'stats/statistics_screen.dart';
-import 'study/quiz_screen.dart';
+import 'study/quiz_decks_screen.dart';
 import 'study/study_session_screen.dart';
 
 /// Root shell hosting the 4 persistent tabs (Home, Decks, Stats, Profile)
 /// behind [AppBottomNav]. The 5th nav item ("Quiz") is an action that
-/// pushes [QuizScreen] on top instead of switching tabs.
+/// pushes [QuizDecksScreen] on top instead of switching tabs.
 class MainShell extends StatefulWidget {
   const MainShell({super.key, this.profile});
 
@@ -116,18 +115,13 @@ class _MainShellState extends State<MainShell> {
   }
 
   /// Brings everything that depends on the language pair in line with
-  /// [profile]: the interface language, the speaking voice, and the starter
-  /// decks.
+  /// [profile]: the speaking voice and the starter decks.
+  ///
+  /// Deliberately does *not* touch the interface language — that's a
+  /// separate setting (Profile > App Preferences > App Language / the
+  /// pre-login [AppLanguageSelectScreen]) and must not be overridden just
+  /// because the learner changed their native language.
   void _applyProfile(UserProfile profile) {
-    // The interface is shown in the learner's *native* language — the one
-    // they already speak — not the one they're learning. Driving it from here
-    // means the two can never drift apart: this runs on first load and again
-    // on every profile change, so editing Native Language in Profile
-    // re-translates the app immediately.
-    // maybeOf, not appController: this also runs from initState (when the
-    // wizard hands the profile straight over), where a dependency lookup
-    // would assert.
-    AppControllerScope.maybeOf(context)?.setLanguageCode(profile.nativeLanguageCode);
     // Cards are written in the language being learned, so that's the voice
     // the speaker buttons should use.
     PronunciationService.useLanguageCode(profile.targetLanguageCode);
@@ -253,7 +247,12 @@ class _MainShellState extends State<MainShell> {
     }
 
     final tabs = [
-      HomeScreen(profile: profile, onStudyTap: _startStudySession, onProfileTap: () => setState(() => _tabIndex = 3)),
+      HomeScreen(
+        profile: profile,
+        onStudyTap: _startStudySession,
+        onProfileTap: () => setState(() => _tabIndex = 3),
+        onProfileChanged: _onProfileChanged,
+      ),
       const DeckDashboardScreen(),
       StatisticsScreen(profile: profile),
       ProfileScreen(profile: profile, onProfileChanged: _onProfileChanged),
@@ -266,7 +265,7 @@ class _MainShellState extends State<MainShell> {
         // "Quiz" has no tab content, so map our 4-tab index back onto the
         // 5-item nav bar index for correct highlighting.
         currentIndex: _tabIndex >= 2 ? _tabIndex + 1 : _tabIndex,
-        onQuizTap: () => Navigator.of(context).push(MaterialPageRoute(builder: (_) => const QuizScreen())),
+        onQuizTap: () => Navigator.of(context).push(MaterialPageRoute(builder: (_) => const QuizDecksScreen())),
         onTabSelected: (i) => setState(() => _tabIndex = i > 2 ? i - 1 : i),
       ),
     );

@@ -259,10 +259,35 @@ class AppLocalizationsIt extends AppLocalizations {
   String get homeStreak => 'Serie';
 
   @override
-  String get homeQuickActions => 'AZIONI RAPIDE';
+  String get homeContinueQuizLabel => 'QUIZ';
 
   @override
-  String get homeAddWord => 'Aggiungi parola';
+  String get homeContinueQuizTitle => 'Continua il Quiz';
+
+  @override
+  String homeContinueQuizSubtitle(String deck, int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count domande',
+      one: '1 domanda',
+    );
+    return '$deck · $_temp0';
+  }
+
+  @override
+  String homeReviewDueBadge(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count da ripassare',
+      one: '1 da ripassare',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get homeReviewDoneBadge => 'Completato';
 
   @override
   String get homeYourTopics => 'I tuoi temi';
@@ -443,6 +468,24 @@ class AppLocalizationsIt extends AppLocalizations {
 
   @override
   String get decksSaveFailed => 'Impossibile salvare le modifiche. Riprova.';
+
+  @override
+  String get quizDecksTitle => 'Mazzi Quiz';
+
+  @override
+  String get quizDecksStartQuiz => 'Avvia Quiz';
+
+  @override
+  String get quizDecksEmpty => 'Ancora nessun mazzo';
+
+  @override
+  String get quizDecksEmptyHelp =>
+      'Crea un mazzo dalla scheda Mazzi, poi torna qui per metterti alla prova.';
+
+  @override
+  String quizDecksNotEnoughCards(int min) {
+    return 'Aggiungi almeno $min carte per sbloccare il quiz';
+  }
 
   @override
   String get detailNotFound => 'Questo mazzo non esiste più';
@@ -845,6 +888,9 @@ class AppLocalizationsIt extends AppLocalizations {
 
   @override
   String get profileDarkMode => 'Tema scuro';
+
+  @override
+  String get profileAppLanguage => 'Lingua dell\'app';
 
   @override
   String get profileSoundEffects => 'Effetti sonori';

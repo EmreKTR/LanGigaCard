@@ -253,10 +253,33 @@ class AppLocalizationsJa extends AppLocalizations {
   String get homeStreak => '連続日数';
 
   @override
-  String get homeQuickActions => 'クイックアクション';
+  String get homeContinueQuizLabel => 'クイズ';
 
   @override
-  String get homeAddWord => '単語を追加';
+  String get homeContinueQuizTitle => 'クイズを続ける';
+
+  @override
+  String homeContinueQuizSubtitle(String deck, int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count問',
+    );
+    return '$deck · $_temp0';
+  }
+
+  @override
+  String homeReviewDueBadge(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '復習$count件',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get homeReviewDoneBadge => '完了';
 
   @override
   String get homeYourTopics => 'あなたのトピック';
@@ -430,6 +453,23 @@ class AppLocalizationsJa extends AppLocalizations {
 
   @override
   String get decksSaveFailed => '変更を保存できませんでした。もう一度お試しください。';
+
+  @override
+  String get quizDecksTitle => 'クイズデッキ';
+
+  @override
+  String get quizDecksStartQuiz => 'クイズを始める';
+
+  @override
+  String get quizDecksEmpty => 'デッキがまだありません';
+
+  @override
+  String get quizDecksEmptyHelp => '「デッキ」タブでデッキを作成してから、ここに戻ってクイズに挑戦しましょう。';
+
+  @override
+  String quizDecksNotEnoughCards(int min) {
+    return 'クイズを解放するには最低$min枚のカードが必要です';
+  }
 
   @override
   String get detailNotFound => 'このデッキは存在しません';
@@ -825,6 +865,9 @@ class AppLocalizationsJa extends AppLocalizations {
 
   @override
   String get profileDarkMode => 'ダークモード';
+
+  @override
+  String get profileAppLanguage => 'アプリの言語';
 
   @override
   String get profileSoundEffects => '効果音';

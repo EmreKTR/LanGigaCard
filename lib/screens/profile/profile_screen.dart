@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import '../../app_controller.dart';
 import '../../data/api/user_api.dart';
 import '../../data/api/vocabgrid_user_api.dart';
+import '../../data/app_language.dart';
 import '../../data/auth_store.dart';
 import '../../data/deck_store.dart';
 import '../../data/language_store.dart';
@@ -13,6 +14,7 @@ import '../../theme/app_theme.dart';
 import '../../widgets/app_buttons.dart';
 import '../../widgets/app_text_field.dart';
 import '../../widgets/category_picker_sheet.dart';
+import '../../widgets/language_search_list.dart';
 import '../../widgets/reminder_row.dart';
 import '../../widgets/section_card.dart';
 import '../../widgets/status_indicators.dart';
@@ -31,6 +33,20 @@ import 'privacy_security_screen.dart';
   return (parts.first, parts.skip(1).join(' '));
 }
 
+/// Resolves [controller]'s current interface locale back to a display name
+/// from [LanguageStore.languages]. The two are coded differently — the picker
+/// deals in language *names* (and its own `GB`/`JP`-style codes), while
+/// [AppController.locale] only ever holds a plain ISO [Locale] — so this
+/// walks the list to find whichever entry maps to the same locale.
+String _currentAppLanguageName(AppController controller) {
+  final code = controller.locale.languageCode;
+  final match = LanguageStore.languages.firstWhere(
+    (l) => AppLanguage.localeFor(l.$2).languageCode == code,
+    orElse: () => LanguageStore.languages.first,
+  );
+  return match.$1;
+}
+
 /// Profile: gradient identity header, editable Language Pair card, and
 /// Study Preferences / App Preferences / Account settings groups.
 class ProfileScreen extends StatelessWidget {
@@ -38,50 +54,6 @@ class ProfileScreen extends StatelessWidget {
 
   final UserProfile profile;
   final ValueChanged<UserProfile> onProfileChanged;
-
-  Future<void> _editCategories(BuildContext context) async {
-
-    final l10n = AppLocalizations.of(context);
-    final allCategories = await userApi.getCategories();
-    if (!context.mounted) return;
-
-    // An empty list is indistinguishable from "the fetch failed" (the API
-    // never throws), so don't open a picker with nothing in it — opening it
-    // anyway would let Save silently wipe the real server-side selection.
-    if (allCategories.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(l10n.profileLoadCategoriesFailed)),
-      );
-      return;
-    }
-
-    final myIds = await userApi.getMyCategoryIds();
-    if (!context.mounted) return;
-
-    showModalBottomSheet(
-      context: context,
-      isScrollControlled: true,
-      backgroundColor: Colors.transparent,
-      builder: (_) => CategoryPickerSheet(
-        allCategories: allCategories,
-        initial: myIds.toSet(),
-        onSave: (categoryIds) async {
-          final saved = await userApi.updateMyCategories(categoryIds.toList());
-          if (!context.mounted) return;
-
-          if (saved.length != categoryIds.length) {
-            ScaffoldMessenger.of(context).showSnackBar(
-              SnackBar(content: Text(l10n.profileSaveCategoriesFailed)),
-            );
-            return;
-          }
-
-          final categoryNames = allCategories.where((c) => categoryIds.contains(c.id)).map((c) => c.name).toList();
-          onProfileChanged(profile.copyWith(categories: categoryNames));
-        },
-      ),
-    );
-  }
 
   Future<void> _adjustGoal(BuildContext context, int delta) async {
 
@@ -151,8 +123,9 @@ class ProfileScreen extends StatelessWidget {
     final allPurposes = await userApi.getLearningPurposes();
     if (!context.mounted) return;
 
-    // Same rationale as _editCategories: an empty list means the fetch
-    // failed, not that there's genuinely nothing to pick from.
+    // Same rationale as editCategories (category_picker_sheet.dart): an
+    // empty list means the fetch failed, not that there's genuinely nothing
+    // to pick from.
     if (allPurposes.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text(l10n.profileLoadPurposesFailed)),
@@ -232,23 +205,15 @@ class ProfileScreen extends StatelessWidget {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  _LanguagePairCard(profile: profile),
+                  _LanguagePairCard(
+                    profile: profile,
+                    onTapNative: () => _pickLanguage(context, isNative: true),
+                    onTapTarget: () => _pickLanguage(context, isNative: false),
+                  ),
                   const SizedBox(height: AppSpacing.xl),
                   SettingsGroup(
                     title: l10n.profileStudyPreferences,
                     children: [
-                      SettingsRow(
-                        icon: Icons.translate_rounded,
-                        label: l10n.profileNativeLanguage,
-                        value: profile.nativeLanguage,
-                        onTap: () => _pickLanguage(context, isNative: true),
-                      ),
-                      SettingsRow(
-                        icon: Icons.flag_rounded,
-                        label: l10n.profileTargetLanguage,
-                        value: profile.targetLanguage,
-                        onTap: () => _pickLanguage(context, isNative: false),
-                      ),
                       SettingsRow(
                         icon: Icons.emoji_objects_rounded,
                         label: l10n.profileLearningPurpose,
@@ -265,7 +230,10 @@ class ProfileScreen extends StatelessWidget {
                           children: [
                             Text(l10n.profileTopicsCount(profile.categories.length), style: TextStyle(color: colors.textMuted, fontSize: 13)),
                             const SizedBox(width: AppSpacing.sm),
-                            TextButton(onPressed: () => _editCategories(context), child: Text(l10n.profileEdit)),
+                            TextButton(
+                              onPressed: () => editCategories(context, profile: profile, onProfileChanged: onProfileChanged),
+                              child: Text(l10n.profileEdit),
+                            ),
                           ],
                         ),
                       ),
@@ -308,6 +276,12 @@ class ProfileScreen extends StatelessWidget {
                           icon: Icons.dark_mode_rounded,
                           label: l10n.profileDarkMode,
                           trailing: Switch(value: controller.isDarkMode, onChanged: controller.setDarkMode),
+                        ),
+                        SettingsRow(
+                          icon: Icons.language_rounded,
+                          label: l10n.profileAppLanguage,
+                          value: _currentAppLanguageName(controller),
+                          onTap: () => _showAppLanguagePicker(context, controller),
                         ),
                         SettingsRow(
                           icon: Icons.volume_up_rounded,
@@ -469,22 +443,77 @@ class ProfileScreen extends StatelessWidget {
     );
   }
 
-  void _showDifficultyPicker(BuildContext context, AppController controller) {
+  void _showAppLanguagePicker(BuildContext context, AppController controller) {
+    final l10n = AppLocalizations.of(context);
     showModalBottomSheet(
       context: context,
-      builder: (context) => SafeArea(
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: DifficultyMode.values
-              .map((mode) => ListTile(
-                    title: Text(mode.label),
-                    trailing: controller.difficulty == mode ? const Icon(Icons.check_rounded) : null,
-                    onTap: () {
-                      controller.setDifficulty(mode);
-                      Navigator.of(context).pop();
-                    },
-                  ))
-              .toList(),
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (_) => _SheetScaffold(
+        title: l10n.appLanguageTitle,
+        child: SingleChildScrollView(
+          child: LanguageSearchList(
+            selected: _currentAppLanguageName(controller),
+            onSelected: (lang) {
+              controller.setLanguageCode(lang.$2);
+              Navigator.of(context).pop();
+            },
+          ),
+        ),
+      ),
+    );
+  }
+
+  void _showDifficultyPicker(BuildContext context, AppController controller) {
+    final l10n = AppLocalizations.of(context);
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (context) => _SheetScaffold(
+        title: l10n.profileDifficultyMode,
+        child: Builder(
+          builder: (context) {
+            final colors = context.appColors;
+            return Column(
+              mainAxisSize: MainAxisSize.min,
+              children: DifficultyMode.values
+                  .map((mode) {
+                    final selected = controller.difficulty == mode;
+                    return InkWell(
+                      borderRadius: BorderRadius.circular(AppRadius.md),
+                      onTap: () {
+                        controller.setDifficulty(mode);
+                        Navigator.of(context).pop();
+                      },
+                      child: Container(
+                        margin: const EdgeInsets.only(bottom: AppSpacing.sm),
+                        padding: const EdgeInsets.symmetric(horizontal: AppSpacing.lg, vertical: AppSpacing.md),
+                        decoration: BoxDecoration(
+                          color: colors.surfaceElevated,
+                          borderRadius: BorderRadius.circular(AppRadius.md),
+                          border: Border.all(color: selected ? colors.primary : colors.border),
+                        ),
+                        child: Row(
+                          children: [
+                            Expanded(
+                              child: Text(
+                                mode.label,
+                                style: TextStyle(
+                                  color: selected ? colors.primary : colors.textPrimary,
+                                  fontWeight: selected ? FontWeight.w700 : FontWeight.w500,
+                                ),
+                              ),
+                            ),
+                            if (selected) Icon(Icons.check_circle_rounded, size: 18, color: colors.primary),
+                          ],
+                        ),
+                      ),
+                    );
+                  })
+                  .toList(),
+            );
+          },
         ),
       ),
     );
@@ -548,25 +577,30 @@ class _ProfileHeader extends StatelessWidget {
 }
 
 class _LanguagePairCard extends StatelessWidget {
-  const _LanguagePairCard({required this.profile});
+  const _LanguagePairCard({
+    required this.profile,
+    required this.onTapNative,
+    required this.onTapTarget,
+  });
 
   final UserProfile profile;
+  final VoidCallback onTapNative;
+  final VoidCallback onTapTarget;
 
   @override
   Widget build(BuildContext context) {
     final colors = context.appColors;
     final l10n = AppLocalizations.of(context);
     return SectionCard(
+      padding: EdgeInsets.zero,
       child: Row(
         children: [
           Expanded(
-            child: Column(
-              children: [
-                LanguageBadge(code: profile.nativeLanguageCode),
-                const SizedBox(height: AppSpacing.sm),
-                Text(profile.nativeLanguage, style: TextStyle(fontWeight: FontWeight.w700, color: colors.textPrimary)),
-                Text(l10n.profileNative, style: TextStyle(color: colors.textMuted, fontSize: 11)),
-              ],
+            child: _LanguagePairSide(
+              onTap: onTapNative,
+              name: profile.nativeLanguage,
+              subtitle: l10n.profileNative,
+              subtitleColor: colors.textMuted,
             ),
           ),
           Column(
@@ -576,16 +610,57 @@ class _LanguagePairCard extends StatelessWidget {
             ],
           ),
           Expanded(
-            child: Column(
-              children: [
-                LanguageBadge(code: profile.targetLanguageCode),
-                const SizedBox(height: AppSpacing.sm),
-                Text(profile.targetLanguage, style: TextStyle(fontWeight: FontWeight.w700, color: colors.textPrimary)),
-                Text(profile.targetLevel, style: TextStyle(color: colors.primary, fontSize: 11, fontWeight: FontWeight.w600)),
-              ],
+            child: _LanguagePairSide(
+              onTap: onTapTarget,
+              name: profile.targetLanguage,
+              subtitle: profile.targetLevel,
+              subtitleColor: colors.primary,
+              subtitleWeight: FontWeight.w600,
             ),
           ),
         ],
+      ),
+    );
+  }
+}
+
+/// One tappable half of the language pair card — the language name/subtitle
+/// plus a chevron hinting that it opens the language picker.
+class _LanguagePairSide extends StatelessWidget {
+  const _LanguagePairSide({
+    required this.onTap,
+    required this.name,
+    required this.subtitle,
+    required this.subtitleColor,
+    this.subtitleWeight,
+  });
+
+  final VoidCallback onTap;
+  final String name;
+  final String subtitle;
+  final Color subtitleColor;
+  final FontWeight? subtitleWeight;
+
+  @override
+  Widget build(BuildContext context) {
+    final colors = context.appColors;
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(AppRadius.md),
+      child: Padding(
+        padding: const EdgeInsets.symmetric(vertical: AppSpacing.lg, horizontal: AppSpacing.sm),
+        child: Column(
+          children: [
+            Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Text(name, style: TextStyle(fontWeight: FontWeight.w700, color: colors.textPrimary)),
+                Icon(Icons.chevron_right_rounded, size: 16, color: colors.textMuted),
+              ],
+            ),
+            Text(subtitle, style: TextStyle(color: subtitleColor, fontSize: 11, fontWeight: subtitleWeight)),
+          ],
+        ),
       ),
     );
   }
