@@ -20,12 +20,16 @@ extension TextSizeOptionX on TextSizeOption {
       };
 }
 
-enum DifficultyMode { easy, adaptive, hard }
+enum DifficultyMode { a1, a2, b1, b1Plus, b2, c1, c2 }
 
 extension DifficultyModeX on DifficultyMode {
   String get label => switch (this) {
-        DifficultyMode.easy => 'Easy',
-        DifficultyMode.adaptive => 'Adaptive',
-        DifficultyMode.hard => 'Hard',
+        DifficultyMode.a1 => 'A1',
+        DifficultyMode.a2 => 'A2',
+        DifficultyMode.b1 => 'B1',
+        DifficultyMode.b1Plus => 'B1+',
+        DifficultyMode.b2 => 'B2',
+        DifficultyMode.c1 => 'C1',
+        DifficultyMode.c2 => 'C2',
       };
 }

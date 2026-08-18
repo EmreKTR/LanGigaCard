@@ -262,10 +262,35 @@ class AppLocalizationsDe extends AppLocalizations {
   String get homeStreak => 'Serie';
 
   @override
-  String get homeQuickActions => 'SCHNELLAKTIONEN';
+  String get homeContinueQuizLabel => 'QUIZ';
 
   @override
-  String get homeAddWord => 'Wort hinzufügen';
+  String get homeContinueQuizTitle => 'Quiz fortsetzen';
+
+  @override
+  String homeContinueQuizSubtitle(String deck, int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count Fragen',
+      one: '1 Frage',
+    );
+    return '$deck · $_temp0';
+  }
+
+  @override
+  String homeReviewDueBadge(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count fällig',
+      one: '1 fällig',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get homeReviewDoneBadge => 'Fertig';
 
   @override
   String get homeYourTopics => 'Deine Themen';
@@ -450,6 +475,24 @@ class AppLocalizationsDe extends AppLocalizations {
   @override
   String get decksSaveFailed =>
       'Änderungen konnten nicht gespeichert werden. Bitte erneut versuchen.';
+
+  @override
+  String get quizDecksTitle => 'Quiz-Decks';
+
+  @override
+  String get quizDecksStartQuiz => 'Quiz starten';
+
+  @override
+  String get quizDecksEmpty => 'Noch keine Decks';
+
+  @override
+  String get quizDecksEmptyHelp =>
+      'Erstelle ein Deck im Tab „Decks“ und komm dann hierher zurück, um dich testen zu lassen.';
+
+  @override
+  String quizDecksNotEnoughCards(int min) {
+    return 'Füge mindestens $min Karten hinzu, um das Quiz freizuschalten';
+  }
 
   @override
   String get detailNotFound => 'Diesen Stapel gibt es nicht mehr';
@@ -856,6 +899,9 @@ class AppLocalizationsDe extends AppLocalizations {
 
   @override
   String get profileDarkMode => 'Dunkler Modus';
+
+  @override
+  String get profileAppLanguage => 'App-Sprache';
 
   @override
   String get profileSoundEffects => 'Soundeffekte';

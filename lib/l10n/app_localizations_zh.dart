@@ -247,10 +247,33 @@ class AppLocalizationsZh extends AppLocalizations {
   String get homeStreak => '连续天数';
 
   @override
-  String get homeQuickActions => '快捷操作';
+  String get homeContinueQuizLabel => '测验';
 
   @override
-  String get homeAddWord => '添加单词';
+  String get homeContinueQuizTitle => '继续测验';
+
+  @override
+  String homeContinueQuizSubtitle(String deck, int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count 题',
+    );
+    return '$deck · $_temp0';
+  }
+
+  @override
+  String homeReviewDueBadge(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count 待复习',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get homeReviewDoneBadge => '已完成';
 
   @override
   String get homeYourTopics => '你的主题';
@@ -424,6 +447,23 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get decksSaveFailed => '无法保存更改，请重试。';
+
+  @override
+  String get quizDecksTitle => '测验卡组';
+
+  @override
+  String get quizDecksStartQuiz => '开始测验';
+
+  @override
+  String get quizDecksEmpty => '还没有卡组';
+
+  @override
+  String get quizDecksEmptyHelp => '在「卡组」标签页创建一个卡组，然后回到这里进行测验。';
+
+  @override
+  String quizDecksNotEnoughCards(int min) {
+    return '至少添加 $min 张卡片以解锁测验';
+  }
 
   @override
   String get detailNotFound => '该卡组已不存在';
@@ -819,6 +859,9 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get profileDarkMode => '深色模式';
+
+  @override
+  String get profileAppLanguage => '应用语言';
 
   @override
   String get profileSoundEffects => '音效';

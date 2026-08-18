@@ -260,10 +260,33 @@ class AppLocalizationsTr extends AppLocalizations {
   String get homeStreak => 'Seri';
 
   @override
-  String get homeQuickActions => 'HIZLI İŞLEMLER';
+  String get homeContinueQuizLabel => 'TEST';
 
   @override
-  String get homeAddWord => 'Kelime Ekle';
+  String get homeContinueQuizTitle => 'Quiz\'e Devam Et';
+
+  @override
+  String homeContinueQuizSubtitle(String deck, int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count soru',
+    );
+    return '$deck · $_temp0';
+  }
+
+  @override
+  String homeReviewDueBadge(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count bekliyor',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get homeReviewDoneBadge => 'Tamamlandı';
 
   @override
   String get homeYourTopics => 'Konularınız';
@@ -443,6 +466,24 @@ class AppLocalizationsTr extends AppLocalizations {
   @override
   String get decksSaveFailed =>
       'Değişiklikler kaydedilemedi. Lütfen tekrar deneyin.';
+
+  @override
+  String get quizDecksTitle => 'Quiz Desteleri';
+
+  @override
+  String get quizDecksStartQuiz => 'Quiz Başlat';
+
+  @override
+  String get quizDecksEmpty => 'Henüz deste yok';
+
+  @override
+  String get quizDecksEmptyHelp =>
+      'Desteler sekmesinden bir deste oluşturun, sonra kendinizi test etmek için buraya dönün.';
+
+  @override
+  String quizDecksNotEnoughCards(int min) {
+    return 'Quiz için en az $min kart ekleyin';
+  }
 
   @override
   String get detailNotFound => 'Bu deste artık mevcut değil';
@@ -844,6 +885,9 @@ class AppLocalizationsTr extends AppLocalizations {
 
   @override
   String get profileDarkMode => 'Koyu Tema';
+
+  @override
+  String get profileAppLanguage => 'Uygulama Dili';
 
   @override
   String get profileSoundEffects => 'Ses Efektleri';
