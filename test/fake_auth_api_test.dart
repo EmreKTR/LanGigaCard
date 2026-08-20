@@ -87,4 +87,55 @@ void main() {
 
     expect(result.outcome, AuthOutcome.invalidCredentials);
   });
+
+  test('requesting a password reset succeeds even for an unregistered email', () async {
+    // Anti-enumeration: the fake must not distinguish "no such account"
+    // from "request sent", matching the real server.
+    final sent = await api.requestPasswordReset('stranger@example.com');
+
+    expect(sent, isTrue);
+  });
+
+  test('a reset token can be used exactly once to change the password', () async {
+    await api.register(
+      firstName: 'Ada',
+      lastName: 'Lovelace',
+      email: 'ada@example.com',
+      password: 'Passw0rd!',
+      confirmPassword: 'Passw0rd!',
+    );
+    await api.requestPasswordReset('ada@example.com');
+    const token = 'fake-reset-token-ada@example.com';
+
+    final result = await api.resetPassword(token: token, newPassword: 'NewPassw0rd!');
+    expect(result.isSuccess, isTrue);
+
+    final loginWithNew = await api.login(email: 'ada@example.com', password: 'NewPassw0rd!');
+    expect(loginWithNew.isSuccess, isTrue);
+
+    final reuse = await api.resetPassword(token: token, newPassword: 'AnotherOne1!');
+    expect(reuse.outcome, PasswordResetOutcome.invalidToken);
+  });
+
+  test('an unknown reset token is rejected', () async {
+    final result = await api.resetPassword(token: 'not-a-real-token', newPassword: 'Whatever1!');
+
+    expect(result.outcome, PasswordResetOutcome.invalidToken);
+  });
+
+  test('a too-short new password is rejected', () async {
+    await api.register(
+      firstName: 'Ada',
+      lastName: 'Lovelace',
+      email: 'ada@example.com',
+      password: 'Passw0rd!',
+      confirmPassword: 'Passw0rd!',
+    );
+    await api.requestPasswordReset('ada@example.com');
+
+    final result =
+        await api.resetPassword(token: 'fake-reset-token-ada@example.com', newPassword: 'abc');
+
+    expect(result.outcome, PasswordResetOutcome.validationError);
+  });
 }

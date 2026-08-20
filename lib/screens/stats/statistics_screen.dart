@@ -1,7 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
+import '../../data/api/achievements_api.dart';
+import '../../data/api/statistics_api.dart';
+import '../../data/api/vocabgrid_achievements_api.dart';
+import '../../data/api/vocabgrid_statistics_api.dart';
 import '../../data/deck_store.dart';
-import '../../data/mock_data.dart';
 import '../../data/review_log.dart';
 import '../../models/app_models.dart';
 import '../../l10n/app_localizations.dart';
@@ -19,8 +22,9 @@ extension _StatsRangeX on _StatsRange {
         _StatsRange.monthly => l10n.statsMonthly,
       };
 
-  /// Bars for this range, counted from the real review log. The switcher used
-  /// to be purely decorative — every range rendered the same fixed 7 numbers.
+  /// Bars for this range, counted from the server's daily heatmap data. The
+  /// switcher used to be purely decorative — every range rendered the same
+  /// fixed 7 numbers.
   ///
   /// The three ranges zoom out: the last 7 days, the last 4 weeks, then the
   /// last 6 months.
@@ -75,25 +79,6 @@ extension _StatsRangeX on _StatsRange {
       };
 }
 
-/// Derives `earned` for each fixed achievement definition from real data.
-///
-/// "Perfect Score", "Speed Learner" and "Polyglot" have no backing data
-/// anywhere in the app (no persisted quiz history, no per-card timing, no
-/// second-language tracking), so they stay locked rather than showing a
-/// fabricated `true`.
-List<Achievement> _achievementsFor(ReviewStats stats) {
-  return MockData.achievements.map((a) {
-    final earned = switch (a.title) {
-      '7-Day Streak' => stats.streakDays >= 7,
-      // Counting all cards rather than only mastered ones, since "collector"
-      // reads as "how many words have you added" rather than "mastered".
-      'Word Collector' => DeckStore.cards.length >= 100,
-      _ => false,
-    };
-    return Achievement(emoji: a.emoji, title: a.title, description: a.description, earned: earned);
-  }).toList();
-}
-
 /// Statistics: range switcher, 3 metric cards, a learning heatmap, a
 /// 7-day words-reviewed bar chart, an accuracy breakdown ring, and an
 /// achievements checklist.
@@ -115,19 +100,90 @@ class _StatisticsScreenState extends State<StatisticsScreen> {
   _StatsRange _range = _StatsRange.daily;
 
   /// Real study history. Null while loading; empty until the learner has
-  /// actually reviewed something.
+  /// actually reviewed something. Recall accuracy and the all-time review
+  /// total still come from here rather than the API: the server's own
+  /// accuracy figure is scoped to Quiz activity, which nothing in the app
+  /// produces yet (see [_loadRemoteStats]'s doc comment).
   ReviewStats? _stats;
+
+  /// Server-computed streak/XP/level. Null while loading or after a failed
+  /// fetch — never defaulted to zero, so a real outage can't be mistaken for
+  /// "no streak yet".
+  StatisticsOverview? _overview;
+
+  /// Per-day review counts from the server, keyed the same way
+  /// [ReviewLog]'s local map used to be. Feeds the heatmap and the bar
+  /// chart via the same [ReviewLog.heatmapFrom]/`seriesFrom` helpers as
+  /// before — only the data source moved.
+  Map<DateTime, int>? _heatmapPerDay;
+
+  List<Achievement>? _achievements;
+
+  /// True after [_loadRemoteStats] fails. Recall/reviews-total/library
+  /// breakdown stay visible either way — they're local and unaffected — but
+  /// the streak card, heatmap, chart, and achievements show a retry prompt
+  /// instead of guessing at zero.
+  bool _remoteLoadFailed = false;
 
   @override
   void initState() {
     super.initState();
     _loadHistory();
+    _loadRemoteStats();
   }
 
   Future<void> _loadHistory() async {
     final entries = await ReviewLog.load();
     if (!mounted) return;
     setState(() => _stats = ReviewLog.summarise(entries, DateTime.now()));
+  }
+
+  /// Fetches streak/XP/level, the heatmap, and the achievements checklist
+  /// together, since all three live on this one screen and a partial load
+  /// (streak but no achievements, say) isn't a state worth designing for.
+  ///
+  /// The backend's own accuracy figure (`Statistics/overview`'s
+  /// QuizAccuracyPercent) is computed only from Quiz-type study activity.
+  /// Nothing in the app produces that yet — every review today logs as
+  /// Review-type activity instead — so that field would read 0%/no-data for
+  /// almost everyone right now. The Recall card deliberately keeps reading
+  /// [ReviewLog] locally until Quiz is integrated and can feed it real data.
+  Future<void> _loadRemoteStats() async {
+    if (mounted) setState(() => _remoteLoadFailed = false);
+
+    // Covers the bar chart's widest range (the last 6 months) with a little
+    // slack, in one request the heatmap and the chart both read from.
+    final now = DateTime.now();
+    final from = DateTime(now.year, now.month - 6, now.day);
+
+    // Best-effort catch-up for achievement types not tied to a single
+    // review event (e.g. a streak-length badge) -- see AchievementsApi's
+    // doc comment. Its own failures are swallowed by the API layer, so this
+    // never affects _remoteLoadFailed.
+    await achievementsApi.evaluate();
+    if (!mounted) return;
+
+    final results = await Future.wait([
+      statisticsApi.getOverview(),
+      statisticsApi.getHeatmap(from: from, to: now),
+      achievementsApi.getAchievements(),
+    ]);
+    if (!mounted) return;
+
+    final overviewResult = results[0] as StatisticsResult;
+    final heatmapResult = results[1] as HeatmapResult;
+    final achievementsResult = results[2] as AchievementsResult;
+
+    if (!overviewResult.isSuccess || !heatmapResult.isSuccess || !achievementsResult.isSuccess) {
+      setState(() => _remoteLoadFailed = true);
+      return;
+    }
+
+    setState(() {
+      _overview = overviewResult.overview;
+      _heatmapPerDay = {for (final point in heatmapResult.points!) point.date: point.reviews};
+      _achievements = achievementsResult.achievements;
+    });
   }
 
   @override
@@ -137,9 +193,10 @@ class _StatisticsScreenState extends State<StatisticsScreen> {
     // Month and weekday names are formatted by intl for whichever locale the
     // app is currently showing, so they follow the interface language.
     final localeName = Localizations.localeOf(context).toString();
-    final stats = _stats ?? ReviewStats.empty;
-    final achievements = _achievementsFor(stats);
+    final achievements = _achievements ?? const <Achievement>[];
     final earnedCount = achievements.where((a) => a.earned).length;
+    final stats = _stats ?? ReviewStats.empty;
+    final heatmapPerDay = _heatmapPerDay ?? const <DateTime, int>{};
 
     return Scaffold(
       appBar: AppBar(title: Text(l10n.statsTitle)),
@@ -150,6 +207,10 @@ class _StatisticsScreenState extends State<StatisticsScreen> {
         child: ValueListenableBuilder<int>(
           valueListenable: DeckStore.revision,
           builder: (context, _, __) => Refreshable(
+            onRefresh: () async {
+              await _loadHistory();
+              await _loadRemoteStats();
+            },
             child: ListView(
           physics: const AlwaysScrollableScrollPhysics(),
           padding: const EdgeInsets.all(AppSpacing.lg),
@@ -157,16 +218,20 @@ class _StatisticsScreenState extends State<StatisticsScreen> {
             Text(l10n.statsSubtitle, style: TextStyle(color: colors.textMuted, fontSize: 13)),
             const SizedBox(height: AppSpacing.lg),
             _RangeSwitcher(range: _range, onChanged: (r) => setState(() => _range = r)),
+            if (_remoteLoadFailed) ...[
+              const SizedBox(height: AppSpacing.lg),
+              _RemoteLoadErrorBanner(onRetry: _loadRemoteStats),
+            ],
             const SizedBox(height: AppSpacing.lg),
-            // Every figure here now comes from the review log rather than a
-            // hardcoded delta string.
+            // The streak card is server-computed now (see _loadRemoteStats);
+            // Reviews and Recall still come from the local review log.
             Row(
               children: [
                 Expanded(
                   child: _MetricCard(
                     icon: Icons.bolt_rounded,
-                    value: '${stats.streakDays}',
-                    delta: stats.streakDays == 1 ? 'day' : 'days',
+                    value: _overview == null ? '—' : '${_overview!.currentStreak}',
+                    delta: _overview?.currentStreak == 1 ? 'day' : 'days',
                     label: l10n.statsStreak,
                     color: colors.primary,
                   ),
@@ -202,14 +267,14 @@ class _StatisticsScreenState extends State<StatisticsScreen> {
               ],
             ),
             const SizedBox(height: AppSpacing.md),
-            // Built from the real log — this grid used to be a hand-written
-            // 5x7 matrix that never changed no matter how much you studied.
-            _HeatmapCard(weeks: ReviewLog.heatmapFrom(stats.perDay, DateTime.now())),
+            // Built from the server's heatmap now, via the same bucketing
+            // helper the local review log used to feed.
+            _HeatmapCard(weeks: ReviewLog.heatmapFrom(heatmapPerDay, DateTime.now())),
             if (stats.total > 0) ...[
               const SizedBox(height: AppSpacing.sm),
               Text(
-                stats.streakDays > 0
-                    ? l10n.statsStreakSummary(stats.streakDays, stats.total)
+                (_overview?.currentStreak ?? 0) > 0
+                    ? l10n.statsStreakSummary(_overview!.currentStreak, stats.total)
                     : l10n.statsReviewsLogged(stats.total),
                 style: TextStyle(color: colors.textMuted, fontSize: 12),
               ),
@@ -223,7 +288,7 @@ class _StatisticsScreenState extends State<StatisticsScreen> {
                   padding: const EdgeInsets.symmetric(horizontal: AppSpacing.sm + 2, vertical: 3),
                   decoration: BoxDecoration(color: colors.primary.withValues(alpha: 0.14), borderRadius: BorderRadius.circular(AppRadius.pill)),
                   child: Text(
-                    l10n.statsChartTotal(_range.seriesFrom(stats.perDay, DateTime.now()).fold<int>(0, (a, b) => a + b)),
+                    l10n.statsChartTotal(_range.seriesFrom(heatmapPerDay, DateTime.now()).fold<int>(0, (a, b) => a + b)),
                     style: TextStyle(color: colors.primary, fontSize: 11, fontWeight: FontWeight.w700),
                   ),
                 ),
@@ -231,7 +296,7 @@ class _StatisticsScreenState extends State<StatisticsScreen> {
             ),
             const SizedBox(height: AppSpacing.md),
             _WordsReviewedChart(
-              data: _range.seriesFrom(stats.perDay, DateTime.now()),
+              data: _range.seriesFrom(heatmapPerDay, DateTime.now()),
               labels: _range.labelsFor(DateTime.now(), localeName),
             ),
             const SizedBox(height: AppSpacing.xxl),
@@ -260,6 +325,34 @@ class _StatisticsScreenState extends State<StatisticsScreen> {
 
 
 String _monthLabel(DateTime now, String locale) => DateFormat.yMMM(locale).format(now);
+
+/// Shown when the streak/heatmap/achievements fetch fails. The rest of the
+/// screen (Recall, Reviews, Library Breakdown) stays visible either way —
+/// this only covers the sections that genuinely have nothing to show
+/// without a successful fetch.
+class _RemoteLoadErrorBanner extends StatelessWidget {
+  const _RemoteLoadErrorBanner({required this.onRetry});
+
+  final VoidCallback onRetry;
+
+  @override
+  Widget build(BuildContext context) {
+    final colors = context.appColors;
+    final l10n = AppLocalizations.of(context);
+    return SectionCard(
+      child: Row(
+        children: [
+          Icon(Icons.cloud_off_rounded, color: colors.textMuted, size: 20),
+          const SizedBox(width: AppSpacing.sm),
+          Expanded(
+            child: Text(l10n.commonNetworkError, style: TextStyle(color: colors.textMuted, fontSize: 12)),
+          ),
+          TextButton(onPressed: onRetry, child: Text(l10n.commonTryAgain)),
+        ],
+      ),
+    );
+  }
+}
 
 class _RangeSwitcher extends StatelessWidget {
   const _RangeSwitcher({required this.range, required this.onChanged});

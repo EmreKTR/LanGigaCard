@@ -107,5 +107,6 @@ class _NetworkErrorDeckApi implements DeckApi {
   @override
   Future<List<ReviewCardData>> getDueReviews({String? deckId, int take = 50}) async => const [];
   @override
-  Future<ReviewResult> submitReview(String wordId, {required rating, required int durationSeconds}) async => const ReviewResult.networkError();
+  Future<ReviewResult> submitReview(String wordId, {required rating, required int durationSeconds, String? difficultyMode}) async =>
+      const ReviewResult.networkError();
 }

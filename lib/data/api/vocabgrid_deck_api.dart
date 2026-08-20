@@ -146,11 +146,17 @@ class VocabGridDeckApi implements DeckApi {
   }
 
   @override
-  Future<ReviewResult> submitReview(String wordId, {required SrsRating rating, required int durationSeconds}) async {
+  Future<ReviewResult> submitReview(
+    String wordId, {
+    required SrsRating rating,
+    required int durationSeconds,
+    String? difficultyMode,
+  }) async {
     try {
       final response = await _client.dio.post('/api/Progress/reviews/$wordId', data: {
         'rating': _ratingString(rating),
         'durationSeconds': durationSeconds,
+        if (difficultyMode != null) 'difficultyMode': difficultyMode,
       });
       final body = response.data as Map<String, dynamic>;
       return ReviewResult.success(

@@ -1,9 +1,11 @@
 ﻿import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import '../../app_controller.dart';
 import '../../data/deck_store.dart';
 import '../../data/quiz_builder.dart';
 import '../../models/app_models.dart';
+import '../../models/text_size_option.dart';
 import '../../l10n/app_localizations.dart';
 import '../../theme/app_theme.dart';
 import '../../widgets/app_buttons.dart';
@@ -49,7 +51,10 @@ class _QuizScreenState extends State<QuizScreen> {
     final pool = deck == null
         ? DeckStore.cards
         : DeckStore.cards.where((c) => c.deckId == deck.id).toList();
-    return buildQuiz(pool);
+    // maybeOf, not appController: called from initState, where a
+    // dependency lookup would assert.
+    final cefrLevel = AppControllerScope.maybeOf(context)?.difficulty.label;
+    return buildQuiz(pool, cefrLevel: cefrLevel);
   }
 
   @override

@@ -5,7 +5,7 @@ import 'library_storage.dart';
 import 'starter_content.dart';
 
 /// Starter-content generation, plus the fixed reference lists (languages,
-/// categories, achievements) the app is built around.
+/// categories) the app is built around.
 ///
 /// The learner's actual decks and cards live in [DeckStore] — this class only
 /// builds/seeds content for it.
@@ -52,9 +52,17 @@ class MockData {
     required String targetCode,
     required String targetName,
     required String nativeCode,
+    List<String> categories = const [],
+    List<String> purposes = const [],
   }) {
     if (targetCode.isEmpty || nativeCode.isEmpty) return null;
-    final starter = StarterContent.buildFor(targetCode: targetCode, targetName: targetName, nativeCode: nativeCode);
+    final starter = StarterContent.buildFor(
+      targetCode: targetCode,
+      targetName: targetName,
+      nativeCode: nativeCode,
+      categories: categories,
+      purposes: purposes,
+    );
     if (starter.decks.isEmpty) return null;
     return starter;
   }
@@ -202,39 +210,6 @@ class MockData {
       exampleSentence: 'Veuillez signer le contrat.',
       strength: MemoryStrength.reviewDue,
       reviewCount: 1,
-    ),
-  ];
-
-  static const List<Achievement> achievements = [
-    Achievement(
-      emoji: '⚡',
-      title: '7-Day Streak',
-      description: 'Study 7 days in a row',
-      earned: true,
-    ),
-    Achievement(
-      emoji: '💯',
-      title: 'Perfect Score',
-      description: 'Get 100% on a quiz',
-      earned: true,
-    ),
-    Achievement(
-      emoji: '📚',
-      title: 'Word Collector',
-      description: 'Learn 100 words',
-      earned: true,
-    ),
-    Achievement(
-      emoji: '⚡',
-      title: 'Speed Learner',
-      description: 'Finish 20 cards in 5 min',
-      earned: false,
-    ),
-    Achievement(
-      emoji: '🌍',
-      title: 'Polyglot',
-      description: 'Start a 2nd language',
-      earned: false,
     ),
   ];
 

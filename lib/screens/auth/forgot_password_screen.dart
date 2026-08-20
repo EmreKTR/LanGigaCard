@@ -1,4 +1,5 @@
 ﻿import 'package:flutter/material.dart';
+import '../../data/auth_store.dart';
 import '../../l10n/app_localizations.dart';
 import '../../theme/app_theme.dart';
 import '../../widgets/app_buttons.dart';
@@ -6,8 +7,11 @@ import '../../widgets/app_text_field.dart';
 
 /// "Forgot password?" — collects the email and shows a confirmation state.
 ///
-/// No mail actually goes out (that needs a backend), and the confirmation
-/// screen says so plainly instead of implying a reset link is on its way.
+/// The request is real (the server generates and mails a reset token), but
+/// nothing in the app can complete a reset yet: the token is a long string
+/// meant for a clicked email link, and there's no deep-link handling to
+/// receive one. The confirmation screen says so plainly rather than
+/// implying the loop closes here.
 class ForgotPasswordScreen extends StatefulWidget {
   const ForgotPasswordScreen({super.key});
 
@@ -33,9 +37,20 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
 
   Future<void> _submit() async {
     setState(() => _sending = true);
-    // Stand-in for the real request so the button's loading state is exercised.
-    await Future<void>.delayed(const Duration(milliseconds: 600));
+    // The server answers the same way whether or not the address has an
+    // account (anti-enumeration), so `sent` only distinguishes "the request
+    // went out" from "couldn't reach the server" — never "no such account".
+    final sent = await AuthStore.api.requestPasswordReset(_emailController.text.trim());
     if (!mounted) return;
+
+    if (!sent) {
+      setState(() => _sending = false);
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(AppLocalizations.of(context).commonNetworkError)),
+      );
+      return;
+    }
+
     setState(() {
       _sending = false;
       _submitted = true;

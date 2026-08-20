@@ -311,12 +311,14 @@ class QuizQuestion {
 
 class Achievement {
   const Achievement({
+    required this.id,
     required this.emoji,
     required this.title,
     required this.description,
     required this.earned,
   });
 
+  final int id;
   final String emoji;
   final String title;
   final String description;

@@ -1162,6 +1162,18 @@ class AppLocalizationsTr extends AppLocalizations {
   String get helpProblemReporting => 'Sorun bildirimi';
 
   @override
+  String get helpReportHint => 'Ne olduğunu açıkla...';
+
+  @override
+  String get helpReportSend => 'Raporu gönder';
+
+  @override
+  String get helpReportEmpty => 'Lütfen önce sorunu açıkla';
+
+  @override
+  String get helpReportSent => 'Teşekkürler, raporun gönderildi';
+
+  @override
   String helpComingSoon(String what) {
     return '$what bu sürümde henüz kullanılamıyor.';
   }
@@ -1279,7 +1291,21 @@ class AppLocalizationsTr extends AppLocalizations {
   String get privacySessionManagement => 'Oturum yönetimi';
 
   @override
-  String get privacyExportingDecks => 'Desteleri dışa aktarma';
+  String privacyExportSaved(String path) {
+    return '$path konumuna kaydedildi';
+  }
+
+  @override
+  String get changePasswordCurrentLabel => 'Mevcut şifre';
+
+  @override
+  String get changePasswordNewLabel => 'Yeni şifre';
+
+  @override
+  String get changePasswordSuccess => 'Şifre güncellendi';
+
+  @override
+  String get changePasswordIncorrectCurrent => 'Mevcut şifre yanlış';
 
   @override
   String get privacyAccountDeletion => 'Hesap silme';

@@ -151,6 +151,29 @@ abstract class UserApi {
   Future<List<LearningPurposeData>> getLearningPurposes();
   Future<List<int>> getMyLearningPurposeIds();
   Future<List<int>> updateMyLearningPurposes(List<int> purposeIds);
+
+  Future<PasswordChangeResult> changePassword({required String currentPassword, required String newPassword});
+
+  /// Permanently deletes the signed-in account and all its data. There is
+  /// no undo -- the caller is responsible for confirming with the learner
+  /// before calling this and for signing them out afterward.
+  Future<bool> deleteAccount();
+}
+
+enum PasswordChangeOutcome { success, incorrectCurrentPassword, validationError, networkError }
+
+class PasswordChangeResult {
+  const PasswordChangeResult._(this.outcome, {this.message});
+
+  const PasswordChangeResult.success() : this._(PasswordChangeOutcome.success);
+  const PasswordChangeResult.incorrectCurrentPassword() : this._(PasswordChangeOutcome.incorrectCurrentPassword);
+  const PasswordChangeResult.validationError(String message) : this._(PasswordChangeOutcome.validationError, message: message);
+  const PasswordChangeResult.networkError() : this._(PasswordChangeOutcome.networkError);
+
+  final PasswordChangeOutcome outcome;
+  final String? message;
+
+  bool get isSuccess => outcome == PasswordChangeOutcome.success;
 }
 
 /// In-memory [UserApi] for tests: no plugins, no network, no disk.
@@ -249,4 +272,30 @@ class FakeUserApi implements UserApi {
     _myPurposeIds = List.of(purposeIds);
     return _myPurposeIds;
   }
+
+  /// The password `getProfile`/tests can assume is set, so
+  /// `changePassword` has something real to verify against.
+  String _currentPassword = 'password';
+  bool _deleted = false;
+
+  @override
+  Future<PasswordChangeResult> changePassword({required String currentPassword, required String newPassword}) async {
+    if (currentPassword != _currentPassword) {
+      return const PasswordChangeResult.incorrectCurrentPassword();
+    }
+    if (newPassword.length < 8) {
+      return const PasswordChangeResult.validationError('Password must be at least 8 characters.');
+    }
+    _currentPassword = newPassword;
+    return const PasswordChangeResult.success();
+  }
+
+  @override
+  Future<bool> deleteAccount() async {
+    _deleted = true;
+    return true;
+  }
+
+  /// Test helper: whether [deleteAccount] has been called.
+  bool get isDeleted => _deleted;
 }

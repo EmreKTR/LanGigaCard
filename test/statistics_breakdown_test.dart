@@ -1,5 +1,9 @@
 ﻿import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:langigacards/data/api/achievements_api.dart';
+import 'package:langigacards/data/api/statistics_api.dart';
+import 'package:langigacards/data/api/vocabgrid_achievements_api.dart';
+import 'package:langigacards/data/api/vocabgrid_statistics_api.dart';
 import 'package:langigacards/l10n/app_localizations.dart';
 import 'package:langigacards/data/library_storage.dart';
 import 'package:langigacards/data/deck_store.dart';
@@ -44,6 +48,16 @@ void main() {
     // The app now starts empty and seeds by language; these tests assert
     // against the fixed sample library, so install it explicitly.
     await MockData.seedSampleLibrary();
+  });
+
+  // These tests only assert on the Library Breakdown, which reads
+  // DeckStore.cards directly and never touches the network -- but the
+  // screen also fetches streak/heatmap/achievements on load, so it still
+  // needs fakes injected like every other screen backed by a top-level API
+  // singleton.
+  setUp(() {
+    statisticsApi = FakeStatisticsApi();
+    achievementsApi = FakeAchievementsApi();
   });
 
   setUp(() {

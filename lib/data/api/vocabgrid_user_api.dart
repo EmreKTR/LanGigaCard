@@ -171,6 +171,54 @@ class VocabGridUserApi implements UserApi {
         totalXp: json['totalXp'] as int,
         isPremium: json['isPremium'] as bool,
       );
+
+  @override
+  Future<PasswordChangeResult> changePassword({required String currentPassword, required String newPassword}) async {
+    try {
+      await _client.dio.put('/api/User/password', data: {
+        'currentPassword': currentPassword,
+        'newPassword': newPassword,
+      });
+      return const PasswordChangeResult.success();
+    } on DioException catch (e) {
+      if (e.response?.statusCode == 400) {
+        final body = e.response?.data;
+        // The controller's own BadRequest("Current password is incorrect.")
+        // is a plain string; ASP.NET model validation (e.g. NewPassword
+        // shorter than 6 characters) comes back as {"errors": {...}}.
+        if (body is String && body.contains('Current password is incorrect')) {
+          return const PasswordChangeResult.incorrectCurrentPassword();
+        }
+        if (body is Map && body['errors'] is Map) {
+          try {
+            final errors = (body['errors'] as Map)
+                .values
+                .expand((messages) => (messages as List).cast<String>())
+                .join(' ');
+            return PasswordChangeResult.validationError(errors.isEmpty ? 'Invalid request.' : errors);
+          } catch (_) {
+            return const PasswordChangeResult.networkError();
+          }
+        }
+        if (body is String && body.isNotEmpty) {
+          return PasswordChangeResult.validationError(body);
+        }
+      }
+      return const PasswordChangeResult.networkError();
+    } catch (_) {
+      return const PasswordChangeResult.networkError();
+    }
+  }
+
+  @override
+  Future<bool> deleteAccount() async {
+    try {
+      await _client.dio.delete('/api/User');
+      return true;
+    } catch (_) {
+      return false;
+    }
+  }
 }
 
 /// Swappable default, the same role `AuthStore.api` plays for [UserApi] —

@@ -1,12 +1,14 @@
 ﻿import 'package:flutter/material.dart';
+import '../../data/api/vocabgrid_support_api.dart';
 import '../../l10n/app_localizations.dart';
 import '../../theme/app_theme.dart';
 import '../../widgets/section_card.dart';
 
 /// "Help & Support": searchable FAQ list plus contact options.
 ///
-/// Content is static — there's no support backend — but the screen is real
-/// rather than the dead `onTap: () {}` row it replaces.
+/// FAQ content is static. "Report a problem" submits for real now; Email
+/// Support and Community Forum still need a real inbox/forum this app
+/// doesn't have, so they stay honest "coming soon" placeholders.
 class HelpSupportScreen extends StatefulWidget {
   const HelpSupportScreen({super.key});
 
@@ -102,7 +104,7 @@ class _HelpSupportScreenState extends State<HelpSupportScreen> {
                 SettingsRow(
                   icon: Icons.bug_report_outlined,
                   label: l10n.helpReportProblem,
-                  onTap: () => _showComingSoon(context, l10n.helpProblemReporting),
+                  onTap: () => _reportProblem(context),
                 ),
               ],
             ),
@@ -116,6 +118,73 @@ class _HelpSupportScreenState extends State<HelpSupportScreen> {
   void _showComingSoon(BuildContext context, String what) {
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(content: Text(AppLocalizations.of(context).helpComingSoon(what)), duration: const Duration(seconds: 2)),
+    );
+  }
+
+  Future<void> _reportProblem(BuildContext context) async {
+    final l10n = AppLocalizations.of(context);
+    final message = await showDialog<String>(
+      context: context,
+      builder: (context) => _ReportProblemDialog(l10n: l10n),
+    );
+    if (message == null || message.trim().isEmpty || !context.mounted) return;
+
+    final sent = await supportApi.reportProblem(message.trim());
+    if (!context.mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text(sent ? l10n.helpReportSent : l10n.commonNetworkError)),
+    );
+  }
+}
+
+class _ReportProblemDialog extends StatefulWidget {
+  const _ReportProblemDialog({required this.l10n});
+
+  final AppLocalizations l10n;
+
+  @override
+  State<_ReportProblemDialog> createState() => _ReportProblemDialogState();
+}
+
+class _ReportProblemDialogState extends State<_ReportProblemDialog> {
+  // Owned and disposed by this State, not by the caller -- the dialog route
+  // stays mounted (and this TextField keeps rebuilding) through its closing
+  // animation even after showDialog's Future resolves, so disposing on a
+  // fixed schedule from outside would use it after it's gone.
+  final _controller = TextEditingController();
+  String? _error;
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  void _submit() {
+    if (_controller.text.trim().isEmpty) {
+      setState(() => _error = widget.l10n.helpReportEmpty);
+      return;
+    }
+    Navigator.of(context).pop(_controller.text);
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return AlertDialog(
+      title: Text(widget.l10n.helpReportProblem),
+      content: TextField(
+        controller: _controller,
+        maxLines: 4,
+        autofocus: true,
+        decoration: InputDecoration(hintText: widget.l10n.helpReportHint, errorText: _error),
+        onChanged: (_) {
+          if (_error != null) setState(() => _error = null);
+        },
+      ),
+      actions: [
+        TextButton(onPressed: () => Navigator.of(context).pop(), child: Text(widget.l10n.commonCancel)),
+        TextButton(onPressed: _submit, child: Text(widget.l10n.helpReportSend)),
+      ],
     );
   }
 }
