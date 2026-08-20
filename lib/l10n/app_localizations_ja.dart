@@ -1133,6 +1133,18 @@ class AppLocalizationsJa extends AppLocalizations {
   String get helpProblemReporting => '問題の報告';
 
   @override
+  String get helpReportHint => '何が起きたか説明してください...';
+
+  @override
+  String get helpReportSend => '報告を送信';
+
+  @override
+  String get helpReportEmpty => 'まず問題を説明してください';
+
+  @override
+  String get helpReportSent => 'ありがとうございます。報告が送信されました';
+
+  @override
   String helpComingSoon(String what) {
     return '$whatはこのビルドではまだ利用できません。';
   }
@@ -1242,7 +1254,21 @@ class AppLocalizationsJa extends AppLocalizations {
   String get privacySessionManagement => 'セッション管理';
 
   @override
-  String get privacyExportingDecks => 'デッキのエクスポート';
+  String privacyExportSaved(String path) {
+    return '$path に保存されました';
+  }
+
+  @override
+  String get changePasswordCurrentLabel => '現在のパスワード';
+
+  @override
+  String get changePasswordNewLabel => '新しいパスワード';
+
+  @override
+  String get changePasswordSuccess => 'パスワードを更新しました';
+
+  @override
+  String get changePasswordIncorrectCurrent => '現在のパスワードが正しくありません';
 
   @override
   String get privacyAccountDeletion => 'アカウントの削除';

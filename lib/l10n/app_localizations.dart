@@ -2088,6 +2088,30 @@ abstract class AppLocalizations {
   /// **'Problem reporting'**
   String get helpProblemReporting;
 
+  /// No description provided for @helpReportHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Describe what happened...'**
+  String get helpReportHint;
+
+  /// No description provided for @helpReportSend.
+  ///
+  /// In en, this message translates to:
+  /// **'Send report'**
+  String get helpReportSend;
+
+  /// No description provided for @helpReportEmpty.
+  ///
+  /// In en, this message translates to:
+  /// **'Please describe the problem first'**
+  String get helpReportEmpty;
+
+  /// No description provided for @helpReportSent.
+  ///
+  /// In en, this message translates to:
+  /// **'Thanks -- your report has been sent'**
+  String get helpReportSent;
+
   /// No description provided for @helpComingSoon.
   ///
   /// In en, this message translates to:
@@ -2292,11 +2316,35 @@ abstract class AppLocalizations {
   /// **'Session management'**
   String get privacySessionManagement;
 
-  /// No description provided for @privacyExportingDecks.
+  /// No description provided for @privacyExportSaved.
   ///
   /// In en, this message translates to:
-  /// **'Exporting your decks'**
-  String get privacyExportingDecks;
+  /// **'Saved to {path}'**
+  String privacyExportSaved(String path);
+
+  /// No description provided for @changePasswordCurrentLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Current password'**
+  String get changePasswordCurrentLabel;
+
+  /// No description provided for @changePasswordNewLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'New password'**
+  String get changePasswordNewLabel;
+
+  /// No description provided for @changePasswordSuccess.
+  ///
+  /// In en, this message translates to:
+  /// **'Password updated'**
+  String get changePasswordSuccess;
+
+  /// No description provided for @changePasswordIncorrectCurrent.
+  ///
+  /// In en, this message translates to:
+  /// **'Current password is incorrect'**
+  String get changePasswordIncorrectCurrent;
 
   /// No description provided for @privacyAccountDeletion.
   ///

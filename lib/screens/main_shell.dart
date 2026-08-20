@@ -152,6 +152,8 @@ class _MainShellState extends State<MainShell> {
       targetCode: profile.targetLanguageCode,
       targetName: profile.targetLanguage,
       nativeCode: profile.nativeLanguageCode,
+      categories: profile.categories,
+      purposes: profile.learningPurposes,
     );
     if (starter == null) return;
 

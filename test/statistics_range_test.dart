@@ -1,6 +1,11 @@
 ﻿import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:langigacards/data/api/achievements_api.dart';
+import 'package:langigacards/data/api/statistics_api.dart';
+import 'package:langigacards/data/api/vocabgrid_achievements_api.dart';
+import 'package:langigacards/data/api/vocabgrid_statistics_api.dart';
+import 'package:langigacards/data/review_log.dart';
 import 'package:langigacards/l10n/app_localizations.dart';
 import 'package:langigacards/screens/stats/statistics_screen.dart';
 import 'package:langigacards/theme/app_theme.dart';
@@ -30,6 +35,32 @@ Map<String, Object> _log(List<({int daysAgo, int count, bool correct})> days) {
   return {'review_log_v1': jsonEncode(entries)};
 }
 
+/// Streak/heatmap now come from the API rather than the local review log
+/// this file otherwise seeds -- this builds a [FakeStatisticsApi] whose
+/// numbers are derived from the exact same day list, via the app's own
+/// [ReviewLog.streakFrom], so a scenario only has to be described once.
+FakeStatisticsApi _statsApiFor(List<({int daysAgo, int count, bool correct})> days) {
+  final now = DateTime.now();
+  final today = DateTime(now.year, now.month, now.day);
+  final perDay = <DateTime, int>{};
+  for (final day in days) {
+    final date = today.subtract(Duration(days: day.daysAgo));
+    perDay[date] = (perDay[date] ?? 0) + day.count;
+  }
+  final streak = ReviewLog.streakFrom(perDay.keys.toSet(), now);
+  return FakeStatisticsApi(
+    overview: StatisticsOverview(
+      totalStudyMinutes: 0,
+      dueReviews: 0,
+      currentStreak: streak,
+      longestStreak: streak,
+      totalXp: 0,
+      level: 1,
+    ),
+    heatmapPoints: [for (final entry in perDay.entries) HeatmapPoint(date: entry.key, reviews: entry.value)],
+  );
+}
+
 /// Pumps Statistics on a tall surface so the chart is laid out.
 Future<void> _pumpStats(WidgetTester tester) async {
   await tester.binding.setSurfaceSize(const Size(1000, 3400));
@@ -39,7 +70,11 @@ Future<void> _pumpStats(WidgetTester tester) async {
 }
 
 void main() {
-  setUp(() => SharedPreferences.setMockInitialValues({}));
+  setUp(() {
+    SharedPreferences.setMockInitialValues({});
+    statisticsApi = FakeStatisticsApi();
+    achievementsApi = FakeAchievementsApi();
+  });
 
   testWidgets('with no history the screen reports zero rather than invented numbers', (tester) async {
     await _pumpStats(tester);
@@ -50,10 +85,12 @@ void main() {
   });
 
   testWidgets('the metric cards are computed from the review log', (tester) async {
-    SharedPreferences.setMockInitialValues(_log([
+    final days = [
       (daysAgo: 0, count: 3, correct: true),
       (daysAgo: 1, count: 1, correct: false),
-    ]));
+    ];
+    SharedPreferences.setMockInitialValues(_log(days));
+    statisticsApi = _statsApiFor(days);
 
     await _pumpStats(tester);
 
@@ -95,10 +132,12 @@ void main() {
   });
 
   testWidgets('the chart total matches the reviews actually logged', (tester) async {
-    SharedPreferences.setMockInitialValues(_log([
+    final days = [
       (daysAgo: 0, count: 2, correct: true),
       (daysAgo: 3, count: 4, correct: true),
-    ]));
+    ];
+    SharedPreferences.setMockInitialValues(_log(days));
+    statisticsApi = _statsApiFor(days);
 
     await _pumpStats(tester);
 
@@ -114,11 +153,13 @@ void main() {
   });
 
   testWidgets('a logged streak is summarised under the heatmap', (tester) async {
-    SharedPreferences.setMockInitialValues(_log([
+    final days = [
       (daysAgo: 0, count: 1, correct: true),
       (daysAgo: 1, count: 1, correct: true),
       (daysAgo: 2, count: 1, correct: true),
-    ]));
+    ];
+    SharedPreferences.setMockInitialValues(_log(days));
+    statisticsApi = _statsApiFor(days);
 
     await _pumpStats(tester);
 

@@ -106,6 +106,57 @@ class VocabGridAuthApi implements AuthApi {
     }
   }
 
+  @override
+  Future<bool> requestPasswordReset(String email) async {
+    try {
+      await _client.dio.post('/api/Auth/forgot-password', data: {'email': email});
+      return true;
+    } catch (_) {
+      return false;
+    }
+  }
+
+  @override
+  Future<PasswordResetResult> resetPassword({required String token, required String newPassword}) async {
+    try {
+      await _client.dio.post('/api/Auth/reset-password', data: {'token': token, 'newPassword': newPassword});
+      return const PasswordResetResult.success();
+    } on DioException catch (e) {
+      const networkErrorTypes = {
+        DioExceptionType.connectionError,
+        DioExceptionType.connectionTimeout,
+        DioExceptionType.sendTimeout,
+        DioExceptionType.receiveTimeout,
+      };
+      if (networkErrorTypes.contains(e.type)) {
+        return const PasswordResetResult.networkError();
+      }
+
+      final body = e.response?.data;
+      if (e.response?.statusCode == 400) {
+        // The controller's own BadRequest(...) call for an invalid/expired/
+        // used token is a plain string; ASP.NET model validation (e.g. a
+        // too-short NewPassword) comes back as the {"errors": {...}} shape.
+        if (body is String && body.contains('Invalid, expired, or already used')) {
+          return const PasswordResetResult.invalidToken();
+        }
+        if (body is Map && body['errors'] is Map) {
+          final errors = (body['errors'] as Map)
+              .values
+              .expand((messages) => (messages as List).cast<String>())
+              .join(' ');
+          return PasswordResetResult.validationError(errors.isEmpty ? 'Invalid request.' : errors);
+        }
+        if (body is String && body.isNotEmpty) {
+          return PasswordResetResult.validationError(body);
+        }
+      }
+      return const PasswordResetResult.networkError();
+    } catch (_) {
+      return const PasswordResetResult.networkError();
+    }
+  }
+
   AuthResult _resultFromAuthResponse(Map<String, dynamic> data) {
     final user = data['user'] as Map<String, dynamic>;
     final session = AuthSession(

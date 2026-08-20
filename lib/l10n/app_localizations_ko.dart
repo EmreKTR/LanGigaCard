@@ -1134,6 +1134,18 @@ class AppLocalizationsKo extends AppLocalizations {
   String get helpProblemReporting => '문제 신고';
 
   @override
+  String get helpReportHint => '무슨 일이 있었는지 설명해 주세요...';
+
+  @override
+  String get helpReportSend => '보고서 보내기';
+
+  @override
+  String get helpReportEmpty => '먼저 문제를 설명해 주세요';
+
+  @override
+  String get helpReportSent => '감사합니다. 보고서가 전송되었습니다';
+
+  @override
   String helpComingSoon(String what) {
     return '$what 기능은 이 빌드에서 아직 사용할 수 없습니다.';
   }
@@ -1246,7 +1258,21 @@ class AppLocalizationsKo extends AppLocalizations {
   String get privacySessionManagement => '세션 관리';
 
   @override
-  String get privacyExportingDecks => '덱 내보내기';
+  String privacyExportSaved(String path) {
+    return '$path에 저장되었습니다';
+  }
+
+  @override
+  String get changePasswordCurrentLabel => '현재 비밀번호';
+
+  @override
+  String get changePasswordNewLabel => '새 비밀번호';
+
+  @override
+  String get changePasswordSuccess => '비밀번호가 업데이트되었습니다';
+
+  @override
+  String get changePasswordIncorrectCurrent => '현재 비밀번호가 올바르지 않습니다';
 
   @override
   String get privacyAccountDeletion => '계정 삭제';

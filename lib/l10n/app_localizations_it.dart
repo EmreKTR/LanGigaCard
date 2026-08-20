@@ -1166,6 +1166,18 @@ class AppLocalizationsIt extends AppLocalizations {
   String get helpProblemReporting => 'La segnalazione dei problemi';
 
   @override
+  String get helpReportHint => 'Descrivi cosa è successo...';
+
+  @override
+  String get helpReportSend => 'Invia segnalazione';
+
+  @override
+  String get helpReportEmpty => 'Descrivi prima il problema';
+
+  @override
+  String get helpReportSent => 'Grazie, la tua segnalazione è stata inviata';
+
+  @override
   String helpComingSoon(String what) {
     return '$what non è ancora disponibile in questa build.';
   }
@@ -1284,7 +1296,22 @@ class AppLocalizationsIt extends AppLocalizations {
   String get privacySessionManagement => 'La gestione delle sessioni';
 
   @override
-  String get privacyExportingDecks => 'L\'esportazione dei mazzi';
+  String privacyExportSaved(String path) {
+    return 'Salvato in $path';
+  }
+
+  @override
+  String get changePasswordCurrentLabel => 'Password attuale';
+
+  @override
+  String get changePasswordNewLabel => 'Nuova password';
+
+  @override
+  String get changePasswordSuccess => 'Password aggiornata';
+
+  @override
+  String get changePasswordIncorrectCurrent =>
+      'La password attuale non è corretta';
 
   @override
   String get privacyAccountDeletion => 'L\'eliminazione dell\'account';

@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:langigacards/app_controller.dart';
 import 'package:langigacards/l10n/app_localizations.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:langigacards/data/api/deck_api.dart';
@@ -8,6 +9,64 @@ import 'package:langigacards/data/deck_store.dart';
 import 'package:langigacards/models/app_models.dart';
 import 'package:langigacards/screens/study/study_session_screen.dart';
 import 'package:langigacards/theme/app_theme.dart';
+
+/// Wraps an already-seeded [FakeDeckApi] (delegating every call to it) and
+/// records the `difficultyMode` argument from the most recent submitReview
+/// call, so a test can assert on what StudySessionScreen actually sent
+/// without losing the fixtures `makeDeck`/`freshCard` already created on
+/// the wrapped instance.
+class _DifficultyModeSpyApi implements DeckApi {
+  _DifficultyModeSpyApi(this._inner);
+
+  final FakeDeckApi _inner;
+  String? lastDifficultyMode;
+
+  @override
+  Future<ReviewResult> submitReview(
+    String wordId, {
+    required SrsRating rating,
+    required int durationSeconds,
+    String? difficultyMode,
+  }) {
+    lastDifficultyMode = difficultyMode;
+    return _inner.submitReview(wordId, rating: rating, durationSeconds: durationSeconds, difficultyMode: difficultyMode);
+  }
+
+  @override
+  Future<List<DeckData>> getDecks() => _inner.getDecks();
+  @override
+  Future<DeckResult> createDeck({required String title, String? description}) =>
+      _inner.createDeck(title: title, description: description);
+  @override
+  Future<DeckResult> updateDeck(String id, {required String title, String? description}) =>
+      _inner.updateDeck(id, title: title, description: description);
+  @override
+  Future<bool> deleteDeck(String id) => _inner.deleteDeck(id);
+  @override
+  Future<List<FlashcardData>> getFlashcards(String deckId) => _inner.getFlashcards(deckId);
+  @override
+  Future<FlashcardResult> createFlashcard({
+    required String deckId,
+    required String term,
+    required String translation,
+    String? exampleSentence,
+    String? imageUrl,
+  }) =>
+      _inner.createFlashcard(deckId: deckId, term: term, translation: translation, exampleSentence: exampleSentence, imageUrl: imageUrl);
+  @override
+  Future<FlashcardResult> updateFlashcard(
+    String wordId, {
+    required String term,
+    required String translation,
+    String? exampleSentence,
+    String? imageUrl,
+  }) =>
+      _inner.updateFlashcard(wordId, term: term, translation: translation, exampleSentence: exampleSentence, imageUrl: imageUrl);
+  @override
+  Future<bool> deleteFlashcard(String wordId) => _inner.deleteFlashcard(wordId);
+  @override
+  Future<List<ReviewCardData>> getDueReviews({String? deckId, int take = 50}) => _inner.getDueReviews(deckId: deckId, take: take);
+}
 
 Widget _wrap(Widget child) => MaterialApp(
       localizationsDelegates: AppLocalizations.localizationsDelegates,
@@ -167,6 +226,51 @@ void main() {
     // tally a local count: a rated card should leave the due queue.
     final remaining = await DeckStore.dueReviews(deckId: deck.id);
     expect(remaining.any((c) => c.id == cardId), isFalse);
+  });
+
+  testWidgets('the learner\'s Difficulty Mode setting is sent with every rating', (tester) async {
+    final deck = await makeDeck();
+    await freshCard(deck.id, 'rate_me');
+    final spy = _DifficultyModeSpyApi(api);
+    DeckStore.api = spy;
+
+    await tester.pumpWidget(MaterialApp(
+      localizationsDelegates: AppLocalizations.localizationsDelegates,
+      supportedLocales: AppLocalizations.supportedLocales,
+      theme: AppTheme.dark(AccentColor.purple),
+      home: AppControllerScope(
+        controller: AppController(),
+        child: StudySessionScreen(deck: deck),
+      ),
+    ));
+    await tester.pumpAndSettle();
+
+    // AppController defaults to DifficultyMode.b1.
+    await tester.tap(find.text('term-rate_me'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Easy'));
+    await tester.pumpAndSettle();
+
+    expect(spy.lastDifficultyMode, 'B1');
+  });
+
+  testWidgets('a screen with no AppControllerScope ancestor still rates cards, just without a difficulty preference', (tester) async {
+    final deck = await makeDeck();
+    await freshCard(deck.id, 'rate_me');
+    final spy = _DifficultyModeSpyApi(api);
+    DeckStore.api = spy;
+
+    // The plain _wrap helper -- no AppControllerScope, matching every other
+    // test in this file. This must not crash (AppControllerScope.of()
+    // asserts without an ancestor; the screen has to use maybeOf instead).
+    await tester.pumpWidget(_wrap(StudySessionScreen(deck: deck)));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('term-rate_me'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Easy'));
+    await tester.pumpAndSettle();
+
+    expect(spy.lastDifficultyMode, isNull);
   });
 
   testWidgets('swiping past a revealed card skips it without rating', (tester) async {

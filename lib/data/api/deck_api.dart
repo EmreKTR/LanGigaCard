@@ -166,7 +166,18 @@ abstract class DeckApi {
   Future<bool> deleteFlashcard(String wordId);
 
   Future<List<ReviewCardData>> getDueReviews({String? deckId, int take = 50});
-  Future<ReviewResult> submitReview(String wordId, {required SrsRating rating, required int durationSeconds});
+
+  /// [difficultyMode] is the learner's current `DifficultyMode` preference
+  /// (see `AppController`) -- their self-reported CEFR level, sent as-is
+  /// (e.g. "A1".."C2") so the server can nudge a brand-new word's initial
+  /// difficulty estimate from it. Optional -- omitting it (or an
+  /// unrecognized value) applies no nudge.
+  Future<ReviewResult> submitReview(
+    String wordId, {
+    required SrsRating rating,
+    required int durationSeconds,
+    String? difficultyMode,
+  });
 }
 
 /// In-memory [DeckApi] for tests: no plugins, no network, no disk.
@@ -307,7 +318,12 @@ class FakeDeckApi implements DeckApi {
   }
 
   @override
-  Future<ReviewResult> submitReview(String wordId, {required SrsRating rating, required int durationSeconds}) async {
+  Future<ReviewResult> submitReview(
+    String wordId, {
+    required SrsRating rating,
+    required int durationSeconds,
+    String? difficultyMode,
+  }) async {
     if (!_cards.containsKey(wordId)) {
       return const ReviewResult.validationError('Flashcard not found.');
     }

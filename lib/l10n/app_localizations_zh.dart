@@ -1124,6 +1124,18 @@ class AppLocalizationsZh extends AppLocalizations {
   String get helpProblemReporting => '问题反馈';
 
   @override
+  String get helpReportHint => '请描述发生的情况……';
+
+  @override
+  String get helpReportSend => '发送报告';
+
+  @override
+  String get helpReportEmpty => '请先描述问题';
+
+  @override
+  String get helpReportSent => '谢谢，你的报告已发送';
+
+  @override
   String helpComingSoon(String what) {
     return '$what在此版本中尚不可用。';
   }
@@ -1231,7 +1243,21 @@ class AppLocalizationsZh extends AppLocalizations {
   String get privacySessionManagement => '会话管理';
 
   @override
-  String get privacyExportingDecks => '导出卡组';
+  String privacyExportSaved(String path) {
+    return '已保存到 $path';
+  }
+
+  @override
+  String get changePasswordCurrentLabel => '当前密码';
+
+  @override
+  String get changePasswordNewLabel => '新密码';
+
+  @override
+  String get changePasswordSuccess => '密码已更新';
+
+  @override
+  String get changePasswordIncorrectCurrent => '当前密码不正确';
 
   @override
   String get privacyAccountDeletion => '删除账号';

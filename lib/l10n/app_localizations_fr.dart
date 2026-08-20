@@ -1176,6 +1176,18 @@ class AppLocalizationsFr extends AppLocalizations {
   String get helpProblemReporting => 'Le signalement de problèmes';
 
   @override
+  String get helpReportHint => 'Décrivez ce qui s’est passé...';
+
+  @override
+  String get helpReportSend => 'Envoyer le rapport';
+
+  @override
+  String get helpReportEmpty => 'Veuillez d’abord décrire le problème';
+
+  @override
+  String get helpReportSent => 'Merci, votre rapport a été envoyé';
+
+  @override
   String helpComingSoon(String what) {
     return '$what n\'est pas encore disponible dans cette version.';
   }
@@ -1294,7 +1306,22 @@ class AppLocalizationsFr extends AppLocalizations {
   String get privacySessionManagement => 'La gestion des sessions';
 
   @override
-  String get privacyExportingDecks => 'Exporter vos paquets';
+  String privacyExportSaved(String path) {
+    return 'Enregistré dans $path';
+  }
+
+  @override
+  String get changePasswordCurrentLabel => 'Mot de passe actuel';
+
+  @override
+  String get changePasswordNewLabel => 'Nouveau mot de passe';
+
+  @override
+  String get changePasswordSuccess => 'Mot de passe mis à jour';
+
+  @override
+  String get changePasswordIncorrectCurrent =>
+      'Le mot de passe actuel est incorrect';
 
   @override
   String get privacyAccountDeletion => 'La suppression du compte';

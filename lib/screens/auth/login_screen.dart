@@ -46,6 +46,17 @@ class _LoginScreenState extends State<LoginScreen> {
     if (_errorText != null) setState(() => _errorText = null);
   }
 
+  /// Google/Apple sign-in has no real OAuth integration (no client IDs
+  /// configured server-side) -- this replaces a silently-empty onPressed
+  /// with the same honest "not available yet" pattern already used
+  /// throughout Help & Support and Privacy & Security, rather than a
+  /// button that looks tappable but visibly does nothing.
+  void _showComingSoon(BuildContext context, String what) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text(AppLocalizations.of(context).helpComingSoon(what)), duration: const Duration(seconds: 2)),
+    );
+  }
+
   @override
   void dispose() {
     _emailController.dispose();
@@ -212,9 +223,21 @@ class _LoginScreenState extends State<LoginScreen> {
               const SizedBox(height: AppSpacing.xl),
               Row(
                 children: [
-                  Expanded(child: SocialButton(label: 'Google', icon: Icons.g_mobiledata_rounded, onPressed: () {})),
+                  Expanded(
+                    child: SocialButton(
+                      label: 'Google',
+                      icon: Icons.g_mobiledata_rounded,
+                      onPressed: () => _showComingSoon(context, 'Google'),
+                    ),
+                  ),
                   const SizedBox(width: AppSpacing.md),
-                  Expanded(child: SocialButton(label: 'Apple', icon: Icons.apple_rounded, onPressed: () {})),
+                  Expanded(
+                    child: SocialButton(
+                      label: 'Apple',
+                      icon: Icons.apple_rounded,
+                      onPressed: () => _showComingSoon(context, 'Apple'),
+                    ),
+                  ),
                 ],
               ),
               const SizedBox(height: AppSpacing.xxl),

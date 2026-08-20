@@ -1,8 +1,10 @@
 import 'package:flutter/material.dart';
+import '../../app_controller.dart';
 import '../../data/deck_store.dart';
 import '../../data/pronunciation_service.dart';
 import '../../data/review_log.dart';
 import '../../models/app_models.dart';
+import '../../models/text_size_option.dart';
 import '../../l10n/app_localizations.dart';
 import '../../theme/app_theme.dart';
 import '../../widgets/app_buttons.dart';
@@ -77,7 +79,15 @@ class _StudySessionScreenState extends State<StudySessionScreen> {
     final card = _current;
     final now = DateTime.now();
 
-    await DeckStore.submitReview(card.id, rating: rating, durationSeconds: 0);
+    // The learner's Difficulty Mode setting (Profile > App Preferences --
+    // their self-reported CEFR level, A1..C2) becomes a real input
+    // server-side: FsrsEngine nudges a brand-new word's initial difficulty
+    // from it, rather than the setting sitting there as a decorative label.
+    // maybeOf, not appController: widgets pumped without an
+    // AppControllerScope ancestor (most widget tests) should just omit the
+    // preference, not crash.
+    final difficultyMode = AppControllerScope.maybeOf(context)?.difficulty.label;
+    await DeckStore.submitReview(card.id, rating: rating, durationSeconds: 0, difficultyMode: difficultyMode);
     // Kept alongside the API call — ReviewLog powers the current Statistics
     // screen, which isn't part of this integration yet.
     ReviewLog.record(card.id, rating, now);

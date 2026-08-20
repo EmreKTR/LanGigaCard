@@ -143,8 +143,8 @@ class _CreateDeckSucceedsCardsFailApi implements DeckApi {
   @override
   Future<List<ReviewCardData>> getDueReviews({String? deckId, int take = 50}) => _inner.getDueReviews(deckId: deckId, take: take);
   @override
-  Future<ReviewResult> submitReview(String wordId, {required rating, required int durationSeconds}) =>
-      _inner.submitReview(wordId, rating: rating, durationSeconds: durationSeconds);
+  Future<ReviewResult> submitReview(String wordId, {required rating, required int durationSeconds, String? difficultyMode}) =>
+      _inner.submitReview(wordId, rating: rating, durationSeconds: durationSeconds, difficultyMode: difficultyMode);
 }
 
 /// Always reports a network error, regardless of the operation — used to
@@ -171,5 +171,6 @@ class _AlwaysNetworkErrorApi implements DeckApi {
   @override
   Future<List<ReviewCardData>> getDueReviews({String? deckId, int take = 50}) async => const [];
   @override
-  Future<ReviewResult> submitReview(String wordId, {required rating, required int durationSeconds}) async => const ReviewResult.networkError();
+  Future<ReviewResult> submitReview(String wordId, {required rating, required int durationSeconds, String? difficultyMode}) async =>
+      const ReviewResult.networkError();
 }

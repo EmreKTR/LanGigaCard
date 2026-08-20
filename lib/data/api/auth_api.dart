@@ -97,6 +97,40 @@ abstract class AuthApi {
   Future<bool> sendVerificationCode(String email);
 
   Future<VerificationResult> verifyEmail({required String email, required String code});
+
+  /// Asks the server to generate a password-reset token for [email] and
+  /// email it to the address on file. Always returns true regardless of
+  /// whether the address is registered — the server deliberately answers
+  /// the same way either way (anti-enumeration), so a `true` here says
+  /// nothing about whether an account exists. False only means the request
+  /// itself couldn't be sent (e.g. offline).
+  Future<bool> requestPasswordReset(String email);
+
+  /// Completes a reset using the token the server generated for
+  /// [requestPasswordReset]. Nothing in the app captures [token] from a
+  /// clicked email link yet — the server issues it as a long random string
+  /// meant for a link, not something a learner could reasonably type by
+  /// hand, and there's no deep-link handling to receive one. This exists so
+  /// the connection is ready once that's decided, not because anything
+  /// calls it today.
+  Future<PasswordResetResult> resetPassword({required String token, required String newPassword});
+}
+
+enum PasswordResetOutcome { success, invalidToken, validationError, networkError }
+
+class PasswordResetResult {
+  const PasswordResetResult._(this.outcome, {this.message});
+
+  const PasswordResetResult.success() : this._(PasswordResetOutcome.success);
+  const PasswordResetResult.invalidToken() : this._(PasswordResetOutcome.invalidToken);
+  const PasswordResetResult.validationError(String message)
+      : this._(PasswordResetOutcome.validationError, message: message);
+  const PasswordResetResult.networkError() : this._(PasswordResetOutcome.networkError);
+
+  final PasswordResetOutcome outcome;
+  final String? message;
+
+  bool get isSuccess => outcome == PasswordResetOutcome.success;
 }
 
 /// In-memory [AuthApi] for tests: no plugins, no network, no disk.
@@ -200,5 +234,32 @@ class FakeAuthApi implements AuthApi {
 
     _verifiedEmails.add(key);
     return const VerificationResult.success();
+  }
+
+  final Map<String, String> _resetTokensByEmail = {};
+
+  @override
+  Future<bool> requestPasswordReset(String email) async {
+    // Anti-enumeration, matching the real server: this "succeeds" even for
+    // an email with no account, so a token is issued unconditionally.
+    _resetTokensByEmail[_key(email)] = 'fake-reset-token-${_key(email)}';
+    return true;
+  }
+
+  @override
+  Future<PasswordResetResult> resetPassword({required String token, required String newPassword}) async {
+    final match = _resetTokensByEmail.entries.where((e) => e.value == token);
+    if (match.isEmpty) {
+      return const PasswordResetResult.invalidToken();
+    }
+    if (newPassword.length < 6) {
+      return const PasswordResetResult.validationError('Password must be at least 6 characters.');
+    }
+
+    final key = match.first.key;
+    _passwordsByEmail[key] = newPassword;
+    // One-time use, matching the server's IsUsed flag on the token record.
+    _resetTokensByEmail.remove(key);
+    return const PasswordResetResult.success();
   }
 }

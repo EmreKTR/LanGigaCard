@@ -1,13 +1,22 @@
-﻿import 'package:flutter/material.dart';
+﻿import 'dart:convert';
+import 'dart:io';
+
+import 'package:flutter/material.dart';
+import '../../data/api/vocabgrid_user_api.dart';
+import '../../data/auth_store.dart';
+import '../../data/deck_store.dart';
+import '../../data/review_log.dart';
 import '../../l10n/app_localizations.dart';
 import '../../theme/app_theme.dart';
 import '../../widgets/section_card.dart';
+import '../auth/login_screen.dart';
+import 'change_password_screen.dart';
 
 /// "Privacy & Security": local privacy toggles plus the account-data actions.
 ///
-/// The toggles are real UI state; the destructive actions deliberately stop at
-/// a confirmation and explain that they need an account backend, rather than
-/// pretending to work.
+/// The toggles, Change Password, Delete Account, and Export My Decks are all
+/// real now; Active Sessions still stops at "needs an account backend" — see
+/// its own `onTap` for why that one specifically is still out of reach.
 class PrivacySecurityScreen extends StatefulWidget {
   const PrivacySecurityScreen({super.key});
 
@@ -20,6 +29,8 @@ class _PrivacySecurityScreenState extends State<PrivacySecurityScreen> {
   bool _personalisedReview = true;
   bool _publicProfile = false;
   bool _biometricLock = false;
+  bool _exporting = false;
+  bool _deleting = false;
 
   @override
   Widget build(BuildContext context) {
@@ -79,11 +90,16 @@ class _PrivacySecurityScreenState extends State<PrivacySecurityScreen> {
                 SettingsRow(
                   icon: Icons.password_rounded,
                   label: l10n.privacyChangePassword,
-                  onTap: () => _needsAccount(context, l10n.privacyChangingPassword),
+                  onTap: () => Navigator.of(context).push(MaterialPageRoute(builder: (_) => const ChangePasswordScreen())),
                 ),
                 SettingsRow(
                   icon: Icons.devices_rounded,
                   label: l10n.privacyActiveSessions,
+                  // Genuinely still out of reach: the backend tracks one
+                  // refresh token per account (overwritten on every login),
+                  // not a per-device session list -- showing "active
+                  // sessions" would mean inventing data the server doesn't
+                  // have, not just wiring up an existing endpoint.
                   onTap: () => _needsAccount(context, l10n.privacySessionManagement),
                 ),
               ],
@@ -95,13 +111,13 @@ class _PrivacySecurityScreenState extends State<PrivacySecurityScreen> {
                 SettingsRow(
                   icon: Icons.download_rounded,
                   label: l10n.privacyExportDecks,
-                  onTap: () => _needsAccount(context, l10n.privacyExportingDecks),
+                  onTap: _exporting ? null : () => _exportDecks(context),
                 ),
                 SettingsRow(
                   icon: Icons.delete_forever_rounded,
                   label: l10n.privacyDeleteAccount,
                   iconColor: colors.danger,
-                  onTap: () => _confirmDelete(context),
+                  onTap: _deleting ? null : () => _confirmDelete(context),
                 ),
               ],
             ),
@@ -139,7 +155,80 @@ class _PrivacySecurityScreenState extends State<PrivacySecurityScreen> {
       ),
     );
     if (confirmed != true || !context.mounted) return;
-    _needsAccount(context, l10n.privacyAccountDeletion);
+
+    setState(() => _deleting = true);
+    final deleted = await userApi.deleteAccount();
+    if (!context.mounted) return;
+
+    if (!deleted) {
+      setState(() => _deleting = false);
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(l10n.commonNetworkError)),
+      );
+      return;
+    }
+
+    // The account no longer exists server-side, so this is the same
+    // device-local cleanup as a normal log-out (see
+    // ProfileScreen._confirmLogOut) -- nothing to sign back into.
+    await AuthStore.api.logout();
+    await DeckStore.writeQueue.clear();
+    await DeckStore.clearLibrary();
+    await ReviewLog.clear();
+    if (!context.mounted) return;
+
+    Navigator.of(context).pushAndRemoveUntil(
+      MaterialPageRoute(builder: (_) => const LoginScreen()),
+      (route) => false,
+    );
+  }
+
+  Future<void> _exportDecks(BuildContext context) async {
+    final l10n = AppLocalizations.of(context);
+    setState(() => _exporting = true);
+
+    try {
+      // Refresh first so the export reflects what's really on the server,
+      // not a possibly-stale local cache.
+      await DeckStore.refresh();
+      final export = {
+        'exportedAt': DateTime.now().toIso8601String(),
+        'decks': [
+          for (final deck in DeckStore.decks)
+            {
+              'id': deck.id,
+              'name': deck.name,
+              'description': deck.description,
+              'cards': [
+                for (final card in DeckStore.cards.where((c) => c.deckId == deck.id))
+                  {
+                    'term': card.term,
+                    'translation': card.translation,
+                    'exampleSentence': card.exampleSentence,
+                  },
+              ],
+            },
+        ],
+      };
+
+      final directory = Platform.environment['USERPROFILE'] ?? Platform.environment['HOME'];
+      if (directory == null) throw const FileSystemException('No home directory available');
+      final timestamp = DateTime.now().toIso8601String().replaceAll(RegExp('[:.]'), '-');
+      final file = File('$directory${Platform.pathSeparator}LanGigaCard_Export_$timestamp.json');
+      await file.writeAsString(const JsonEncoder.withIndent('  ').convert(export));
+
+      if (!context.mounted) return;
+      setState(() => _exporting = false);
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(l10n.privacyExportSaved(file.path)), duration: const Duration(seconds: 4)),
+      );
+    } catch (_) {
+      if (!context.mounted) return;
+      setState(() => _exporting = false);
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(l10n.commonNetworkError)),
+      );
+    }
   }
 }
 
