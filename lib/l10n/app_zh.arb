@@ -57,6 +57,7 @@
   "verifyResend": "重新发送验证码",
   "verifySending": "发送中…",
   "verifyAction": "验证",
+  "verifySkip": "暂时跳过",
   "verifyEnterAllDigits": "请输入全部 {count} 位数字",
   "@verifyEnterAllDigits": {
     "placeholders": { "count": { "type": "int" } }
@@ -282,6 +283,9 @@
   "profileThemeColor": "主题色",
   "profileTextSize": "文字大小",
   "profileDifficultyMode": "难度模式",
+  "profileEmailVerification": "邮箱验证",
+  "profileVerified": "已验证",
+  "profileNotVerified": "未验证",
   "profileAccount": "账号",
   "profileEditProfile": "编辑资料",
   "profilePrivacySecurity": "隐私与安全",

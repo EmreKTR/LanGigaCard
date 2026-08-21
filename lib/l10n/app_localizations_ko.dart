@@ -159,6 +159,9 @@ class AppLocalizationsKo extends AppLocalizations {
   String get verifyAction => '확인';
 
   @override
+  String get verifySkip => '나중에 하기';
+
+  @override
   String verifyEnterAllDigits(int count) {
     return '$count자리를 모두 입력하세요';
   }
@@ -884,6 +887,15 @@ class AppLocalizationsKo extends AppLocalizations {
 
   @override
   String get profileDifficultyMode => '난이도 모드';
+
+  @override
+  String get profileEmailVerification => '이메일 인증';
+
+  @override
+  String get profileVerified => '인증됨';
+
+  @override
+  String get profileNotVerified => '미인증';
 
   @override
   String get profileAccount => '계정';

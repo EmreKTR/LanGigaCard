@@ -170,6 +170,9 @@ class VocabGridUserApi implements UserApi {
         level: json['level'] as int,
         totalXp: json['totalXp'] as int,
         isPremium: json['isPremium'] as bool,
+        // Bu alanı göndermeyen bir sunucu sürümüne karşı okunuyor: eksikse
+        // "doğrulanmamış" saymak, hesabı yanlışlıkla onaylı göstermekten iyi.
+        isEmailVerified: json['isEmailVerified'] as bool? ?? false,
       );
 
   @override

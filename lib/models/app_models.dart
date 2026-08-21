@@ -83,6 +83,7 @@ class UserProfile {
     this.wordsLearned = 0,
     this.accuracyPercent = 0,
     this.studyHours = 0,
+    this.emailVerified = false,
   });
 
   final String name;
@@ -101,6 +102,11 @@ class UserProfile {
   final int accuracyPercent;
   final double studyHours;
 
+  /// E-posta dogrulandi mi. Dogrulama zorunlu degil -- kayittan sonraki adim
+  /// atlanabiliyor -- bu yuzden profil ekrani hesabi onayli/onaysiz olarak
+  /// gosterebilsin diye tasiniyor.
+  final bool emailVerified;
+
   UserProfile copyWith({
     String? name,
     String? email,
@@ -112,6 +118,7 @@ class UserProfile {
     List<String>? learningPurposes,
     List<String>? categories,
     int? dailyGoalMinutes,
+    bool? emailVerified,
   }) {
     return UserProfile(
       name: name ?? this.name,
@@ -129,6 +136,7 @@ class UserProfile {
       wordsLearned: wordsLearned,
       accuracyPercent: accuracyPercent,
       studyHours: studyHours,
+      emailVerified: emailVerified ?? this.emailVerified,
     );
   }
 }

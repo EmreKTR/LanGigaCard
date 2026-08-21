@@ -164,6 +164,9 @@ class AppLocalizationsTr extends AppLocalizations {
   String get verifyAction => 'Doğrula';
 
   @override
+  String get verifySkip => 'Şimdilik atla';
+
+  @override
   String verifyEnterAllDigits(int count) {
     return '$count hanenin tamamını girin';
   }
@@ -903,6 +906,15 @@ class AppLocalizationsTr extends AppLocalizations {
 
   @override
   String get profileDifficultyMode => 'Zorluk Modu';
+
+  @override
+  String get profileEmailVerification => 'E-posta doğrulama';
+
+  @override
+  String get profileVerified => 'Onaylı';
+
+  @override
+  String get profileNotVerified => 'Onaysız';
 
   @override
   String get profileAccount => 'Hesap';

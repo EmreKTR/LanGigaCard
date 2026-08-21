@@ -155,6 +155,9 @@ class AppLocalizationsZh extends AppLocalizations {
   String get verifyAction => '验证';
 
   @override
+  String get verifySkip => '暂时跳过';
+
+  @override
   String verifyEnterAllDigits(int count) {
     return '请输入全部 $count 位数字';
   }
@@ -877,6 +880,15 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get profileDifficultyMode => '难度模式';
+
+  @override
+  String get profileEmailVerification => '邮箱验证';
+
+  @override
+  String get profileVerified => '已验证';
+
+  @override
+  String get profileNotVerified => '未验证';
 
   @override
   String get profileAccount => '账号';

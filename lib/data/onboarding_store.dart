@@ -25,6 +25,7 @@ UserProfile profileFromApiData(
     dailyGoalMinutes: data.dailyGoalMinutes,
     streakDays: data.currentStreak,
     level: data.level,
+    emailVerified: data.isEmailVerified,
   );
 }
 

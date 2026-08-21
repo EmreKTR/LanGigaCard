@@ -57,6 +57,7 @@
   "verifyResend": "コードを再送信",
   "verifySending": "送信中…",
   "verifyAction": "確認",
+  "verifySkip": "後で行う",
   "verifyEnterAllDigits": "{count}桁すべてを入力してください",
   "@verifyEnterAllDigits": {
     "placeholders": { "count": { "type": "int" } }
@@ -282,6 +283,9 @@
   "profileThemeColor": "テーマカラー",
   "profileTextSize": "文字サイズ",
   "profileDifficultyMode": "難易度モード",
+  "profileEmailVerification": "メール認証",
+  "profileVerified": "認証済み",
+  "profileNotVerified": "未認証",
   "profileAccount": "アカウント",
   "profileEditProfile": "プロフィールを編集",
   "profilePrivacySecurity": "プライバシーとセキュリティ",

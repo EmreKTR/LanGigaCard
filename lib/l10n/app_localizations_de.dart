@@ -166,6 +166,9 @@ class AppLocalizationsDe extends AppLocalizations {
   String get verifyAction => 'Bestätigen';
 
   @override
+  String get verifySkip => 'Vorerst überspringen';
+
+  @override
   String verifyEnterAllDigits(int count) {
     return 'Gib alle $count Ziffern ein';
   }
@@ -917,6 +920,15 @@ class AppLocalizationsDe extends AppLocalizations {
 
   @override
   String get profileDifficultyMode => 'Schwierigkeitsmodus';
+
+  @override
+  String get profileEmailVerification => 'E-Mail-Bestätigung';
+
+  @override
+  String get profileVerified => 'Bestätigt';
+
+  @override
+  String get profileNotVerified => 'Nicht bestätigt';
 
   @override
   String get profileAccount => 'Konto';

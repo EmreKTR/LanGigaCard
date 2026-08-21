@@ -21,6 +21,7 @@ class ProfileData {
     required this.level,
     required this.totalXp,
     required this.isPremium,
+    this.isEmailVerified = false,
   });
 
   final String firstName;
@@ -38,6 +39,11 @@ class ProfileData {
   final int level;
   final int totalXp;
   final bool isPremium;
+
+  /// Dogrulama zorunlu degil: kullanici kayittan sonra adimi atlayabiliyor,
+  /// bu yuzden bu alan "hesap onayli mi" rozetini beslemek icin var.
+  /// Eski bir sunucu bu alani hic gondermezse false kabul ediliyor.
+  final bool isEmailVerified;
 
   ProfileData copyWith({
     String? firstName,
@@ -66,6 +72,7 @@ class ProfileData {
       level: level,
       totalXp: totalXp,
       isPremium: isPremium,
+      isEmailVerified: isEmailVerified,
     );
   }
 }

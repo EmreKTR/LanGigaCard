@@ -167,6 +167,9 @@ class AppLocalizationsFr extends AppLocalizations {
   String get verifyAction => 'Vérifier';
 
   @override
+  String get verifySkip => 'Ignorer pour l\'instant';
+
+  @override
   String verifyEnterAllDigits(int count) {
     return 'Saisissez les $count chiffres';
   }
@@ -915,6 +918,15 @@ class AppLocalizationsFr extends AppLocalizations {
 
   @override
   String get profileDifficultyMode => 'Mode de difficulté';
+
+  @override
+  String get profileEmailVerification => 'Vérification de l\'e-mail';
+
+  @override
+  String get profileVerified => 'Vérifié';
+
+  @override
+  String get profileNotVerified => 'Non vérifié';
 
   @override
   String get profileAccount => 'Compte';
