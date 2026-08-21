@@ -43,7 +43,7 @@ void main() {
         nativeCode: 'TR',
       );
 
-      expect(starter.decks.first.name, 'English Basics');
+      expect(starter.decks.first.name, 'Basics');
       // The word to learn is English, the answer is in Turkish. This is the
       // whole bug: the app used to hand this learner French decks.
       final hello = starter.cards.firstWhere((c) => c.term == 'Hello');
@@ -58,7 +58,7 @@ void main() {
         nativeCode: 'GB',
       );
 
-      expect(starter.decks.first.name, 'Japanese Basics');
+      expect(starter.decks.first.name, '基礎');
       expect(starter.cards.firstWhere((c) => c.term == 'こんにちは').translation, 'Hello');
     });
 
@@ -109,84 +109,34 @@ void main() {
     });
   });
 
-  group('starter decks are ordered by relevance to the learner\'s onboarding picks', () {
-    test('with no categories or purposes, decks keep their default order', () {
+  group('starter content is only the decks that suit every learner', () {
+    // Kategoriye bağlı desteler (Food, Travel, Business, Family ve on bir
+    // tanesi daha) backend'deki DeckTemplate kataloğuna taşındı ve orada
+    // yalnızca öğrenenin seçtiği kategoriler için kuruluyor. Burada kalan beş
+    // deste hiçbir kategoriye ait değil, o yüzden ilgi sıralaması da kalktı.
+    const universal = {'Basics', 'Everyday Words', 'Numbers', 'Colours', 'Time & Days'};
+    const movedToBackend = {'Food & Drink', 'Travel & Directions', 'Business Basics', 'Family & People'};
+
+    test('exactly the five universal decks are built', () {
       final starter = StarterContent.buildFor(targetCode: 'GB', targetName: 'English', nativeCode: 'TR');
 
-      expect(starter.decks.first.name, 'English Basics');
-      expect(starter.decks.map((d) => d.name), contains('Business Basics'));
+      expect(starter.decks.map((d) => d.name).toSet(), universal);
     });
 
-    test('a matching category moves that deck ahead of unmatched topic decks', () {
-      final starter = StarterContent.buildFor(
-        targetCode: 'GB',
-        targetName: 'English',
-        nativeCode: 'TR',
-        categories: ['Business'],
-      );
+    test('the category decks are no longer built here', () {
+      final starter = StarterContent.buildFor(targetCode: 'GB', targetName: 'English', nativeCode: 'TR');
+      final names = starter.decks.map((d) => d.name).toSet();
 
-      final businessIndex = starter.decks.indexWhere((d) => d.name == 'Business Basics');
-      final travelIndex = starter.decks.indexWhere((d) => d.name == 'Travel & Directions');
-      expect(businessIndex, lessThan(travelIndex));
+      for (final moved in movedToBackend) {
+        expect(names, isNot(contains(moved)), reason: '$moved artik backend kataloğunda');
+      }
     });
 
-    test('a matching purpose alone also boosts the deck, though less than a category match', () {
-      // "Travel" is both a category and a purpose; "Relocation" is purpose-only.
-      final purposeOnly = StarterContent.buildFor(
-        targetCode: 'GB',
-        targetName: 'English',
-        nativeCode: 'TR',
-        purposes: ['Relocation'],
-      );
+    test('decks keep the order they are added in', () {
+      final starter = StarterContent.buildFor(targetCode: 'GB', targetName: 'English', nativeCode: 'TR');
 
-      final travelIndex = purposeOnly.decks.indexWhere((d) => d.name == 'Travel & Directions');
-      final businessIndex = purposeOnly.decks.indexWhere((d) => d.name == 'Business Basics');
-      expect(travelIndex, lessThan(businessIndex));
-    });
-
-    test('matching is case-insensitive', () {
-      final starter = StarterContent.buildFor(
-        targetCode: 'GB',
-        targetName: 'English',
-        nativeCode: 'TR',
-        categories: ['bUsInEsS'],
-      );
-
-      final businessIndex = starter.decks.indexWhere((d) => d.name == 'Business Basics');
-      final foodIndex = starter.decks.indexWhere((d) => d.name == 'Food & Drink');
-      expect(businessIndex, lessThan(foodIndex));
-    });
-
-    test('multiple matches outrank a single match', () {
-      final starter = StarterContent.buildFor(
-        targetCode: 'GB',
-        targetName: 'English',
-        nativeCode: 'TR',
-        categories: ['Business', 'Travel'],
-        purposes: ['Business'],
-      );
-
-      // Business: category (+2) + purpose (+1) = 3. Travel: category (+2) = 2.
-      final businessIndex = starter.decks.indexWhere((d) => d.name == 'Business Basics');
-      final travelIndex = starter.decks.indexWhere((d) => d.name == 'Travel & Directions');
-      expect(businessIndex, lessThan(travelIndex));
-    });
-
-    test('reordering never drops a deck -- every learner still gets all of them', () {
-      final unpersonalized = StarterContent.buildFor(targetCode: 'GB', targetName: 'English', nativeCode: 'TR');
-      final personalized = StarterContent.buildFor(
-        targetCode: 'GB',
-        targetName: 'English',
-        nativeCode: 'TR',
-        categories: ['Business'],
-        purposes: ['Travel'],
-      );
-
-      expect(
-        personalized.decks.map((d) => d.id).toSet(),
-        unpersonalized.decks.map((d) => d.id).toSet(),
-      );
-      expect(personalized.cards.length, unpersonalized.cards.length);
+      expect(starter.decks.first.name, 'Basics');
+      expect(starter.decks.last.name, 'Time & Days');
     });
   });
 
@@ -224,7 +174,7 @@ void main() {
       await _applyStarterContent(targetCode: 'GB', targetName: 'English', nativeCode: 'TR');
 
       expect(DeckStore.decks, isNotEmpty);
-      expect(DeckStore.decks.first.name, 'English Basics');
+      expect(DeckStore.decks.first.name, 'Basics');
       expect(DeckStore.cards.any((c) => c.term == 'Hello'), isTrue);
     });
 

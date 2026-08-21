@@ -52,16 +52,12 @@ class MockData {
     required String targetCode,
     required String targetName,
     required String nativeCode,
-    List<String> categories = const [],
-    List<String> purposes = const [],
   }) {
     if (targetCode.isEmpty || nativeCode.isEmpty) return null;
     final starter = StarterContent.buildFor(
       targetCode: targetCode,
       targetName: targetName,
       nativeCode: nativeCode,
-      categories: categories,
-      purposes: purposes,
     );
     if (starter.decks.isEmpty) return null;
     return starter;
