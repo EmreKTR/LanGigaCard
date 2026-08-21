@@ -179,8 +179,30 @@ class _MainShellState extends State<MainShell> {
   void _onProfileChanged(UserProfile updated) {
     final languageChanged = updated.targetLanguageCode != _profile?.targetLanguageCode ||
         updated.nativeLanguageCode != _profile?.nativeLanguageCode;
+
+    // Saving a category selection also builds and retires that category's
+    // decks on the server, so this device's library is stale the moment the
+    // picker closes -- the new deck exists but nothing has fetched it yet.
+    // A language change needs the same refresh, but _applyProfile already
+    // does one on its way through, so only the category-only case is handled
+    // here.
+    final previousCategories = _profile?.categories.toSet() ?? const <String>{};
+    final currentCategories = updated.categories.toSet();
+    final categoriesChanged = previousCategories.length != currentCategories.length ||
+        !previousCategories.containsAll(currentCategories);
+
     setState(() => _profile = updated);
-    if (languageChanged) _applyProfile(updated);
+
+    if (languageChanged) {
+      _applyProfile(updated);
+    } else if (categoriesChanged) {
+      _refreshAfterCategoryChange();
+    }
+  }
+
+  Future<void> _refreshAfterCategoryChange() async {
+    await DeckStore.refresh();
+    if (mounted) setState(() {});
   }
 
   void _startStudySession() {
