@@ -402,6 +402,12 @@ abstract class AppLocalizations {
   /// **'Verify'**
   String get verifyAction;
 
+  /// No description provided for @verifySkip.
+  ///
+  /// In en, this message translates to:
+  /// **'Skip for now'**
+  String get verifySkip;
+
   /// No description provided for @verifyEnterAllDigits.
   ///
   /// In en, this message translates to:
@@ -1637,6 +1643,24 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Difficulty Mode'**
   String get profileDifficultyMode;
+
+  /// No description provided for @profileEmailVerification.
+  ///
+  /// In en, this message translates to:
+  /// **'Email verification'**
+  String get profileEmailVerification;
+
+  /// No description provided for @profileVerified.
+  ///
+  /// In en, this message translates to:
+  /// **'Verified'**
+  String get profileVerified;
+
+  /// No description provided for @profileNotVerified.
+  ///
+  /// In en, this message translates to:
+  /// **'Not verified'**
+  String get profileNotVerified;
 
   /// No description provided for @profileAccount.
   ///

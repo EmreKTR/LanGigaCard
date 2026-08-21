@@ -57,6 +57,7 @@
   "verifyResend": "코드 다시 보내기",
   "verifySending": "보내는 중…",
   "verifyAction": "확인",
+  "verifySkip": "나중에 하기",
   "verifyEnterAllDigits": "{count}자리를 모두 입력하세요",
   "@verifyEnterAllDigits": {
     "placeholders": { "count": { "type": "int" } }
@@ -282,6 +283,9 @@
   "profileThemeColor": "테마 색상",
   "profileTextSize": "글자 크기",
   "profileDifficultyMode": "난이도 모드",
+  "profileEmailVerification": "이메일 인증",
+  "profileVerified": "인증됨",
+  "profileNotVerified": "미인증",
   "profileAccount": "계정",
   "profileEditProfile": "프로필 편집",
   "profilePrivacySecurity": "개인정보 및 보안",

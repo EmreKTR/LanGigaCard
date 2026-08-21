@@ -57,6 +57,7 @@
   "verifyResend": "Reenviar código",
   "verifySending": "Enviando…",
   "verifyAction": "Verificar",
+  "verifySkip": "Omitir por ahora",
   "verifyEnterAllDigits": "Introduce los {count} dígitos",
   "@verifyEnterAllDigits": {
     "placeholders": { "count": { "type": "int" } }
@@ -282,6 +283,9 @@
   "profileThemeColor": "Color del tema",
   "profileTextSize": "Tamaño del texto",
   "profileDifficultyMode": "Modo de dificultad",
+  "profileEmailVerification": "Verificación de correo",
+  "profileVerified": "Verificado",
+  "profileNotVerified": "Sin verificar",
   "profileAccount": "Cuenta",
   "profileEditProfile": "Editar perfil",
   "profilePrivacySecurity": "Privacidad y seguridad",

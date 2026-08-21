@@ -18,6 +18,7 @@ import '../../widgets/language_search_list.dart';
 import '../../widgets/reminder_row.dart';
 import '../../widgets/section_card.dart';
 import '../../widgets/status_indicators.dart';
+import '../auth/email_verification_screen.dart';
 import '../auth/login_screen.dart';
 import '../home/home_screen.dart' show initialsFor;
 import 'help_support_screen.dart';
@@ -156,6 +157,31 @@ class ProfileScreen extends StatelessWidget {
 
     final purposeNames = allPurposes.where((p) => picked.contains(p.id)).map((p) => p.name).toList();
     onProfileChanged(profile.copyWith(learningPurposes: purposeNames));
+  }
+
+  /// Atlanmış doğrulamayı sonradan tamamlar.
+  ///
+  /// Kayıt akışındaki ekranın aynısı, iki farkla: açılışta bir kod isteniyor
+  /// (kayıttan gelen çoktan geçmiş olabilir) ve doğrulama bitince kurulum
+  /// ekranına değil buraya dönülüyor.
+  Future<void> _verifyEmail(BuildContext context) async {
+    final (firstName, lastName) = _splitName(profile.name);
+
+    final verified = await Navigator.of(context).push<bool>(
+      MaterialPageRoute(
+        builder: (routeContext) => EmailVerificationScreen(
+          firstName: firstName,
+          lastName: lastName,
+          email: profile.email,
+          sendCodeOnOpen: true,
+          onVerified: () => Navigator.of(routeContext).pop(true),
+        ),
+      ),
+    );
+
+    if (verified == true) {
+      onProfileChanged(profile.copyWith(emailVerified: true));
+    }
   }
 
   Future<void> _editProfile(BuildContext context) async {
@@ -363,6 +389,16 @@ class ProfileScreen extends StatelessWidget {
                   SettingsGroup(
                     title: l10n.profileAccount,
                     children: [
+                      // Onaysız hesap bir hata değil — doğrulama atlanabiliyor —
+                      // ama görünür olmalı ve buradan tamamlanabilmeli.
+                      // Onaylıysa satır bilgi olarak kalır, dokunulamaz.
+                      SettingsRow(
+                        icon: profile.emailVerified ? Icons.verified_rounded : Icons.error_outline_rounded,
+                        iconColor: profile.emailVerified ? colors.success : colors.danger,
+                        label: l10n.profileEmailVerification,
+                        value: profile.emailVerified ? l10n.profileVerified : l10n.profileNotVerified,
+                        onTap: profile.emailVerified ? null : () => _verifyEmail(context),
+                      ),
                       SettingsRow(icon: Icons.edit_rounded, label: l10n.profileEditProfile, onTap: () => _editProfile(context)),
                       SettingsRow(
                         icon: Icons.lock_rounded,

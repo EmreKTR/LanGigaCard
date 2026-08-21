@@ -159,6 +159,9 @@ class AppLocalizationsJa extends AppLocalizations {
   String get verifyAction => '確認';
 
   @override
+  String get verifySkip => '後で行う';
+
+  @override
   String verifyEnterAllDigits(int count) {
     return '$count桁すべてを入力してください';
   }
@@ -883,6 +886,15 @@ class AppLocalizationsJa extends AppLocalizations {
 
   @override
   String get profileDifficultyMode => '難易度モード';
+
+  @override
+  String get profileEmailVerification => 'メール認証';
+
+  @override
+  String get profileVerified => '認証済み';
+
+  @override
+  String get profileNotVerified => '未認証';
 
   @override
   String get profileAccount => 'アカウント';

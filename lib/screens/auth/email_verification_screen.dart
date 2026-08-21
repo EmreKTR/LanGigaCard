@@ -13,11 +13,34 @@ const _codeLength = 6;
 /// to mail a code, so this screen only submits what the learner types — the
 /// code itself is never known to the app.
 class EmailVerificationScreen extends StatefulWidget {
-  const EmailVerificationScreen({super.key, required this.firstName, required this.lastName, required this.email});
+  const EmailVerificationScreen({
+    super.key,
+    required this.firstName,
+    required this.lastName,
+    required this.email,
+    this.onVerified,
+    this.sendCodeOnOpen = false,
+  });
 
   final String firstName;
   final String lastName;
   final String email;
+
+  /// Doğrulama bittiğinde ne olacağı.
+  ///
+  /// Kayıt akışında null: ekran kuruluma devam eder. Profilden "Onaysız"
+  /// satırına dokunularak açıldığında ise kullanıcı zaten kurulumu geçmiştir,
+  /// oraya geri göndermek yanlış olurdu — çağıran taraf ne yapacağını buradan
+  /// söyler.
+  final VoidCallback? onVerified;
+
+  /// Açılışta kod istensin mi.
+  ///
+  /// Kayıt akışında kodu kayıt ucu zaten gönderiyor, tekrar istemek
+  /// öncekini geçersiz kılardı. Profilden gelindiğinde ise ortada bekleyen
+  /// kod yok; kullanıcının "Yeniden gönder"e basmak zorunda kalmaması için
+  /// açılışta bir tane isteniyor.
+  final bool sendCodeOnOpen;
 
   @override
   State<EmailVerificationScreen> createState() => _EmailVerificationScreenState();
@@ -29,6 +52,14 @@ class _EmailVerificationScreenState extends State<EmailVerificationScreen> {
   String? _error;
   bool _verifying = false;
   bool _resending = false;
+
+  @override
+  void initState() {
+    super.initState();
+    if (widget.sendCodeOnOpen) {
+      WidgetsBinding.instance.addPostFrameCallback((_) => _resend());
+    }
+  }
 
   @override
   void dispose() {
@@ -81,11 +112,7 @@ class _EmailVerificationScreenState extends State<EmailVerificationScreen> {
     if (!mounted) return;
 
     if (result.isSuccess) {
-      Navigator.of(context).pushReplacement(
-        MaterialPageRoute(
-          builder: (_) => OnboardingSetupScreen(firstName: widget.firstName, lastName: widget.lastName, email: widget.email),
-        ),
-      );
+      _continueToSetup();
       return;
     }
 
@@ -107,6 +134,44 @@ class _EmailVerificationScreenState extends State<EmailVerificationScreen> {
 
   void _backToSignIn() {
     Navigator.of(context).pushAndRemoveUntil(MaterialPageRoute(builder: (_) => const LoginScreen()), (r) => false);
+  }
+
+  /// Doğrulamayı geçip kuruluma devam eder.
+  ///
+  /// Hesap onaysız kalır ve profilde öyle görünür; kod beklerken uygulamanın
+  /// dışında kalmak zorunda olmamak için var. Kayıt zaten bir oturum açıyor,
+  /// yani burada atlamak yeni bir yetki vermiyor — sadece bu ekranı geçiyor.
+  ///
+  /// Yalnızca kayıt akışında görünür: profilden gelindiğinde çıkış zaten geri
+  /// okudur ve buradan çıkmak "doğrulandı" anlamına gelmemeli.
+  void _skip() {
+    Navigator.of(context).pushReplacement(
+      MaterialPageRoute(
+        builder: (_) => OnboardingSetupScreen(
+          firstName: widget.firstName,
+          lastName: widget.lastName,
+          email: widget.email,
+        ),
+      ),
+    );
+  }
+
+  void _continueToSetup() {
+    final onVerified = widget.onVerified;
+    if (onVerified != null) {
+      onVerified();
+      return;
+    }
+
+    Navigator.of(context).pushReplacement(
+      MaterialPageRoute(
+        builder: (_) => OnboardingSetupScreen(
+          firstName: widget.firstName,
+          lastName: widget.lastName,
+          email: widget.email,
+        ),
+      ),
+    );
   }
 
   @override
@@ -181,7 +246,21 @@ class _EmailVerificationScreenState extends State<EmailVerificationScreen> {
             ),
             Padding(
               padding: const EdgeInsets.all(AppSpacing.lg),
-              child: PrimaryButton(label: l10n.verifyAction, onPressed: _verifying ? null : _verify, loading: _verifying),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  PrimaryButton(label: l10n.verifyAction, onPressed: _verifying ? null : _verify, loading: _verifying),
+                  // Doğrulama zorunlu değil: hesap onaysız da çalışıyor. Kodu
+                  // o an alamayan biri burada takılıp kalmasın diye çıkış var —
+                  // durum profilde "Onaysız" olarak duruyor ve oradan
+                  // tamamlanabiliyor.
+                  if (widget.onVerified == null)
+                    TextButton(
+                      onPressed: _verifying ? null : _skip,
+                      child: Text(l10n.verifySkip),
+                    ),
+                ],
+              ),
             ),
           ],
         ),

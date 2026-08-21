@@ -57,6 +57,7 @@
   "verifyResend": "Kodu tekrar gönder",
   "verifySending": "Gönderiliyor…",
   "verifyAction": "Doğrula",
+  "verifySkip": "Şimdilik atla",
   "verifyEnterAllDigits": "{count} hanenin tamamını girin",
   "@verifyEnterAllDigits": {
     "placeholders": { "count": { "type": "int" } }
@@ -282,6 +283,9 @@
   "profileThemeColor": "Tema Rengi",
   "profileTextSize": "Yazı Boyutu",
   "profileDifficultyMode": "Zorluk Modu",
+  "profileEmailVerification": "E-posta doğrulama",
+  "profileVerified": "Onaylı",
+  "profileNotVerified": "Onaysız",
   "profileAccount": "Hesap",
   "profileEditProfile": "Profili Düzenle",
   "profilePrivacySecurity": "Gizlilik ve Güvenlik",
