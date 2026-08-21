@@ -90,7 +90,7 @@ void main() {
 
     final createdDecks = await fakeDeckApi.getDecks();
     expect(createdDecks, isNotEmpty);
-    expect(createdDecks.map((d) => d.title), contains('French Basics'));
+    expect(createdDecks.map((d) => d.title), contains('Les bases'));
 
     // A second MainShell mount for the same (now non-empty) account must not
     // duplicate the starter decks.
