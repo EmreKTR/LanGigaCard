@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../../data/deck_store.dart';
+import '../../data/downloaded_decks.dart';
 import '../../models/app_models.dart';
 import '../../l10n/app_localizations.dart';
 import '../../theme/app_theme.dart';
@@ -9,6 +10,7 @@ import '../study/quiz_screen.dart';
 import '../study/study_session_screen.dart';
 import 'card_library_screen.dart';
 import 'deck_detail_screen.dart';
+import 'downloaded_decks_screen.dart';
 
 /// "My Decks": due-today banner, search, and a list of deck cards each with
 /// a mastery bar, Study/Browse actions and a rename/delete menu.
@@ -86,6 +88,13 @@ class _DeckDashboardScreenState extends State<DeckDashboardScreen> {
       appBar: AppBar(
         title: Text(l10n.decksTitle),
         actions: [
+          IconButton(
+            tooltip: l10n.downloadedDecksTitle,
+            onPressed: () => Navigator.of(context).push(
+              MaterialPageRoute(builder: (_) => const DownloadedDecksScreen()),
+            ),
+            icon: const Icon(Icons.cloud_download_outlined),
+          ),
           Padding(
             padding: const EdgeInsets.only(right: AppSpacing.lg),
             child: TextButton.icon(
@@ -98,9 +107,14 @@ class _DeckDashboardScreenState extends State<DeckDashboardScreen> {
       ),
       body: SafeArea(
         top: false,
+        // The offline badge on each tile is driven by DownloadedDecks, which
+        // changes independently of the library itself.
         child: ValueListenableBuilder<int>(
           valueListenable: DeckStore.revision,
-          builder: (context, _, __) => Refreshable(child: _buildDeckList(context)),
+          builder: (context, _, __) => ValueListenableBuilder<int>(
+            valueListenable: DownloadedDecks.revision,
+            builder: (context, _, __) => Refreshable(child: _buildDeckList(context)),
+          ),
         ),
       ),
     );
@@ -240,6 +254,7 @@ class _DeckCard extends StatelessWidget {
     final dueCount = deck.dueCount;
     final studyable = DeckStore.studyableCountOf(deck.id);
     final mastery = deck.masteryPercent;
+    final isDownloaded = DownloadedDecks.contains(deck.id);
 
     return Container(
       margin: const EdgeInsets.only(bottom: AppSpacing.lg),
@@ -282,6 +297,7 @@ class _DeckCard extends StatelessWidget {
                   'quiz' => Navigator.of(context).push(
                       MaterialPageRoute(builder: (_) => QuizScreen(deck: deck)),
                     ),
+                  'download' => _toggleDownload(context, deck),
                   'rename' => onRename(),
                   _ => onDelete(),
                 },
@@ -293,6 +309,19 @@ class _DeckCard extends StatelessWidget {
                       contentPadding: EdgeInsets.zero,
                       leading: Icon(Icons.quiz_outlined, size: 20),
                       title: Text(l10n.decksQuizThis),
+                    ),
+                  ),
+                  PopupMenuItem(
+                    value: 'download',
+                    child: ListTile(
+                      dense: true,
+                      contentPadding: EdgeInsets.zero,
+                      leading: Icon(
+                        isDownloaded ? Icons.offline_pin_rounded : Icons.cloud_download_outlined,
+                        size: 20,
+                        color: isDownloaded ? colors.success : null,
+                      ),
+                      title: Text(isDownloaded ? l10n.downloadedDecksRemove : l10n.deckDownload),
                     ),
                   ),
                   PopupMenuItem(
@@ -325,6 +354,8 @@ class _DeckCard extends StatelessWidget {
               _tag(colors, l10n.decksCardCount(cardCount), colors.surfaceElevated, colors.textSecondary),
               if (dueCount > 0) _tag(colors, l10n.decksReviewDue, colors.danger.withValues(alpha: 0.14), colors.danger),
               _tag(colors, l10n.decksReviewCount(deck.reviewCount), colors.surfaceElevated, colors.textSecondary),
+              if (isDownloaded)
+                _tag(colors, l10n.deckDownloaded, colors.success.withValues(alpha: 0.14), colors.success),
             ],
           ),
           const SizedBox(height: AppSpacing.md),
@@ -369,6 +400,28 @@ class _DeckCard extends StatelessWidget {
         ],
       ),
     );
+  }
+
+  /// Saves the deck for offline study, or drops the offline copy.
+  ///
+  /// Downloading re-fetches the deck's cards rather than trusting whatever
+  /// the cache happens to hold, so "saved for offline" means the deck as the
+  /// server has it right now — which is the point of asking before losing
+  /// the connection.
+  Future<void> _toggleDownload(BuildContext context, Deck deck) async {
+    final l10n = AppLocalizations.of(context);
+    final messenger = ScaffoldMessenger.of(context);
+
+    if (DownloadedDecks.contains(deck.id)) {
+      await DeckStore.removeDownload(deck.id);
+      messenger.showSnackBar(SnackBar(content: Text(l10n.deckDownloadRemoved)));
+      return;
+    }
+
+    final ok = await DeckStore.downloadDeck(deck.id);
+    messenger.showSnackBar(SnackBar(
+      content: Text(ok ? l10n.deckDownloadDone(deck.name) : l10n.deckDownloadFailed),
+    ));
   }
 
   Widget _tag(AppColorsExt colors, String label, Color bg, Color fg) {

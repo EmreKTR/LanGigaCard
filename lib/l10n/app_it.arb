@@ -432,5 +432,24 @@
   "reminderNotificationBody": "Le tue carte ti aspettano: bastano pochi minuti per mantenere la serie.",
 
   "splashTagline": "IMPARA QUALSIASI LINGUA",
-  "profileLearningLabel": "impara"
+  "profileLearningLabel": "impara",
+  "quizAccuracyLabel": "Precisione",
+  "quizCompletionLabel": "Completamento",
+  "quizWordsSeen": "{seen} parole su {total} viste",
+  "quizNotRecorded": "Non è stato possibile salvare questo quiz, quindi non conterà nelle statistiche.",
+  "languageSetupTitle": "Configura {language}",
+  "languageSetupIntro": "Una nuova lingua riparte da zero. Dicci il tuo livello e i tuoi interessi: i mazzi si adatteranno.",
+  "languageSetupStart": "Crea i miei mazzi",
+  "languageSetupFailed": "Non è stato possibile configurare questa lingua. Controlla la connessione e riprova.",
+  "deckDownload": "Salva offline",
+  "deckDownloaded": "Disponibile offline",
+  "deckDownloadDone": "{deck} ora è disponibile offline",
+  "deckDownloadFailed": "Non è stato possibile salvare questo mazzo per l'uso offline. Controlla la connessione e riprova.",
+  "deckDownloadRemoved": "Copia offline rimossa",
+  "studyOfflineCopy": "Copia offline: le tue valutazioni verranno sincronizzate quando tornerai online.",
+  "downloadedDecksTitle": "Mazzi scaricati",
+  "downloadedDecksEmpty": "Non hai ancora scaricato nulla",
+  "downloadedDecksEmptyHelp": "Salva un mazzo per l'uso offline dal suo menu opzioni: resterà qui, pronto da studiare senza connessione.",
+  "downloadedDecksRemove": "Rimuovi copia offline",
+  "downloadedDecksCount": "{count, plural, =1{1 mazzo salvato su questo dispositivo} other{{count} mazzi salvati su questo dispositivo}}"
 }

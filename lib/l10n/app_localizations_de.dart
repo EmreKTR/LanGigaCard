@@ -1424,4 +1424,81 @@ class AppLocalizationsDe extends AppLocalizations {
 
   @override
   String get profileLearningLabel => 'lernt';
+
+  @override
+  String get quizAccuracyLabel => 'Genauigkeit';
+
+  @override
+  String get quizCompletionLabel => 'Fortschritt';
+
+  @override
+  String quizWordsSeen(int seen, int total) {
+    return '$seen von $total Wörtern gesehen';
+  }
+
+  @override
+  String get quizNotRecorded =>
+      'Dieses Quiz konnte nicht gespeichert werden und zählt nicht für deine Statistik.';
+
+  @override
+  String languageSetupTitle(String language) {
+    return '$language einrichten';
+  }
+
+  @override
+  String get languageSetupIntro =>
+      'Eine neue Sprache beginnt bei null. Sag uns dein Niveau und deine Interessen — die Stapel richten sich danach.';
+
+  @override
+  String get languageSetupStart => 'Stapel erstellen';
+
+  @override
+  String get languageSetupFailed =>
+      'Diese Sprache konnte nicht eingerichtet werden. Prüfe deine Verbindung und versuch es erneut.';
+
+  @override
+  String get deckDownload => 'Offline speichern';
+
+  @override
+  String get deckDownloaded => 'Offline verfügbar';
+
+  @override
+  String deckDownloadDone(String deck) {
+    return '$deck ist jetzt offline verfügbar';
+  }
+
+  @override
+  String get deckDownloadFailed =>
+      'Dieser Stapel konnte nicht für die Offline-Nutzung gespeichert werden. Prüfe deine Verbindung und versuch es erneut.';
+
+  @override
+  String get deckDownloadRemoved => 'Offline-Kopie entfernt';
+
+  @override
+  String get studyOfflineCopy =>
+      'Offline-Kopie — deine Bewertungen werden synchronisiert, sobald du wieder online bist.';
+
+  @override
+  String get downloadedDecksTitle => 'Heruntergeladene Stapel';
+
+  @override
+  String get downloadedDecksEmpty => 'Noch nichts heruntergeladen';
+
+  @override
+  String get downloadedDecksEmptyHelp =>
+      'Speichere einen Stapel über sein Optionsmenü für die Offline-Nutzung — er wird hier aufbewahrt und ist ohne Verbindung lernbereit.';
+
+  @override
+  String get downloadedDecksRemove => 'Offline-Kopie entfernen';
+
+  @override
+  String downloadedDecksCount(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count Stapel auf diesem Gerät',
+      one: '1 Stapel auf diesem Gerät',
+    );
+    return '$_temp0';
+  }
 }

@@ -1417,4 +1417,81 @@ class AppLocalizationsPt extends AppLocalizations {
 
   @override
   String get profileLearningLabel => 'aprendendo';
+
+  @override
+  String get quizAccuracyLabel => 'Precisão';
+
+  @override
+  String get quizCompletionLabel => 'Conclusão';
+
+  @override
+  String quizWordsSeen(int seen, int total) {
+    return '$seen de $total palavras vistas';
+  }
+
+  @override
+  String get quizNotRecorded =>
+      'Não foi possível guardar este quiz, por isso não contará nas tuas estatísticas.';
+
+  @override
+  String languageSetupTitle(String language) {
+    return 'Configurar $language';
+  }
+
+  @override
+  String get languageSetupIntro =>
+      'Um novo idioma começa do zero. Diz-nos o teu nível e os teus interesses e os baralhos vão acompanhar.';
+
+  @override
+  String get languageSetupStart => 'Criar os meus baralhos';
+
+  @override
+  String get languageSetupFailed =>
+      'Não foi possível configurar este idioma. Verifica a ligação e tenta novamente.';
+
+  @override
+  String get deckDownload => 'Guardar offline';
+
+  @override
+  String get deckDownloaded => 'Disponível offline';
+
+  @override
+  String deckDownloadDone(String deck) {
+    return '$deck já está disponível offline';
+  }
+
+  @override
+  String get deckDownloadFailed =>
+      'Não foi possível guardar este baralho para uso offline. Verifica a ligação e tenta novamente.';
+
+  @override
+  String get deckDownloadRemoved => 'Cópia offline removida';
+
+  @override
+  String get studyOfflineCopy =>
+      'Cópia offline — as tuas avaliações serão sincronizadas quando voltares a ter ligação.';
+
+  @override
+  String get downloadedDecksTitle => 'Baralhos transferidos';
+
+  @override
+  String get downloadedDecksEmpty => 'Ainda não transferiste nada';
+
+  @override
+  String get downloadedDecksEmptyHelp =>
+      'Guarda um baralho para uso offline a partir do menu de opções: fica aqui, pronto a estudar sem ligação.';
+
+  @override
+  String get downloadedDecksRemove => 'Remover cópia offline';
+
+  @override
+  String downloadedDecksCount(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count baralhos guardados neste dispositivo',
+      one: '1 baralho guardado neste dispositivo',
+    );
+    return '$_temp0';
+  }
 }

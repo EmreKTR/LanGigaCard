@@ -307,10 +307,23 @@ class RemovedDeck {
 
 class QuizQuestion {
   const QuizQuestion({
+    required this.wordId,
+    required this.deckId,
     required this.prompt,
     required this.options,
     required this.correctIndex,
   });
+
+  /// The card this question was built from.
+  ///
+  /// Carried so a finished quiz can be reported back: coverage ("how much of
+  /// this deck have I been quizzed on") is counted in distinct words shown,
+  /// which is unanswerable from the prompt text alone.
+  final String wordId;
+
+  /// The deck [wordId] belongs to. A library-wide quiz mixes decks, so this
+  /// can't be inferred from the quiz itself.
+  final String deckId;
 
   final String prompt;
   final List<String> options;

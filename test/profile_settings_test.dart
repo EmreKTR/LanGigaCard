@@ -60,7 +60,9 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(profile().nativeLanguage, 'German');
-    expect(profile().nativeLanguageCode, 'DE');
+    // Normalised to ISO 639-1 on the way out: the picker's 'DE' is a flag
+    // code, and progress is tracked per language code.
+    expect(profile().nativeLanguageCode, 'de');
   });
 
   testWidgets('the target language cannot be set to the native language', (tester) async {

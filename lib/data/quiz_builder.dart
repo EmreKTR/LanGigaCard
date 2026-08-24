@@ -75,6 +75,8 @@ List<QuizQuestion> buildQuiz(
     ]..shuffle(rng);
 
     questions.add(QuizQuestion(
+      wordId: subject.id,
+      deckId: subject.deckId,
       prompt: 'What does "${subject.term}" mean?',
       options: options,
       correctIndex: options.indexOf(subject.translation),

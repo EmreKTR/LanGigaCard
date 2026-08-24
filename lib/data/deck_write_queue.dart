@@ -25,10 +25,22 @@ class PendingWrite {
     this.rating,
     this.durationSeconds,
     this.difficultyMode,
+    this.languageCode,
   });
 
-  factory PendingWrite.createDeck({required String localId, required String title, String? description}) =>
-      PendingWrite._(kind: PendingWriteKind.createDeck, localId: localId, title: title, description: description);
+  factory PendingWrite.createDeck({
+    required String localId,
+    required String title,
+    String? description,
+    String? languageCode,
+  }) =>
+      PendingWrite._(
+        kind: PendingWriteKind.createDeck,
+        localId: localId,
+        title: title,
+        description: description,
+        languageCode: languageCode,
+      );
 
   factory PendingWrite.updateDeck({required String localId, required String title, String? description}) =>
       PendingWrite._(kind: PendingWriteKind.updateDeck, localId: localId, title: title, description: description);
@@ -100,6 +112,13 @@ class PendingWrite {
   final int? durationSeconds;
   final String? difficultyMode;
 
+  /// For a `createDeck`, the target language the deck teaches. Captured when
+  /// the deck was made rather than read at flush time: a queue can sit
+  /// through a language change, and the deck belongs to the language it was
+  /// created in, not whichever one happens to be active when the network
+  /// comes back.
+  final String? languageCode;
+
   /// Returns a copy with every id reference (`localId` and, for a card
   /// write, `deckId`) rewritten from [from] to [to] — used when an earlier
   /// queued create flushes and this entry pointed at its temporary id.
@@ -117,6 +136,7 @@ class PendingWrite {
       rating: rating,
       durationSeconds: durationSeconds,
       difficultyMode: difficultyMode,
+      languageCode: languageCode,
     );
   }
 
@@ -133,6 +153,7 @@ class PendingWrite {
         'rating': rating?.name,
         'durationSeconds': durationSeconds,
         'difficultyMode': difficultyMode,
+        'languageCode': languageCode,
       };
 
   static PendingWrite? fromJson(Map<String, dynamic> json) {
@@ -150,6 +171,7 @@ class PendingWrite {
         rating: json['rating'] == null ? null : SrsRating.values.byName(json['rating'] as String),
         durationSeconds: json['durationSeconds'] as int?,
         difficultyMode: json['difficultyMode'] as String?,
+        languageCode: json['languageCode'] as String?,
       );
     } catch (_) {
       return null;
@@ -263,7 +285,11 @@ class DeckWriteQueue {
   Future<_ApplyOutcome> _apply(DeckApi api, PendingWrite write) async {
     switch (write.kind) {
       case PendingWriteKind.createDeck:
-        final result = await api.createDeck(title: write.title!, description: write.description);
+        final result = await api.createDeck(
+          title: write.title!,
+          description: write.description,
+          languageCode: write.languageCode,
+        );
         if (result.isSuccess) return _Applied(result.deck!.id);
         return result.outcome == DeckOutcome.validationError ? const _ValidationFailed() : const _NetworkFailed();
 

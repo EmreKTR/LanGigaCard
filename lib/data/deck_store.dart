@@ -4,6 +4,8 @@ import '../models/app_models.dart';
 import 'api/deck_api.dart';
 import 'api/vocabgrid_deck_api.dart';
 import 'deck_write_queue.dart';
+import 'downloaded_decks.dart';
+import 'language_store.dart';
 import 'library_storage.dart';
 import 'sqlite_library_storage.dart';
 
@@ -61,7 +63,11 @@ class DeckStore {
   static Future<void> refresh() async {
     await load();
     try {
-      final apiDecks = await api.getDecks();
+      // Scoped to the language being studied: the library is per-language
+      // now, and a German deck showing up while the learner is in Japanese
+      // would also drag its cards into that language's review queue and
+      // quiz pool.
+      final apiDecks = await api.getDecks(languageCode: LanguageStore.code);
       final allCards = <FlashCard>[];
       for (final deck in apiDecks) {
         final apiCards = await api.getFlashcards(deck.id);
@@ -96,6 +102,47 @@ class DeckStore {
     await _persist();
   }
 
+  /// Pulls [deckId]'s cards in full and keeps them on the device for
+  /// offline study.
+  ///
+  /// Returns false when the fetch fails — the caller reports that rather
+  /// than marking a deck downloaded that isn't. A deck that was already
+  /// downloaded is re-fetched rather than skipped: "download" is also how a
+  /// learner asks for the newest copy before going offline.
+  static Future<bool> downloadDeck(String deckId) async {
+    // A deck created offline exists only here; there is nothing to fetch and
+    // nothing missing either, so it counts as available.
+    if (deckId.startsWith('pending_')) {
+      await DownloadedDecks.add(deckId);
+      return true;
+    }
+
+    final List<FlashcardData> apiCards;
+    try {
+      apiCards = await api.getFlashcards(deckId);
+    } catch (_) {
+      return false;
+    }
+
+    cards
+      ..removeWhere((c) => c.deckId == deckId)
+      ..addAll(apiCards.map(_cardFromApi));
+
+    await DownloadedDecks.add(deckId);
+    revision.value++;
+    await _persist();
+    return true;
+  }
+
+  /// Drops the offline copy of [deckId]. The deck itself stays in the
+  /// library — only the promise that it works without a connection goes
+  /// away, so its cards are left in the cache for as long as the cache
+  /// happens to hold them.
+  static Future<void> removeDownload(String deckId) async {
+    await DownloadedDecks.remove(deckId);
+    revision.value++;
+  }
+
   static Iterable<FlashCard> cardsIn(String deckId) => cards.where((c) => c.deckId == deckId);
 
   static int cardCountOf(String deckId) => cardsIn(deckId).length;
@@ -114,7 +161,7 @@ class DeckStore {
   }
 
   static Future<bool> addDeck({required String title, String? description}) async {
-    final result = await api.createDeck(title: title, description: description);
+    final result = await api.createDeck(title: title, description: description, languageCode: LanguageStore.code);
     if (result.isSuccess) {
       decks.add(_deckFromApi(result.deck!));
       revision.value++;
@@ -137,7 +184,12 @@ class DeckStore {
       emoji: '📘',
       accentColor: const Color(0xFF6C5CE7),
     ));
-    writeQueue.enqueue(PendingWrite.createDeck(localId: localId, title: title, description: description));
+    writeQueue.enqueue(PendingWrite.createDeck(
+      localId: localId,
+      title: title,
+      description: description,
+      languageCode: LanguageStore.code,
+    ));
     await writeQueue.persist();
     revision.value++;
     await _persist();
@@ -342,7 +394,7 @@ class DeckStore {
   }
 
   static Future<List<FlashCard>> dueReviews({String? deckId, int take = 50}) async {
-    final results = await api.getDueReviews(deckId: deckId, take: take);
+    final results = await api.getDueReviews(deckId: deckId, take: take, languageCode: LanguageStore.code);
     return results
         .map((r) => FlashCard(
               id: r.wordId,

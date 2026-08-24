@@ -50,6 +50,27 @@ class AppLanguage {
     'zh': 'zh',
   };
 
+  /// The ISO 639-1 code for any of the accepted shapes — `GB` → `en`,
+  /// `JP` → `ja`, `de` → `de`.
+  ///
+  /// The picker's list ([MockData.languages]) is keyed by *flag* country
+  /// codes, which coincide with the ISO language code for six of the ten
+  /// languages and differ for the other four. Sending a flag code as the
+  /// learner's language meant the server stored `gb` for English: no row in
+  /// its language catalog matches it, no deck templates exist for it, and —
+  /// now that decks, statistics and streaks are kept per language — English
+  /// picked from the profile screen would be a different language from
+  /// English picked during onboarding.
+  ///
+  /// Every code that leaves the app for the API goes through here. Anything
+  /// unrecognised is passed back lowercased rather than dropped: an unknown
+  /// language is still better stored than lost.
+  static String isoCodeFor(String? code) {
+    final trimmed = (code ?? '').trim().toLowerCase();
+    if (trimmed.isEmpty) return '';
+    return _codeToLanguage[trimmed] ?? trimmed;
+  }
+
   /// Resolves any of the accepted code shapes to a supported [Locale].
   static Locale localeFor(String? code) {
     if (code == null || code.trim().isEmpty) return fallback;

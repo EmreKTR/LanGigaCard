@@ -2,8 +2,10 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:langigacards/l10n/app_localizations.dart';
 import 'package:langigacards/app_controller.dart';
+import 'package:langigacards/data/api/language_profile_api.dart';
 import 'package:langigacards/data/api/user_api.dart';
 import 'package:langigacards/data/api/vocabgrid_user_api.dart';
+import 'package:langigacards/data/language_store.dart';
 import 'package:langigacards/data/onboarding_store.dart';
 import 'package:langigacards/screens/main_shell.dart';
 import 'package:langigacards/screens/onboarding/app_language_select_screen.dart';
@@ -29,9 +31,16 @@ Future<void> _pumpWizard(WidgetTester tester) async {
 }
 
 void main() {
+  late FakeLanguageProfileApi languageApi;
+
   setUp(() {
     SharedPreferences.setMockInitialValues({});
     userApi = FakeUserApi();
+    // The wizard's last step now records the level and topics through the
+    // per-language setup endpoint, so the fake has to stand in for that too.
+    languageApi = FakeLanguageProfileApi();
+    LanguageStore.api = languageApi;
+    LanguageStore.clear();
   });
 
   group('app language picker', () {
@@ -143,7 +152,13 @@ void main() {
       expect(saved.profile!.targetLanguage, 'French');
       expect(saved.profile!.dailyGoalMinutes, 10); // 'Regular'
       expect(saved.profile!.targetProficiencyLevel, 'Beginner');
-      expect(await userApi.getMyCategoryIds(), [firstCategory.first.id]);
+      // Topics and level are saved against the target language now, not the
+      // account as a whole.
+      expect(languageApi.profiles, hasLength(1));
+      final frenchProfile = languageApi.profiles.values.single;
+      expect(frenchProfile.isSetupCompleted, isTrue);
+      expect(frenchProfile.proficiencyLevel, 'Beginner');
+      expect(frenchProfile.categoryIds, [firstCategory.first.id]);
       expect(await userApi.getMyLearningPurposeIds(), [firstPurpose.first.id]);
     });
   });

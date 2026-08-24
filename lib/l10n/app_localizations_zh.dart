@@ -1353,4 +1353,74 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get profileLearningLabel => '学习中';
+
+  @override
+  String get quizAccuracyLabel => '正确率';
+
+  @override
+  String get quizCompletionLabel => '完成度';
+
+  @override
+  String quizWordsSeen(int seen, int total) {
+    return '已出现 $seen/$total 个单词';
+  }
+
+  @override
+  String get quizNotRecorded => '本次测验未能保存，不会计入统计。';
+
+  @override
+  String languageSetupTitle(String language) {
+    return '设置$language';
+  }
+
+  @override
+  String get languageSetupIntro => '新语言从零开始。告诉我们你的水平和兴趣，卡组会据此生成。';
+
+  @override
+  String get languageSetupStart => '生成我的卡组';
+
+  @override
+  String get languageSetupFailed => '无法设置该语言。请检查网络后重试。';
+
+  @override
+  String get deckDownload => '离线保存';
+
+  @override
+  String get deckDownloaded => '可离线使用';
+
+  @override
+  String deckDownloadDone(String deck) {
+    return '$deck 现在可离线使用';
+  }
+
+  @override
+  String get deckDownloadFailed => '无法离线保存该卡组。请检查网络后重试。';
+
+  @override
+  String get deckDownloadRemoved => '已移除离线副本';
+
+  @override
+  String get studyOfflineCopy => '离线副本 — 你的评分会在恢复联网后同步。';
+
+  @override
+  String get downloadedDecksTitle => '已下载的卡组';
+
+  @override
+  String get downloadedDecksEmpty => '还没有下载任何卡组';
+
+  @override
+  String get downloadedDecksEmptyHelp => '在卡组的选项菜单中选择离线保存，它就会存放在这里，没有网络也能学习。';
+
+  @override
+  String get downloadedDecksRemove => '移除离线副本';
+
+  @override
+  String downloadedDecksCount(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '本机保存了 $count 个卡组',
+    );
+    return '$_temp0';
+  }
 }

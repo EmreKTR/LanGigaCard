@@ -432,5 +432,24 @@
   "reminderNotificationBody": "Vos cartes vous attendent — quelques minutes suffisent pour garder la série.",
 
   "splashTagline": "APPRENEZ TOUTE LANGUE",
-  "profileLearningLabel": "apprend"
+  "profileLearningLabel": "apprend",
+  "quizAccuracyLabel": "Précision",
+  "quizCompletionLabel": "Progression",
+  "quizWordsSeen": "{seen} mots sur {total} vus",
+  "quizNotRecorded": "Ce quiz n'a pas pu être enregistré, il ne comptera pas dans tes statistiques.",
+  "languageSetupTitle": "Configurer {language}",
+  "languageSetupIntro": "Une nouvelle langue repart de zéro. Indique ton niveau et tes centres d'intérêt : tes paquets s'y adapteront.",
+  "languageSetupStart": "Créer mes paquets",
+  "languageSetupFailed": "Impossible de configurer cette langue. Vérifie ta connexion et réessaie.",
+  "deckDownload": "Enregistrer hors ligne",
+  "deckDownloaded": "Disponible hors ligne",
+  "deckDownloadDone": "{deck} est maintenant disponible hors ligne",
+  "deckDownloadFailed": "Impossible d'enregistrer ce paquet pour une utilisation hors ligne. Vérifie ta connexion et réessaie.",
+  "deckDownloadRemoved": "Copie hors ligne supprimée",
+  "studyOfflineCopy": "Copie hors ligne — tes évaluations seront synchronisées dès ton retour en ligne.",
+  "downloadedDecksTitle": "Paquets téléchargés",
+  "downloadedDecksEmpty": "Rien de téléchargé pour l'instant",
+  "downloadedDecksEmptyHelp": "Enregistre un paquet hors ligne depuis son menu d'options : il sera conservé ici, prêt à être révisé sans connexion.",
+  "downloadedDecksRemove": "Supprimer la copie hors ligne",
+  "downloadedDecksCount": "{count, plural, =1{1 paquet conservé sur cet appareil} other{{count} paquets conservés sur cet appareil}}"
 }

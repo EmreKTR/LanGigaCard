@@ -5,6 +5,8 @@ import 'package:flutter/material.dart';
 import '../../data/api/vocabgrid_user_api.dart';
 import '../../data/auth_store.dart';
 import '../../data/deck_store.dart';
+import '../../data/downloaded_decks.dart';
+import '../../data/language_store.dart';
 import '../../data/review_log.dart';
 import '../../l10n/app_localizations.dart';
 import '../../theme/app_theme.dart';
@@ -174,6 +176,10 @@ class _PrivacySecurityScreenState extends State<PrivacySecurityScreen> {
     await AuthStore.api.logout();
     await DeckStore.writeQueue.clear();
     await DeckStore.clearLibrary();
+    // The next account on this device must not inherit this one's active
+    // language: the library and every statistic are scoped to it.
+    LanguageStore.clear();
+    await DownloadedDecks.clear();
     await ReviewLog.clear();
     if (!context.mounted) return;
 

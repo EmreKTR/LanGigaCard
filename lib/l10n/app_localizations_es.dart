@@ -1417,4 +1417,81 @@ class AppLocalizationsEs extends AppLocalizations {
 
   @override
   String get profileLearningLabel => 'aprendiendo';
+
+  @override
+  String get quizAccuracyLabel => 'Precisión';
+
+  @override
+  String get quizCompletionLabel => 'Progreso';
+
+  @override
+  String quizWordsSeen(int seen, int total) {
+    return '$seen de $total palabras vistas';
+  }
+
+  @override
+  String get quizNotRecorded =>
+      'No se pudo guardar este cuestionario, así que no contará en tus estadísticas.';
+
+  @override
+  String languageSetupTitle(String language) {
+    return 'Configurar $language';
+  }
+
+  @override
+  String get languageSetupIntro =>
+      'Un idioma nuevo empieza de cero. Dinos tu nivel y tus intereses y tus mazos se ajustarán.';
+
+  @override
+  String get languageSetupStart => 'Crear mis mazos';
+
+  @override
+  String get languageSetupFailed =>
+      'No se pudo configurar este idioma. Comprueba tu conexión e inténtalo de nuevo.';
+
+  @override
+  String get deckDownload => 'Guardar sin conexión';
+
+  @override
+  String get deckDownloaded => 'Disponible sin conexión';
+
+  @override
+  String deckDownloadDone(String deck) {
+    return '$deck ya está disponible sin conexión';
+  }
+
+  @override
+  String get deckDownloadFailed =>
+      'No se pudo guardar este mazo para usarlo sin conexión. Comprueba tu conexión e inténtalo de nuevo.';
+
+  @override
+  String get deckDownloadRemoved => 'Copia sin conexión eliminada';
+
+  @override
+  String get studyOfflineCopy =>
+      'Copia sin conexión: tus valoraciones se sincronizarán cuando vuelvas a estar en línea.';
+
+  @override
+  String get downloadedDecksTitle => 'Mazos descargados';
+
+  @override
+  String get downloadedDecksEmpty => 'Aún no has descargado nada';
+
+  @override
+  String get downloadedDecksEmptyHelp =>
+      'Guarda un mazo para usarlo sin conexión desde su menú de opciones y se conservará aquí, listo para estudiar sin conexión.';
+
+  @override
+  String get downloadedDecksRemove => 'Eliminar copia sin conexión';
+
+  @override
+  String downloadedDecksCount(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count mazos guardados en este dispositivo',
+      one: '1 mazo guardado en este dispositivo',
+    );
+    return '$_temp0';
+  }
 }

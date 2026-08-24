@@ -1364,4 +1364,77 @@ class AppLocalizationsJa extends AppLocalizations {
 
   @override
   String get profileLearningLabel => '学習中';
+
+  @override
+  String get quizAccuracyLabel => '正答率';
+
+  @override
+  String get quizCompletionLabel => '達成度';
+
+  @override
+  String quizWordsSeen(int seen, int total) {
+    return '$total語中$seen語を出題済み';
+  }
+
+  @override
+  String get quizNotRecorded => 'このクイズを保存できませんでした。統計には反映されません。';
+
+  @override
+  String languageSetupTitle(String language) {
+    return '$languageのセットアップ';
+  }
+
+  @override
+  String get languageSetupIntro =>
+      '新しい言語はゼロから始まります。レベルと興味を教えてください。デッキがそれに合わせて作られます。';
+
+  @override
+  String get languageSetupStart => 'デッキを作成';
+
+  @override
+  String get languageSetupFailed => 'この言語をセットアップできませんでした。接続を確認してもう一度お試しください。';
+
+  @override
+  String get deckDownload => 'オフライン用に保存';
+
+  @override
+  String get deckDownloaded => 'オフラインで利用可能';
+
+  @override
+  String deckDownloadDone(String deck) {
+    return '$deckをオフラインで利用できるようになりました';
+  }
+
+  @override
+  String get deckDownloadFailed =>
+      'このデッキをオフライン用に保存できませんでした。接続を確認してもう一度お試しください。';
+
+  @override
+  String get deckDownloadRemoved => 'オフラインコピーを削除しました';
+
+  @override
+  String get studyOfflineCopy => 'オフラインコピーです。評価はオンラインに戻ったときに同期されます。';
+
+  @override
+  String get downloadedDecksTitle => 'ダウンロード済みデッキ';
+
+  @override
+  String get downloadedDecksEmpty => 'まだ何もダウンロードしていません';
+
+  @override
+  String get downloadedDecksEmptyHelp =>
+      'デッキのオプションメニューからオフライン用に保存すると、ここに保管され、接続がなくても学習できます。';
+
+  @override
+  String get downloadedDecksRemove => 'オフラインコピーを削除';
+
+  @override
+  String downloadedDecksCount(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: 'この端末に$count個のデッキを保管中',
+    );
+    return '$_temp0';
+  }
 }

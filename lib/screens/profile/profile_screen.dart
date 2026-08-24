@@ -5,6 +5,8 @@ import '../../data/api/vocabgrid_user_api.dart';
 import '../../data/app_language.dart';
 import '../../data/auth_store.dart';
 import '../../data/deck_store.dart';
+import '../../data/downloaded_decks.dart';
+import '../../data/language_store.dart';
 import '../../data/mock_data.dart';
 import '../../data/review_log.dart';
 import '../../models/app_models.dart';
@@ -92,13 +94,18 @@ class ProfileScreen extends StatelessWidget {
     if (picked == null || !context.mounted) return;
 
     final (firstName, lastName) = _splitName(profile.name);
+    // The picker is keyed by flag country codes (GB, JP, KR, CN); the API
+    // speaks ISO 639-1. Without this the profile screen would store English
+    // as "gb" while onboarding stores it as "en", and the two would count as
+    // different languages everywhere progress is now tracked per language.
+    final code = AppLanguage.isoCodeFor(picked.$2);
     final result = await userApi.updateProfile(
       firstName: firstName,
       lastName: lastName,
       nativeLanguage: isNative ? picked.$1 : null,
-      nativeLanguageCode: isNative ? picked.$2 : null,
+      nativeLanguageCode: isNative ? code : null,
       targetLanguage: isNative ? null : picked.$1,
-      targetLanguageCode: isNative ? null : picked.$2,
+      targetLanguageCode: isNative ? null : code,
     );
     if (!context.mounted) return;
 
@@ -113,8 +120,8 @@ class ProfileScreen extends StatelessWidget {
 
     onProfileChanged(
       isNative
-          ? profile.copyWith(nativeLanguage: picked.$1, nativeLanguageCode: picked.$2)
-          : profile.copyWith(targetLanguage: picked.$1, targetLanguageCode: picked.$2),
+          ? profile.copyWith(nativeLanguage: picked.$1, nativeLanguageCode: code)
+          : profile.copyWith(targetLanguage: picked.$1, targetLanguageCode: code),
     );
   }
 
@@ -470,6 +477,10 @@ class ProfileScreen extends StatelessWidget {
     // flush straight into the next account.
     await DeckStore.writeQueue.clear();
     await DeckStore.clearLibrary();
+    // The next account on this device must not inherit this one's active
+    // language: the library and every statistic are scoped to it.
+    LanguageStore.clear();
+    await DownloadedDecks.clear();
     await ReviewLog.clear();
     if (!context.mounted) return;
 

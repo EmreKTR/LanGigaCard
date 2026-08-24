@@ -5,6 +5,7 @@ import '../../data/api/statistics_api.dart';
 import '../../data/api/vocabgrid_achievements_api.dart';
 import '../../data/api/vocabgrid_statistics_api.dart';
 import '../../data/deck_store.dart';
+import '../../data/language_store.dart';
 import '../../data/review_log.dart';
 import '../../models/app_models.dart';
 import '../../l10n/app_localizations.dart';
@@ -142,12 +143,16 @@ class _StatisticsScreenState extends State<StatisticsScreen> {
   /// together, since all three live on this one screen and a partial load
   /// (streak but no achievements, say) isn't a state worth designing for.
   ///
-  /// The backend's own accuracy figure (`Statistics/overview`'s
-  /// QuizAccuracyPercent) is computed only from Quiz-type study activity.
-  /// Nothing in the app produces that yet — every review today logs as
-  /// Review-type activity instead — so that field would read 0%/no-data for
-  /// almost everyone right now. The Recall card deliberately keeps reading
-  /// [ReviewLog] locally until Quiz is integrated and can feed it real data.
+  /// Everything here is scoped to the language being studied — statistics
+  /// are kept per language, so a fresh Japanese account must not inherit
+  /// two years of German history.
+  ///
+  /// The backend's accuracy figure (`Statistics/overview`'s
+  /// QuizAccuracyPercent) is computed from Quiz-type study activity, which
+  /// the quiz screen now reports. The Recall card prefers it and falls back
+  /// to the local [ReviewLog] only when no quiz has been taken yet — until
+  /// then the server has nothing to average and a 0% would be a lie rather
+  /// than a measurement.
   Future<void> _loadRemoteStats() async {
     if (mounted) setState(() => _remoteLoadFailed = false);
 
@@ -164,8 +169,8 @@ class _StatisticsScreenState extends State<StatisticsScreen> {
     if (!mounted) return;
 
     final results = await Future.wait([
-      statisticsApi.getOverview(),
-      statisticsApi.getHeatmap(from: from, to: now),
+      statisticsApi.getOverview(languageCode: LanguageStore.code),
+      statisticsApi.getHeatmap(from: from, to: now, languageCode: LanguageStore.code),
       achievementsApi.getAchievements(),
     ]);
     if (!mounted) return;
@@ -184,6 +189,39 @@ class _StatisticsScreenState extends State<StatisticsScreen> {
       _heatmapPerDay = {for (final point in heatmapResult.points!) point.date: point.reviews};
       _achievements = achievementsResult.achievements;
     });
+  }
+
+  /// Recall: how much of what was studied is actually being remembered.
+  ///
+  /// Quiz accuracy is the better answer when there is one, because a quiz
+  /// asks a real question and grades a real answer; a card review only
+  /// records the learner's own "I knew that". So the server figure wins
+  /// whenever a quiz has been taken in this language, and the local review
+  /// log fills the gap before that.
+  Widget _recallCard(BuildContext context, ReviewStats stats) {
+    final colors = context.appColors;
+    final l10n = AppLocalizations.of(context);
+    final quizAnswers = _overview?.quizQuestionsAnswered ?? 0;
+
+    if (quizAnswers > 0) {
+      final overview = _overview!;
+      final correct = (overview.quizAccuracyPercent * quizAnswers / 100).round();
+      return _MetricCard(
+        icon: Icons.track_changes_rounded,
+        value: '${overview.quizAccuracyPercent.round()}%',
+        delta: '$correct/$quizAnswers',
+        label: l10n.statsRecall,
+        color: colors.success,
+      );
+    }
+
+    return _MetricCard(
+      icon: Icons.track_changes_rounded,
+      value: stats.total == 0 ? '—' : '${stats.accuracyPercent}%',
+      delta: stats.total == 0 ? l10n.statsNoData : '${stats.correct}/${stats.total}',
+      label: l10n.statsRecall,
+      color: colors.success,
+    );
   }
 
   @override
@@ -247,15 +285,7 @@ class _StatisticsScreenState extends State<StatisticsScreen> {
                   ),
                 ),
                 const SizedBox(width: AppSpacing.sm),
-                Expanded(
-                  child: _MetricCard(
-                    icon: Icons.track_changes_rounded,
-                    value: stats.total == 0 ? '—' : '${stats.accuracyPercent}%',
-                    delta: stats.total == 0 ? l10n.statsNoData : '${stats.correct}/${stats.total}',
-                    label: l10n.statsRecall,
-                    color: colors.success,
-                  ),
-                ),
+                Expanded(child: _recallCard(context, stats)),
               ],
             ),
             const SizedBox(height: AppSpacing.xxl),

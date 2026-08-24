@@ -33,9 +33,9 @@ class _DifficultyModeSpyApi implements DeckApi {
   }
 
   @override
-  Future<List<DeckData>> getDecks() => _inner.getDecks();
+  Future<List<DeckData>> getDecks({String? languageCode}) => _inner.getDecks();
   @override
-  Future<DeckResult> createDeck({required String title, String? description}) =>
+  Future<DeckResult> createDeck({required String title, String? description, String? languageCode}) =>
       _inner.createDeck(title: title, description: description);
   @override
   Future<DeckResult> updateDeck(String id, {required String title, String? description}) =>
@@ -65,7 +65,7 @@ class _DifficultyModeSpyApi implements DeckApi {
   @override
   Future<bool> deleteFlashcard(String wordId) => _inner.deleteFlashcard(wordId);
   @override
-  Future<List<ReviewCardData>> getDueReviews({String? deckId, int take = 50}) => _inner.getDueReviews(deckId: deckId, take: take);
+  Future<List<ReviewCardData>> getDueReviews({String? deckId, int take = 50, String? languageCode}) => _inner.getDueReviews(deckId: deckId, take: take);
 }
 
 Widget _wrap(Widget child) => MaterialApp(

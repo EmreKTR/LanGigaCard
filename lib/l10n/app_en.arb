@@ -482,5 +482,28 @@
   "reminderNotificationBody": "Your cards are waiting — a few minutes keeps the streak alive.",
 
   "splashTagline": "LEARN ANY LANGUAGE",
-  "profileLearningLabel": "learning"
+  "profileLearningLabel": "learning",
+  "quizAccuracyLabel": "Accuracy",
+  "quizCompletionLabel": "Completion",
+  "quizWordsSeen": "{seen} of {total} words seen",
+  "@quizWordsSeen": { "placeholders": { "seen": { "type": "int" }, "total": { "type": "int" } } },
+  "quizNotRecorded": "Couldn't save this quiz, so it won't count towards your stats.",
+  "languageSetupTitle": "Set up {language}",
+  "@languageSetupTitle": { "placeholders": { "language": { "type": "String" } } },
+  "languageSetupIntro": "A new language starts fresh. Tell us your level and what interests you, and your decks will match.",
+  "languageSetupStart": "Build my decks",
+  "languageSetupFailed": "Couldn't set up this language. Check your connection and try again.",
+  "deckDownload": "Save for offline",
+  "deckDownloaded": "Available offline",
+  "deckDownloadDone": "{deck} is now available offline",
+  "@deckDownloadDone": { "placeholders": { "deck": { "type": "String" } } },
+  "deckDownloadFailed": "Couldn't save this deck for offline use. Check your connection and try again.",
+  "deckDownloadRemoved": "Offline copy removed",
+  "studyOfflineCopy": "Offline copy — your ratings will sync once you're back online.",
+  "downloadedDecksTitle": "Downloaded decks",
+  "downloadedDecksEmpty": "Nothing downloaded yet",
+  "downloadedDecksEmptyHelp": "Save a deck for offline use from its options menu, and it will be kept here — ready to study without a connection.",
+  "downloadedDecksRemove": "Remove offline copy",
+  "downloadedDecksCount": "{count, plural, =1{1 deck kept on this device} other{{count} decks kept on this device}}",
+  "@downloadedDecksCount": { "placeholders": { "count": { "type": "int" } } }
 }

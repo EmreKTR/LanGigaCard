@@ -121,9 +121,9 @@ class _CreateDeckSucceedsCardsFailApi implements DeckApi {
   final FakeDeckApi _inner = FakeDeckApi();
 
   @override
-  Future<List<DeckData>> getDecks() => _inner.getDecks();
+  Future<List<DeckData>> getDecks({String? languageCode}) => _inner.getDecks();
   @override
-  Future<DeckResult> createDeck({required String title, String? description}) =>
+  Future<DeckResult> createDeck({required String title, String? description, String? languageCode}) =>
       _inner.createDeck(title: title, description: description);
   @override
   Future<DeckResult> updateDeck(String id, {required String title, String? description}) =>
@@ -141,7 +141,7 @@ class _CreateDeckSucceedsCardsFailApi implements DeckApi {
   @override
   Future<bool> deleteFlashcard(String wordId) => _inner.deleteFlashcard(wordId);
   @override
-  Future<List<ReviewCardData>> getDueReviews({String? deckId, int take = 50}) => _inner.getDueReviews(deckId: deckId, take: take);
+  Future<List<ReviewCardData>> getDueReviews({String? deckId, int take = 50, String? languageCode}) => _inner.getDueReviews(deckId: deckId, take: take);
   @override
   Future<ReviewResult> submitReview(String wordId, {required rating, required int durationSeconds, String? difficultyMode}) =>
       _inner.submitReview(wordId, rating: rating, durationSeconds: durationSeconds, difficultyMode: difficultyMode);
@@ -151,9 +151,9 @@ class _CreateDeckSucceedsCardsFailApi implements DeckApi {
 /// simulate being offline mid-flush.
 class _AlwaysNetworkErrorApi implements DeckApi {
   @override
-  Future<List<DeckData>> getDecks() async => throw Exception('offline');
+  Future<List<DeckData>> getDecks({String? languageCode}) async => throw Exception('offline');
   @override
-  Future<DeckResult> createDeck({required String title, String? description}) async => const DeckResult.networkError();
+  Future<DeckResult> createDeck({required String title, String? description, String? languageCode}) async => const DeckResult.networkError();
   @override
   Future<DeckResult> updateDeck(String id, {required String title, String? description}) async => const DeckResult.networkError();
   @override
@@ -169,7 +169,7 @@ class _AlwaysNetworkErrorApi implements DeckApi {
   @override
   Future<bool> deleteFlashcard(String wordId) async => false;
   @override
-  Future<List<ReviewCardData>> getDueReviews({String? deckId, int take = 50}) async => const [];
+  Future<List<ReviewCardData>> getDueReviews({String? deckId, int take = 50, String? languageCode}) async => const [];
   @override
   Future<ReviewResult> submitReview(String wordId, {required rating, required int durationSeconds, String? difficultyMode}) async =>
       const ReviewResult.networkError();

@@ -432,5 +432,24 @@
   "reminderNotificationBody": "카드가 기다리고 있어요. 몇 분이면 연속 기록을 지킬 수 있습니다.",
 
   "splashTagline": "어떤 언어든 배우세요",
-  "profileLearningLabel": "학습 중"
+  "profileLearningLabel": "학습 중",
+  "quizAccuracyLabel": "정확도",
+  "quizCompletionLabel": "완료율",
+  "quizWordsSeen": "{total}개 중 {seen}개 단어 학습",
+  "quizNotRecorded": "이 퀴즈를 저장하지 못해 통계에 반영되지 않습니다.",
+  "languageSetupTitle": "{language} 설정",
+  "languageSetupIntro": "새 언어는 처음부터 시작합니다. 수준과 관심사를 알려주면 덱이 그에 맞게 구성됩니다.",
+  "languageSetupStart": "덱 만들기",
+  "languageSetupFailed": "이 언어를 설정하지 못했습니다. 연결을 확인한 뒤 다시 시도해 주세요.",
+  "deckDownload": "오프라인 저장",
+  "deckDownloaded": "오프라인 사용 가능",
+  "deckDownloadDone": "{deck}을(를) 이제 오프라인에서 사용할 수 있습니다",
+  "deckDownloadFailed": "이 덱을 오프라인용으로 저장하지 못했습니다. 연결을 확인한 뒤 다시 시도해 주세요.",
+  "deckDownloadRemoved": "오프라인 사본을 삭제했습니다",
+  "studyOfflineCopy": "오프라인 사본입니다. 평가는 다시 온라인이 되면 동기화됩니다.",
+  "downloadedDecksTitle": "다운로드한 덱",
+  "downloadedDecksEmpty": "아직 다운로드한 덱이 없습니다",
+  "downloadedDecksEmptyHelp": "덱의 옵션 메뉴에서 오프라인용으로 저장하면 여기에 보관되어 연결 없이도 학습할 수 있습니다.",
+  "downloadedDecksRemove": "오프라인 사본 삭제",
+  "downloadedDecksCount": "{count, plural, other{이 기기에 덱 {count}개 보관 중}}"
 }

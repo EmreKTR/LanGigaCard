@@ -432,5 +432,24 @@
   "reminderNotificationBody": "Kartlarınız bekliyor — birkaç dakika seriyi ayakta tutar.",
 
   "splashTagline": "HER DİLİ ÖĞREN",
-  "profileLearningLabel": "öğreniyor"
+  "profileLearningLabel": "öğreniyor",
+  "quizAccuracyLabel": "Doğruluk",
+  "quizCompletionLabel": "Tamamlama",
+  "quizWordsSeen": "{total} kelimenin {seen} tanesi görüldü",
+  "quizNotRecorded": "Bu quiz kaydedilemedi, istatistiklerine işlenmeyecek.",
+  "languageSetupTitle": "{language} kurulumu",
+  "languageSetupIntro": "Yeni bir dil sıfırdan başlar. Seviyeni ve ilgi alanlarını söyle, desteler ona göre kurulsun.",
+  "languageSetupStart": "Destelerimi oluştur",
+  "languageSetupFailed": "Bu dil kurulamadı. Bağlantını kontrol edip tekrar dene.",
+  "deckDownload": "Çevrimdışı için indir",
+  "deckDownloaded": "Çevrimdışı kullanılabilir",
+  "deckDownloadDone": "{deck} artık çevrimdışı kullanılabilir",
+  "deckDownloadFailed": "Bu deste çevrimdışı kullanım için indirilemedi. Bağlantını kontrol edip tekrar dene.",
+  "deckDownloadRemoved": "Çevrimdışı kopya kaldırıldı",
+  "studyOfflineCopy": "Çevrimdışı kopya — değerlendirmelerin bağlantı gelince eşitlenecek.",
+  "downloadedDecksTitle": "İndirilen desteler",
+  "downloadedDecksEmpty": "Henüz indirilen deste yok",
+  "downloadedDecksEmptyHelp": "Bir desteyi seçenekler menüsünden çevrimdışı kullanmak için indir; burada saklanır ve bağlantı olmadan çalışabilirsin.",
+  "downloadedDecksRemove": "Çevrimdışı kopyayı kaldır",
+  "downloadedDecksCount": "{count, plural, =1{Bu cihazda 1 deste saklanıyor} other{Bu cihazda {count} deste saklanıyor}}"
 }

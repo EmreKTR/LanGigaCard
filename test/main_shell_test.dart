@@ -78,7 +78,11 @@ void main() {
     expect(find.textContaining('Zara'), findsWidgets);
   });
 
-  testWidgets('a zero-deck account gets real starter decks created via the API, exactly once', (tester) async {
+  testWidgets('the library is never seeded from the device', (tester) async {
+    // MainShell used to create five "universal" decks for any account whose
+    // library came back empty. It creates nothing now: decks are built
+    // server-side from the topics the learner picked, so "my library matches
+    // my topics" holds — and holds on every device, not just this one.
     await _seedRealProfile(userApi);
     final fakeDeckApi = FakeDeckApi();
     deckApi = fakeDeckApi;
@@ -88,16 +92,7 @@ void main() {
 
     await _pumpMainShell(tester);
 
-    final createdDecks = await fakeDeckApi.getDecks();
-    expect(createdDecks, isNotEmpty);
-    expect(createdDecks.map((d) => d.title), contains('Les bases'));
-
-    // A second MainShell mount for the same (now non-empty) account must not
-    // duplicate the starter decks.
-    await tester.pumpWidget(_wrap(const MainShell()));
-    await tester.pumpAndSettle();
-
-    final afterSecondMount = await fakeDeckApi.getDecks();
-    expect(afterSecondMount.length, createdDecks.length);
+    expect(await fakeDeckApi.getDecks(), isEmpty);
+    expect(DeckStore.decks, isEmpty);
   });
 }
