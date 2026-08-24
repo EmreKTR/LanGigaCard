@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import '../../data/api/user_api.dart';
+import '../../data/app_language.dart';
 import '../../data/api/vocabgrid_user_api.dart';
+import '../../data/language_store.dart';
 import '../../data/onboarding_store.dart';
 import '../../l10n/app_localizations.dart';
 import '../../theme/app_theme.dart';
@@ -146,11 +148,21 @@ class _OnboardingSetupScreenState extends State<OnboardingSetupScreen> {
       return;
     }
 
-    final categoryResult = await userApi.updateMyCategories(_categoryIds.toList());
+    // The wizard already asks the two questions the per-language setup sheet
+    // exists for, so it answers them through the same endpoint. That does
+    // three things in one call: records the level and interests against this
+    // target language, builds its library, and marks the language as set up
+    // — without which MainShell would open the setup sheet the moment the
+    // wizard closed, asking what was just answered.
+    final setupResult = await LanguageStore.completeSetup(
+      languageCode: _targetLanguageCode!,
+      proficiencyLevel: _targetLevel!,
+      categoryIds: _categoryIds.toList(),
+    );
     final purposeResult = await userApi.updateMyLearningPurposes(_learningPurposeIds.toList());
     if (!mounted) return;
 
-    if (categoryResult.length != _categoryIds.length || purposeResult.length != _learningPurposeIds.length) {
+    if (!setupResult.isSuccess || purposeResult.length != _learningPurposeIds.length) {
       setState(() {
         _saving = false;
         _errorText = l10n.wizardSaveFailed;
@@ -287,7 +299,9 @@ class _OnboardingSetupScreenState extends State<OnboardingSetupScreen> {
               selected: _nativeLanguage,
               onSelected: (lang) => setState(() {
                 _nativeLanguage = lang.$1;
-                _nativeLanguageCode = lang.$2;
+                // Flag code from the picker -> ISO code for the API; see
+                // AppLanguage.isoCodeFor.
+                _nativeLanguageCode = AppLanguage.isoCodeFor(lang.$2);
               }),
             ),
           ],
@@ -312,7 +326,7 @@ class _OnboardingSetupScreenState extends State<OnboardingSetupScreen> {
               ),
               onSelected: (lang) => setState(() {
                 _targetLanguage = lang.$1;
-                _targetLanguageCode = lang.$2;
+                _targetLanguageCode = AppLanguage.isoCodeFor(lang.$2);
               }),
             ),
           ],

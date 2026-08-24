@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../../app_controller.dart';
 import '../../data/deck_store.dart';
+import '../../data/language_store.dart';
 import '../../data/pronunciation_service.dart';
 import '../../data/review_log.dart';
 import '../../models/app_models.dart';
@@ -35,9 +36,14 @@ class _StudySessionScreenState extends State<StudySessionScreen> {
   /// Null while the due-review queue is still loading from the API.
   List<FlashCard>? _queue;
 
-  /// Set when [_load] fails (e.g. the API call throws) so `build` can show a
-  /// retry view instead of spinning forever.
+  /// Set when [_load] fails *and* there is nothing cached to fall back on,
+  /// so `build` can show a retry view instead of spinning forever.
   bool _loadFailed = false;
+
+  /// True when the queue came from the device rather than the server, so the
+  /// screen can say so — the cards are real, the ordering is a local
+  /// approximation of the server's schedule.
+  bool _offline = false;
 
   int _index = 0;
   bool _exampleRevealed = false;
@@ -61,15 +67,51 @@ class _StudySessionScreenState extends State<StudySessionScreen> {
   }
 
   Future<void> _load() async {
-    setState(() => _loadFailed = false);
+    setState(() {
+      _loadFailed = false;
+      _offline = false;
+    });
     try {
       final queue = await DeckStore.dueReviews(deckId: widget.deck?.id, take: 50);
       if (!mounted) return;
       setState(() => _queue = queue);
     } catch (_) {
       if (!mounted) return;
-      setState(() => _loadFailed = true);
+
+      // No connection. The review queue is a server-side computation, but
+      // the cards themselves are already on the device — so instead of a
+      // dead end, study the local copy: cards that aren't mastered yet,
+      // review-due ones first.
+      //
+      // Ratings given here are queued by DeckStore.submitReview and sync on
+      // their own once the connection returns, so an offline session is a
+      // real session, not a rehearsal. The one thing it can't do is honour
+      // the exact server-side schedule, which is why the screen says it is
+      // working from the offline copy.
+      final cached = _cachedQueue();
+      setState(() {
+        _queue = cached.isEmpty ? null : cached;
+        _offline = cached.isNotEmpty;
+        _loadFailed = cached.isEmpty;
+      });
     }
+  }
+
+  /// The locally cached stand-in for the due queue.
+  List<FlashCard> _cachedQueue() {
+    final pool = widget.deck == null
+        ? DeckStore.cards
+        : DeckStore.cards.where((c) => c.deckId == widget.deck!.id);
+
+    final studyable = pool.where((c) => c.strength != MemoryStrength.mastered).toList()
+      ..sort((a, b) {
+        // Due before learning; otherwise leave the library's own order.
+        final aDue = a.strength == MemoryStrength.reviewDue ? 0 : 1;
+        final bDue = b.strength == MemoryStrength.reviewDue ? 0 : 1;
+        return aDue.compareTo(bDue);
+      });
+
+    return studyable.take(50).toList();
   }
 
   FlashCard get _current => _queue![_index];
@@ -99,6 +141,12 @@ class _StudySessionScreenState extends State<StudySessionScreen> {
       _flipped = false;
       _exampleRevealed = false;
     });
+
+    // The review moved this language's counters and its "last studied
+    // deck/word" pointers server-side. Home reads both — without this the
+    // "continue learning" card keeps pointing at whatever came before until
+    // the next full reload.
+    await LanguageStore.refreshCurrent();
   }
 
   /// Moves on without rating — for a learner who just wants to look at a
@@ -140,6 +188,22 @@ class _StudySessionScreenState extends State<StudySessionScreen> {
           children: [
             FocusHeader(progress: (_index + 1) / queue.length, trailing: CountPill(count: queue.length - _index)),
             StudyMetaBar(title: l10n.studyDailyReview(deckName), dueCount: dueCount),
+            if (_offline)
+              Padding(
+                padding: const EdgeInsets.fromLTRB(AppSpacing.lg, 0, AppSpacing.lg, AppSpacing.sm),
+                child: Row(
+                  children: [
+                    Icon(Icons.cloud_off_rounded, size: 14, color: colors.textMuted),
+                    const SizedBox(width: 6),
+                    Expanded(
+                      child: Text(
+                        l10n.studyOfflineCopy,
+                        style: TextStyle(color: colors.textMuted, fontSize: 11),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
             Expanded(
               child: Padding(
                 padding: const EdgeInsets.symmetric(horizontal: AppSpacing.lg),

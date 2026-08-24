@@ -14,18 +14,21 @@ class VocabGridDeckApi implements DeckApi {
   final ApiClient _client;
 
   @override
-  Future<List<DeckData>> getDecks() async {
-    final response = await _client.dio.get('/api/Deck');
+  Future<List<DeckData>> getDecks({String? languageCode}) async {
+    final response = await _client.dio.get('/api/Deck', queryParameters: {
+      if (languageCode != null && languageCode.isNotEmpty) 'languageCode': languageCode,
+    });
     return (response.data as List).map((e) => _deckFromJson(e as Map<String, dynamic>)).toList();
   }
 
   @override
-  Future<DeckResult> createDeck({required String title, String? description}) async {
+  Future<DeckResult> createDeck({required String title, String? description, String? languageCode}) async {
     try {
       final response = await _client.dio.post('/api/Deck', data: {
         'title': title,
         'description': description ?? '',
         'coverImageUrl': null,
+        if (languageCode != null && languageCode.isNotEmpty) 'languageCode': languageCode,
       });
       return DeckResult.success(_deckFromJson(response.data as Map<String, dynamic>));
     } on DioException catch (e) {
@@ -137,10 +140,11 @@ class VocabGridDeckApi implements DeckApi {
   }
 
   @override
-  Future<List<ReviewCardData>> getDueReviews({String? deckId, int take = 50}) async {
+  Future<List<ReviewCardData>> getDueReviews({String? deckId, int take = 50, String? languageCode}) async {
     final response = await _client.dio.get('/api/Progress/reviews/due', queryParameters: {
       if (deckId != null) 'deckId': deckId,
       'take': take,
+      if (languageCode != null && languageCode.isNotEmpty) 'languageCode': languageCode,
     });
     return (response.data as List).map((e) => _reviewCardFromJson(e as Map<String, dynamic>)).toList();
   }
@@ -244,6 +248,7 @@ class VocabGridDeckApi implements DeckApi {
   DeckData _deckFromJson(Map<String, dynamic> json) => DeckData(
         id: '${json['id']}',
         title: json['title'] as String,
+        nativeTitle: json['nativeTitle'] as String?,
         description: json['description'] as String? ?? '',
         coverImageUrl: json['coverImageUrl'] as String?,
         cardCount: json['cardCount'] as int? ?? 0,

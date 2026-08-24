@@ -1407,4 +1407,81 @@ class AppLocalizationsTr extends AppLocalizations {
 
   @override
   String get profileLearningLabel => 'öğreniyor';
+
+  @override
+  String get quizAccuracyLabel => 'Doğruluk';
+
+  @override
+  String get quizCompletionLabel => 'Tamamlama';
+
+  @override
+  String quizWordsSeen(int seen, int total) {
+    return '$total kelimenin $seen tanesi görüldü';
+  }
+
+  @override
+  String get quizNotRecorded =>
+      'Bu quiz kaydedilemedi, istatistiklerine işlenmeyecek.';
+
+  @override
+  String languageSetupTitle(String language) {
+    return '$language kurulumu';
+  }
+
+  @override
+  String get languageSetupIntro =>
+      'Yeni bir dil sıfırdan başlar. Seviyeni ve ilgi alanlarını söyle, desteler ona göre kurulsun.';
+
+  @override
+  String get languageSetupStart => 'Destelerimi oluştur';
+
+  @override
+  String get languageSetupFailed =>
+      'Bu dil kurulamadı. Bağlantını kontrol edip tekrar dene.';
+
+  @override
+  String get deckDownload => 'Çevrimdışı için indir';
+
+  @override
+  String get deckDownloaded => 'Çevrimdışı kullanılabilir';
+
+  @override
+  String deckDownloadDone(String deck) {
+    return '$deck artık çevrimdışı kullanılabilir';
+  }
+
+  @override
+  String get deckDownloadFailed =>
+      'Bu deste çevrimdışı kullanım için indirilemedi. Bağlantını kontrol edip tekrar dene.';
+
+  @override
+  String get deckDownloadRemoved => 'Çevrimdışı kopya kaldırıldı';
+
+  @override
+  String get studyOfflineCopy =>
+      'Çevrimdışı kopya — değerlendirmelerin bağlantı gelince eşitlenecek.';
+
+  @override
+  String get downloadedDecksTitle => 'İndirilen desteler';
+
+  @override
+  String get downloadedDecksEmpty => 'Henüz indirilen deste yok';
+
+  @override
+  String get downloadedDecksEmptyHelp =>
+      'Bir desteyi seçenekler menüsünden çevrimdışı kullanmak için indir; burada saklanır ve bağlantı olmadan çalışabilirsin.';
+
+  @override
+  String get downloadedDecksRemove => 'Çevrimdışı kopyayı kaldır';
+
+  @override
+  String downloadedDecksCount(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: 'Bu cihazda $count deste saklanıyor',
+      one: 'Bu cihazda 1 deste saklanıyor',
+    );
+    return '$_temp0';
+  }
 }

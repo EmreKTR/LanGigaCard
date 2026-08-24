@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
-import '../data/api/deck_api.dart';
 import '../data/api/vocabgrid_user_api.dart';
 import '../data/deck_store.dart';
-import '../data/mock_data.dart';
+import '../data/downloaded_decks.dart';
+import '../data/language_store.dart';
 import '../data/onboarding_store.dart';
 import '../data/pronunciation_service.dart';
 import '../l10n/app_localizations.dart';
@@ -10,6 +10,7 @@ import '../models/app_models.dart';
 import '../theme/app_theme.dart';
 import '../widgets/app_bottom_nav.dart';
 import '../widgets/app_buttons.dart';
+import '../widgets/language_setup_sheet.dart';
 import 'decks/deck_dashboard_screen.dart';
 import 'home/home_screen.dart';
 import 'profile/profile_screen.dart';
@@ -61,6 +62,9 @@ class _MainShellState extends State<MainShell> {
   /// first flush attempt each session, so a queue from a prior session
   /// isn't silently orphaned.
   Future<void> _restoreAndFlushPendingWrites() async {
+    // Which decks were downloaded is device state too, and lives on disk
+    // between sessions for the same reason the queue does.
+    await DownloadedDecks.restore();
     await DeckStore.writeQueue.restore();
     await DeckStore.flushPendingWrites();
   }
@@ -113,64 +117,69 @@ class _MainShellState extends State<MainShell> {
   }
 
   /// Brings everything that depends on the language pair in line with
-  /// [profile]: the speaking voice and the starter decks.
+  /// [profile]: the speaking voice, the per-language learning profile, and
+  /// the starter decks.
   ///
   /// Deliberately does *not* touch the interface language — that's a
   /// separate setting (Profile > App Preferences > App Language / the
   /// pre-login [AppLanguageSelectScreen]) and must not be overridden just
   /// because the learner changed their native language.
-  void _applyProfile(UserProfile profile) {
+  ///
+  /// [languageChanged] separates the two ways this runs. On sign-in the
+  /// target language is whatever it already was, so the profile is merely
+  /// loaded; when the learner picks a different language it has to be made
+  /// active server-side, which is a write and must not happen on every
+  /// launch.
+  Future<void> _applyProfile(UserProfile profile, {bool languageChanged = false}) async {
     // Cards are written in the language being learned, so that's the voice
     // the speaker buttons should use.
     PronunciationService.useLanguageCode(profile.targetLanguageCode);
-    _maybeCreateStarterContent(profile);
-  }
 
-  /// Creates the learner's starter decks for real via the API, but only
-  /// once — if they already have any decks (their own, or starter content
-  /// from a previous session on another device), nothing happens.
-  Future<void> _maybeCreateStarterContent(UserProfile profile) async {
-    await DeckStore.refresh();
-    if (!mounted || DeckStore.decks.isNotEmpty) return;
-
-    // DeckStore.decks being empty here is ambiguous -- refresh() swallows a
-    // fetch failure and just leaves the cache as it was, so an empty cache
-    // could mean "genuinely a new account" or "the fetch just failed" (e.g.
-    // right after logout, which now always leaves the cache empty). Confirm
-    // directly against the API before concluding "new account" -- getting
-    // this wrong duplicates the entire starter set once the real decks
-    // reappear on a later successful refresh.
-    final List<DeckData> freshDecks;
-    try {
-      freshDecks = await DeckStore.api.getDecks();
-    } catch (_) {
-      return; // Fetch failed -- don't guess, skip starter content this time.
+    if (profile.targetLanguageCode.isEmpty) {
+      // No language pair yet — the account hasn't finished onboarding. Home
+      // already handles this by prompting rather than showing a library.
+      return;
     }
-    if (!mounted || freshDecks.isNotEmpty) return;
 
-    final starter = MockData.buildStarterContent(
-      targetCode: profile.targetLanguageCode,
-      targetName: profile.targetLanguage,
-      nativeCode: profile.nativeLanguageCode,
-    );
-    if (starter == null) return;
+    final result = languageChanged
+        ? await LanguageStore.activate(profile.targetLanguageCode, languageName: profile.targetLanguage)
+        : await LanguageStore.load(profile.targetLanguageCode, languageName: profile.targetLanguage);
+    if (!mounted) return;
 
-    for (final deck in starter.decks) {
-      final created = await DeckStore.addDeck(title: deck.name, description: deck.description);
+    // A language the learner has never answered the level/interest questions
+    // for has no library worth building yet, and building one from stale
+    // answers would be worse than asking. The sheet writes the answers and
+    // the server builds the decks in the same call.
+    if (result.isSuccess && !result.profile!.isSetupCompleted) {
+      final completed = await promptLanguageSetup(
+        context,
+        languageCode: result.profile!.languageCode,
+        languageName: result.profile!.languageName.isEmpty
+            ? profile.targetLanguage
+            : result.profile!.languageName,
+        initialLevel: profile.targetLevel,
+      );
       if (!mounted) return;
-      if (!created) continue;
-      final realDeckId = DeckStore.decks.last.id;
-      for (final card in starter.cards.where((c) => c.deckId == deck.id)) {
-        await DeckStore.addCard(
-          deckId: realDeckId,
-          term: card.term,
-          translation: card.translation,
-          exampleSentence: card.exampleSentence,
-          imageUrl: card.imageUrl,
-        );
-        if (!mounted) return;
+      if (!completed) {
+        // Backed out. Show whatever that language already has rather than
+        // leaving the previous language's library on screen.
+        await DeckStore.refresh();
+        if (mounted) setState(() {});
+        return;
       }
     }
+
+    // The library is whatever the server built from the learner's chosen
+    // topics — nothing is seeded from the device any more.
+    //
+    // This used to create five "universal" decks (basics, everyday words,
+    // numbers, colours, time) for every new account. They belonged to no
+    // topic, so a learner who picked only "Technology" still ended up with
+    // six decks and no way to get rid of the other five. The server now owns
+    // deck creation end to end (CategoryDeckSynchronizer), which is also the
+    // only way "my library matches my topics" can hold across devices.
+    await DeckStore.refresh();
+    if (mounted) setState(() {});
   }
 
   /// Profile edits can change the language pair, so re-apply when they do.
@@ -192,7 +201,7 @@ class _MainShellState extends State<MainShell> {
     setState(() => _profile = updated);
 
     if (languageChanged) {
-      _applyProfile(updated);
+      _applyProfile(updated, languageChanged: true);
     } else if (categoriesChanged) {
       _refreshAfterCategoryChange();
     }
@@ -200,6 +209,7 @@ class _MainShellState extends State<MainShell> {
 
   Future<void> _refreshAfterCategoryChange() async {
     await DeckStore.refresh();
+    await LanguageStore.refreshCurrent();
     if (mounted) setState(() {});
   }
 

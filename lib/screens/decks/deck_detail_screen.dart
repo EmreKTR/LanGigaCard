@@ -3,6 +3,7 @@ import '../../data/deck_store.dart';
 import '../../models/app_models.dart';
 import '../../l10n/app_localizations.dart';
 import '../../theme/app_theme.dart';
+import '../../widgets/deck_title.dart';
 import '../../widgets/app_buttons.dart';
 import '../../widgets/progress_ring.dart';
 import '../../widgets/section_card.dart';
@@ -269,9 +270,23 @@ class _Header extends StatelessWidget {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text(
-                      '${deck.emoji}  ${deck.name}',
-                      style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w800, fontSize: 20),
+                    Row(
+                      crossAxisAlignment: CrossAxisAlignment.baseline,
+                      textBaseline: TextBaseline.alphabetic,
+                      children: [
+                        Text(
+                          '${deck.emoji}  ',
+                          style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w800, fontSize: 20),
+                        ),
+                        Expanded(
+                          child: DeckTitle(
+                            deck: deck,
+                            style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w800, fontSize: 20),
+                            nativeColor: Colors.white.withValues(alpha: 0.72),
+                            maxLines: 2,
+                          ),
+                        ),
+                      ],
                     ),
                     const SizedBox(height: 2),
                     Text(

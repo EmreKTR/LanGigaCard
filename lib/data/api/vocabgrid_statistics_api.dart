@@ -10,11 +10,12 @@ class VocabGridStatisticsApi implements StatisticsApi {
   final ApiClient _client;
 
   @override
-  Future<StatisticsResult> getOverview({DateTime? from, DateTime? to}) async {
+  Future<StatisticsResult> getOverview({DateTime? from, DateTime? to, String? languageCode}) async {
     try {
       final response = await _client.dio.get('/api/Statistics/overview', queryParameters: {
         if (from != null) 'from': from.toIso8601String(),
         if (to != null) 'to': to.toIso8601String(),
+        if (languageCode != null && languageCode.isNotEmpty) 'languageCode': languageCode,
       });
       final json = response.data as Map<String, dynamic>;
       return StatisticsResult.success(StatisticsOverview(
@@ -24,6 +25,8 @@ class VocabGridStatisticsApi implements StatisticsApi {
         longestStreak: json['longestStreak'] as int,
         totalXp: json['totalXp'] as int,
         level: json['level'] as int,
+        quizAccuracyPercent: (json['quizAccuracyPercent'] as num?)?.toDouble() ?? 0,
+        quizQuestionsAnswered: json['quizQuestionsAnswered'] as int? ?? 0,
       ));
     } catch (_) {
       return const StatisticsResult.networkError();
@@ -31,11 +34,12 @@ class VocabGridStatisticsApi implements StatisticsApi {
   }
 
   @override
-  Future<HeatmapResult> getHeatmap({required DateTime from, required DateTime to}) async {
+  Future<HeatmapResult> getHeatmap({required DateTime from, required DateTime to, String? languageCode}) async {
     try {
       final response = await _client.dio.get('/api/Statistics/heatmap', queryParameters: {
         'from': from.toIso8601String(),
         'to': to.toIso8601String(),
+        if (languageCode != null && languageCode.isNotEmpty) 'languageCode': languageCode,
       });
       final points = (response.data as List)
           .map((e) => e as Map<String, dynamic>)

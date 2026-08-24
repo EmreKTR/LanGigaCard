@@ -87,9 +87,9 @@ void main() {
 
 class _NetworkErrorDeckApi implements DeckApi {
   @override
-  Future<List<DeckData>> getDecks() async => throw Exception('offline');
+  Future<List<DeckData>> getDecks({String? languageCode}) async => throw Exception('offline');
   @override
-  Future<DeckResult> createDeck({required String title, String? description}) async => const DeckResult.networkError();
+  Future<DeckResult> createDeck({required String title, String? description, String? languageCode}) async => const DeckResult.networkError();
   @override
   Future<DeckResult> updateDeck(String id, {required String title, String? description}) async => const DeckResult.networkError();
   @override
@@ -105,7 +105,7 @@ class _NetworkErrorDeckApi implements DeckApi {
   @override
   Future<bool> deleteFlashcard(String wordId) async => false;
   @override
-  Future<List<ReviewCardData>> getDueReviews({String? deckId, int take = 50}) async => const [];
+  Future<List<ReviewCardData>> getDueReviews({String? deckId, int take = 50, String? languageCode}) async => const [];
   @override
   Future<ReviewResult> submitReview(String wordId, {required rating, required int durationSeconds, String? difficultyMode}) async =>
       const ReviewResult.networkError();

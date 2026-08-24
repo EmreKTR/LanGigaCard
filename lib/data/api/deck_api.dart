@@ -11,6 +11,7 @@ class DeckData {
     required this.id,
     required this.title,
     required this.description,
+    this.nativeTitle,
     this.coverImageUrl,
     this.cardCount = 0,
     this.dueCount = 0,
@@ -19,7 +20,14 @@ class DeckData {
   });
 
   final String id;
+
+  /// The deck's name in the language being learned.
   final String title;
+
+  /// The same name in the learner's own language, when the server knows one
+  /// — null for decks the learner named themselves.
+  final String? nativeTitle;
+
   final String description;
   final String? coverImageUrl;
   final int cardCount;
@@ -31,6 +39,7 @@ class DeckData {
     return DeckData(
       id: id,
       title: title ?? this.title,
+      nativeTitle: nativeTitle,
       description: description ?? this.description,
       coverImageUrl: coverImageUrl,
       cardCount: cardCount,
@@ -143,8 +152,16 @@ class ReviewResult {
 /// in-memory stand-in for tests, the same role [FakeUserApi] plays for
 /// [UserApi].
 abstract class DeckApi {
-  Future<List<DeckData>> getDecks();
-  Future<DeckResult> createDeck({required String title, String? description});
+  /// [languageCode] limits the result to decks that teach that target
+  /// language. Omit it for the whole library regardless of language — what
+  /// an export or an account-wide cleanup wants.
+  Future<List<DeckData>> getDecks({String? languageCode});
+
+  /// [languageCode] records which target language the new deck teaches.
+  /// Omitting it lets the server fall back to the learner's current target
+  /// language, which is right for every path except one that creates a deck
+  /// for a language the learner isn't currently in.
+  Future<DeckResult> createDeck({required String title, String? description, String? languageCode});
   Future<DeckResult> updateDeck(String id, {required String title, String? description});
   Future<bool> deleteDeck(String id);
 
@@ -165,7 +182,11 @@ abstract class DeckApi {
   });
   Future<bool> deleteFlashcard(String wordId);
 
-  Future<List<ReviewCardData>> getDueReviews({String? deckId, int take = 50});
+  /// The review queue. [languageCode] limits it to one target language and
+  /// also makes the server resume from the deck last studied in it, so the
+  /// learner picks up where they left off instead of at the top of the
+  /// library.
+  Future<List<ReviewCardData>> getDueReviews({String? deckId, int take = 50, String? languageCode});
 
   /// [difficultyMode] is the learner's current `DifficultyMode` preference
   /// (see `AppController`) -- their self-reported CEFR level, sent as-is
@@ -191,10 +212,10 @@ class FakeDeckApi implements DeckApi {
   final Map<String, DateTime?> _nextReviewDate = {};
 
   @override
-  Future<List<DeckData>> getDecks() async => _decks.values.toList();
+  Future<List<DeckData>> getDecks({String? languageCode}) async => _decks.values.toList();
 
   @override
-  Future<DeckResult> createDeck({required String title, String? description}) async {
+  Future<DeckResult> createDeck({required String title, String? description, String? languageCode}) async {
     if (title.trim().isEmpty) {
       return const DeckResult.validationError('Title is required.');
     }
@@ -294,7 +315,7 @@ class FakeDeckApi implements DeckApi {
   }
 
   @override
-  Future<List<ReviewCardData>> getDueReviews({String? deckId, int take = 50}) async {
+  Future<List<ReviewCardData>> getDueReviews({String? deckId, int take = 50, String? languageCode}) async {
     final now = DateTime.now();
     final pool = _cards.values.where((c) {
       if (deckId != null && c.deckId != deckId) return false;

@@ -432,5 +432,24 @@
   "reminderNotificationBody": "Tus tarjetas te esperan: unos minutos mantienen viva la racha.",
 
   "splashTagline": "APRENDE CUALQUIER IDIOMA",
-  "profileLearningLabel": "aprendiendo"
+  "profileLearningLabel": "aprendiendo",
+  "quizAccuracyLabel": "Precisión",
+  "quizCompletionLabel": "Progreso",
+  "quizWordsSeen": "{seen} de {total} palabras vistas",
+  "quizNotRecorded": "No se pudo guardar este cuestionario, así que no contará en tus estadísticas.",
+  "languageSetupTitle": "Configurar {language}",
+  "languageSetupIntro": "Un idioma nuevo empieza de cero. Dinos tu nivel y tus intereses y tus mazos se ajustarán.",
+  "languageSetupStart": "Crear mis mazos",
+  "languageSetupFailed": "No se pudo configurar este idioma. Comprueba tu conexión e inténtalo de nuevo.",
+  "deckDownload": "Guardar sin conexión",
+  "deckDownloaded": "Disponible sin conexión",
+  "deckDownloadDone": "{deck} ya está disponible sin conexión",
+  "deckDownloadFailed": "No se pudo guardar este mazo para usarlo sin conexión. Comprueba tu conexión e inténtalo de nuevo.",
+  "deckDownloadRemoved": "Copia sin conexión eliminada",
+  "studyOfflineCopy": "Copia sin conexión: tus valoraciones se sincronizarán cuando vuelvas a estar en línea.",
+  "downloadedDecksTitle": "Mazos descargados",
+  "downloadedDecksEmpty": "Aún no has descargado nada",
+  "downloadedDecksEmptyHelp": "Guarda un mazo para usarlo sin conexión desde su menú de opciones y se conservará aquí, listo para estudiar sin conexión.",
+  "downloadedDecksRemove": "Eliminar copia sin conexión",
+  "downloadedDecksCount": "{count, plural, =1{1 mazo guardado en este dispositivo} other{{count} mazos guardados en este dispositivo}}"
 }

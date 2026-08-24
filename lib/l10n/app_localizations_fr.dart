@@ -1424,4 +1424,81 @@ class AppLocalizationsFr extends AppLocalizations {
 
   @override
   String get profileLearningLabel => 'apprend';
+
+  @override
+  String get quizAccuracyLabel => 'Précision';
+
+  @override
+  String get quizCompletionLabel => 'Progression';
+
+  @override
+  String quizWordsSeen(int seen, int total) {
+    return '$seen mots sur $total vus';
+  }
+
+  @override
+  String get quizNotRecorded =>
+      'Ce quiz n\'a pas pu être enregistré, il ne comptera pas dans tes statistiques.';
+
+  @override
+  String languageSetupTitle(String language) {
+    return 'Configurer $language';
+  }
+
+  @override
+  String get languageSetupIntro =>
+      'Une nouvelle langue repart de zéro. Indique ton niveau et tes centres d\'intérêt : tes paquets s\'y adapteront.';
+
+  @override
+  String get languageSetupStart => 'Créer mes paquets';
+
+  @override
+  String get languageSetupFailed =>
+      'Impossible de configurer cette langue. Vérifie ta connexion et réessaie.';
+
+  @override
+  String get deckDownload => 'Enregistrer hors ligne';
+
+  @override
+  String get deckDownloaded => 'Disponible hors ligne';
+
+  @override
+  String deckDownloadDone(String deck) {
+    return '$deck est maintenant disponible hors ligne';
+  }
+
+  @override
+  String get deckDownloadFailed =>
+      'Impossible d\'enregistrer ce paquet pour une utilisation hors ligne. Vérifie ta connexion et réessaie.';
+
+  @override
+  String get deckDownloadRemoved => 'Copie hors ligne supprimée';
+
+  @override
+  String get studyOfflineCopy =>
+      'Copie hors ligne — tes évaluations seront synchronisées dès ton retour en ligne.';
+
+  @override
+  String get downloadedDecksTitle => 'Paquets téléchargés';
+
+  @override
+  String get downloadedDecksEmpty => 'Rien de téléchargé pour l\'instant';
+
+  @override
+  String get downloadedDecksEmptyHelp =>
+      'Enregistre un paquet hors ligne depuis son menu d\'options : il sera conservé ici, prêt à être révisé sans connexion.';
+
+  @override
+  String get downloadedDecksRemove => 'Supprimer la copie hors ligne';
+
+  @override
+  String downloadedDecksCount(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count paquets conservés sur cet appareil',
+      one: '1 paquet conservé sur cet appareil',
+    );
+    return '$_temp0';
+  }
 }

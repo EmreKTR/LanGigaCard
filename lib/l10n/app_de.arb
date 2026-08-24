@@ -432,5 +432,24 @@
   "reminderNotificationBody": "Deine Karten warten — ein paar Minuten halten die Serie am Leben.",
 
   "splashTagline": "LERNE JEDE SPRACHE",
-  "profileLearningLabel": "lernt"
+  "profileLearningLabel": "lernt",
+  "quizAccuracyLabel": "Genauigkeit",
+  "quizCompletionLabel": "Fortschritt",
+  "quizWordsSeen": "{seen} von {total} Wörtern gesehen",
+  "quizNotRecorded": "Dieses Quiz konnte nicht gespeichert werden und zählt nicht für deine Statistik.",
+  "languageSetupTitle": "{language} einrichten",
+  "languageSetupIntro": "Eine neue Sprache beginnt bei null. Sag uns dein Niveau und deine Interessen — die Stapel richten sich danach.",
+  "languageSetupStart": "Stapel erstellen",
+  "languageSetupFailed": "Diese Sprache konnte nicht eingerichtet werden. Prüfe deine Verbindung und versuch es erneut.",
+  "deckDownload": "Offline speichern",
+  "deckDownloaded": "Offline verfügbar",
+  "deckDownloadDone": "{deck} ist jetzt offline verfügbar",
+  "deckDownloadFailed": "Dieser Stapel konnte nicht für die Offline-Nutzung gespeichert werden. Prüfe deine Verbindung und versuch es erneut.",
+  "deckDownloadRemoved": "Offline-Kopie entfernt",
+  "studyOfflineCopy": "Offline-Kopie — deine Bewertungen werden synchronisiert, sobald du wieder online bist.",
+  "downloadedDecksTitle": "Heruntergeladene Stapel",
+  "downloadedDecksEmpty": "Noch nichts heruntergeladen",
+  "downloadedDecksEmptyHelp": "Speichere einen Stapel über sein Optionsmenü für die Offline-Nutzung — er wird hier aufbewahrt und ist ohne Verbindung lernbereit.",
+  "downloadedDecksRemove": "Offline-Kopie entfernen",
+  "downloadedDecksCount": "{count, plural, =1{1 Stapel auf diesem Gerät} other{{count} Stapel auf diesem Gerät}}"
 }

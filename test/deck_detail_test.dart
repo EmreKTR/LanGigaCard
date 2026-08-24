@@ -161,7 +161,9 @@ void main() {
     _addCardLocally(_card('a', MemoryStrength.learning));
     await _pump(tester);
 
-    expect(find.text('Detail Deck'), findsNothing, reason: 'name renders with its emoji prefix');
+    // Emoji and name are separate widgets now: the name sits in a DeckTitle,
+    // which appends the native-language name when the server sends one.
+    expect(find.text('Detail Deck'), findsOneWidget);
 
     _removeDeckLocally(_deck.id);
     await tester.pumpAndSettle();
@@ -173,11 +175,12 @@ void main() {
     _addCardLocally(_card('a', MemoryStrength.learning));
     await _pump(tester);
 
-    expect(find.text('📗  Detail Deck'), findsOneWidget);
+    expect(find.text('📗  '), findsOneWidget);
+    expect(find.text('Detail Deck'), findsOneWidget);
 
     _renameDeckLocally(_deck.id, 'Renamed Deck');
     await tester.pumpAndSettle();
 
-    expect(find.text('📗  Renamed Deck'), findsOneWidget);
+    expect(find.text('Renamed Deck'), findsOneWidget);
   });
 }

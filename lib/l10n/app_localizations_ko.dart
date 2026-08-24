@@ -1371,4 +1371,77 @@ class AppLocalizationsKo extends AppLocalizations {
 
   @override
   String get profileLearningLabel => '학습 중';
+
+  @override
+  String get quizAccuracyLabel => '정확도';
+
+  @override
+  String get quizCompletionLabel => '완료율';
+
+  @override
+  String quizWordsSeen(int seen, int total) {
+    return '$total개 중 $seen개 단어 학습';
+  }
+
+  @override
+  String get quizNotRecorded => '이 퀴즈를 저장하지 못해 통계에 반영되지 않습니다.';
+
+  @override
+  String languageSetupTitle(String language) {
+    return '$language 설정';
+  }
+
+  @override
+  String get languageSetupIntro =>
+      '새 언어는 처음부터 시작합니다. 수준과 관심사를 알려주면 덱이 그에 맞게 구성됩니다.';
+
+  @override
+  String get languageSetupStart => '덱 만들기';
+
+  @override
+  String get languageSetupFailed => '이 언어를 설정하지 못했습니다. 연결을 확인한 뒤 다시 시도해 주세요.';
+
+  @override
+  String get deckDownload => '오프라인 저장';
+
+  @override
+  String get deckDownloaded => '오프라인 사용 가능';
+
+  @override
+  String deckDownloadDone(String deck) {
+    return '$deck을(를) 이제 오프라인에서 사용할 수 있습니다';
+  }
+
+  @override
+  String get deckDownloadFailed =>
+      '이 덱을 오프라인용으로 저장하지 못했습니다. 연결을 확인한 뒤 다시 시도해 주세요.';
+
+  @override
+  String get deckDownloadRemoved => '오프라인 사본을 삭제했습니다';
+
+  @override
+  String get studyOfflineCopy => '오프라인 사본입니다. 평가는 다시 온라인이 되면 동기화됩니다.';
+
+  @override
+  String get downloadedDecksTitle => '다운로드한 덱';
+
+  @override
+  String get downloadedDecksEmpty => '아직 다운로드한 덱이 없습니다';
+
+  @override
+  String get downloadedDecksEmptyHelp =>
+      '덱의 옵션 메뉴에서 오프라인용으로 저장하면 여기에 보관되어 연결 없이도 학습할 수 있습니다.';
+
+  @override
+  String get downloadedDecksRemove => '오프라인 사본 삭제';
+
+  @override
+  String downloadedDecksCount(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '이 기기에 덱 $count개 보관 중',
+    );
+    return '$_temp0';
+  }
 }

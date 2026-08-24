@@ -1411,4 +1411,81 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get profileLearningLabel => 'learning';
+
+  @override
+  String get quizAccuracyLabel => 'Accuracy';
+
+  @override
+  String get quizCompletionLabel => 'Completion';
+
+  @override
+  String quizWordsSeen(int seen, int total) {
+    return '$seen of $total words seen';
+  }
+
+  @override
+  String get quizNotRecorded =>
+      'Couldn\'t save this quiz, so it won\'t count towards your stats.';
+
+  @override
+  String languageSetupTitle(String language) {
+    return 'Set up $language';
+  }
+
+  @override
+  String get languageSetupIntro =>
+      'A new language starts fresh. Tell us your level and what interests you, and your decks will match.';
+
+  @override
+  String get languageSetupStart => 'Build my decks';
+
+  @override
+  String get languageSetupFailed =>
+      'Couldn\'t set up this language. Check your connection and try again.';
+
+  @override
+  String get deckDownload => 'Save for offline';
+
+  @override
+  String get deckDownloaded => 'Available offline';
+
+  @override
+  String deckDownloadDone(String deck) {
+    return '$deck is now available offline';
+  }
+
+  @override
+  String get deckDownloadFailed =>
+      'Couldn\'t save this deck for offline use. Check your connection and try again.';
+
+  @override
+  String get deckDownloadRemoved => 'Offline copy removed';
+
+  @override
+  String get studyOfflineCopy =>
+      'Offline copy — your ratings will sync once you\'re back online.';
+
+  @override
+  String get downloadedDecksTitle => 'Downloaded decks';
+
+  @override
+  String get downloadedDecksEmpty => 'Nothing downloaded yet';
+
+  @override
+  String get downloadedDecksEmptyHelp =>
+      'Save a deck for offline use from its options menu, and it will be kept here — ready to study without a connection.';
+
+  @override
+  String get downloadedDecksRemove => 'Remove offline copy';
+
+  @override
+  String downloadedDecksCount(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count decks kept on this device',
+      one: '1 deck kept on this device',
+    );
+    return '$_temp0';
+  }
 }

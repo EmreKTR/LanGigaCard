@@ -2519,6 +2519,120 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'learning'**
   String get profileLearningLabel;
+
+  /// No description provided for @quizAccuracyLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Accuracy'**
+  String get quizAccuracyLabel;
+
+  /// No description provided for @quizCompletionLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Completion'**
+  String get quizCompletionLabel;
+
+  /// No description provided for @quizWordsSeen.
+  ///
+  /// In en, this message translates to:
+  /// **'{seen} of {total} words seen'**
+  String quizWordsSeen(int seen, int total);
+
+  /// No description provided for @quizNotRecorded.
+  ///
+  /// In en, this message translates to:
+  /// **'Couldn\'t save this quiz, so it won\'t count towards your stats.'**
+  String get quizNotRecorded;
+
+  /// No description provided for @languageSetupTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Set up {language}'**
+  String languageSetupTitle(String language);
+
+  /// No description provided for @languageSetupIntro.
+  ///
+  /// In en, this message translates to:
+  /// **'A new language starts fresh. Tell us your level and what interests you, and your decks will match.'**
+  String get languageSetupIntro;
+
+  /// No description provided for @languageSetupStart.
+  ///
+  /// In en, this message translates to:
+  /// **'Build my decks'**
+  String get languageSetupStart;
+
+  /// No description provided for @languageSetupFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Couldn\'t set up this language. Check your connection and try again.'**
+  String get languageSetupFailed;
+
+  /// No description provided for @deckDownload.
+  ///
+  /// In en, this message translates to:
+  /// **'Save for offline'**
+  String get deckDownload;
+
+  /// No description provided for @deckDownloaded.
+  ///
+  /// In en, this message translates to:
+  /// **'Available offline'**
+  String get deckDownloaded;
+
+  /// No description provided for @deckDownloadDone.
+  ///
+  /// In en, this message translates to:
+  /// **'{deck} is now available offline'**
+  String deckDownloadDone(String deck);
+
+  /// No description provided for @deckDownloadFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Couldn\'t save this deck for offline use. Check your connection and try again.'**
+  String get deckDownloadFailed;
+
+  /// No description provided for @deckDownloadRemoved.
+  ///
+  /// In en, this message translates to:
+  /// **'Offline copy removed'**
+  String get deckDownloadRemoved;
+
+  /// No description provided for @studyOfflineCopy.
+  ///
+  /// In en, this message translates to:
+  /// **'Offline copy — your ratings will sync once you\'re back online.'**
+  String get studyOfflineCopy;
+
+  /// No description provided for @downloadedDecksTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Downloaded decks'**
+  String get downloadedDecksTitle;
+
+  /// No description provided for @downloadedDecksEmpty.
+  ///
+  /// In en, this message translates to:
+  /// **'Nothing downloaded yet'**
+  String get downloadedDecksEmpty;
+
+  /// No description provided for @downloadedDecksEmptyHelp.
+  ///
+  /// In en, this message translates to:
+  /// **'Save a deck for offline use from its options menu, and it will be kept here — ready to study without a connection.'**
+  String get downloadedDecksEmptyHelp;
+
+  /// No description provided for @downloadedDecksRemove.
+  ///
+  /// In en, this message translates to:
+  /// **'Remove offline copy'**
+  String get downloadedDecksRemove;
+
+  /// No description provided for @downloadedDecksCount.
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, =1{1 deck kept on this device} other{{count} decks kept on this device}}'**
+  String downloadedDecksCount(int count);
 }
 
 class _AppLocalizationsDelegate

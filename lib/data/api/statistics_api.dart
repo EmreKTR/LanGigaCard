@@ -15,6 +15,8 @@ class StatisticsOverview {
     required this.longestStreak,
     required this.totalXp,
     required this.level,
+    this.quizAccuracyPercent = 0,
+    this.quizQuestionsAnswered = 0,
   });
 
   final double totalStudyMinutes;
@@ -23,6 +25,18 @@ class StatisticsOverview {
   final int longestStreak;
   final int totalXp;
   final int level;
+
+  /// Share of quiz questions answered correctly in the requested window.
+  ///
+  /// This was ignored until quizzes started reporting their results — every
+  /// account read 0%, which is why the Home stat row and the Statistics
+  /// "Recall" card both went around it. It is real data now.
+  final double quizAccuracyPercent;
+
+  /// How many quiz questions the percentage is computed from. Zero means
+  /// "no quizzes yet", which is not the same as "0% accuracy" and should be
+  /// shown differently.
+  final int quizQuestionsAnswered;
 
   static const empty = StatisticsOverview(
     totalStudyMinutes: 0,
@@ -82,11 +96,11 @@ class HeatmapResult {
 abstract class StatisticsApi {
   /// Aggregate metrics for [from, to] (inclusive). Omit both for the
   /// server's own default window.
-  Future<StatisticsResult> getOverview({DateTime? from, DateTime? to});
+  Future<StatisticsResult> getOverview({DateTime? from, DateTime? to, String? languageCode});
 
   /// One entry per calendar day in [from, to] (inclusive), even for days
   /// with zero activity.
-  Future<HeatmapResult> getHeatmap({required DateTime from, required DateTime to});
+  Future<HeatmapResult> getHeatmap({required DateTime from, required DateTime to, String? languageCode});
 }
 
 /// In-memory [StatisticsApi] for tests: no network, no disk.
@@ -104,10 +118,10 @@ class FakeStatisticsApi implements StatisticsApi {
   bool failHeatmap;
 
   @override
-  Future<StatisticsResult> getOverview({DateTime? from, DateTime? to}) async =>
+  Future<StatisticsResult> getOverview({DateTime? from, DateTime? to, String? languageCode}) async =>
       failOverview ? const StatisticsResult.networkError() : StatisticsResult.success(overview);
 
   @override
-  Future<HeatmapResult> getHeatmap({required DateTime from, required DateTime to}) async =>
+  Future<HeatmapResult> getHeatmap({required DateTime from, required DateTime to, String? languageCode}) async =>
       failHeatmap ? const HeatmapResult.networkError() : HeatmapResult.success(List.of(heatmapPoints));
 }
