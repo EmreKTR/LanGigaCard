@@ -5,6 +5,7 @@ import '../../data/downloaded_decks.dart';
 import '../../l10n/app_localizations.dart';
 import '../../models/app_models.dart';
 import '../../theme/app_theme.dart';
+import '../../widgets/deck_title.dart';
 import '../study/study_session_screen.dart';
 import 'deck_detail_screen.dart';
 
@@ -125,7 +126,10 @@ class _DownloadedDeckCard extends StatelessWidget {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Text(deck.name, style: TextStyle(fontWeight: FontWeight.w700, fontSize: 16, color: colors.textPrimary)),
+                      DeckTitle(
+                        deck: deck,
+                        style: TextStyle(fontWeight: FontWeight.w700, fontSize: 16, color: colors.textPrimary),
+                      ),
                       const SizedBox(height: 2),
                       Text(l10n.decksCardCount(cardCount), style: TextStyle(color: colors.textMuted, fontSize: 12)),
                     ],

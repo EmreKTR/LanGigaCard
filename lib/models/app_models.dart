@@ -152,10 +152,22 @@ class Deck {
     required this.masteryPercent,
     required this.emoji,
     required this.accentColor,
+    this.nativeName,
   });
 
   final String id;
+
+  /// The deck's name in the language being learned — "Wissenschaft".
   final String name;
+
+  /// The same name in the learner's own language — "Bilim" — shown in
+  /// smaller type beside [name].
+  ///
+  /// Null for decks the learner named themselves: there is no translation of
+  /// a title they typed, and inventing one would be worse than leaving the
+  /// parenthetical off.
+  final String? nativeName;
+
   final String description;
   final int cardCount;
   final int dueCount;
@@ -167,6 +179,7 @@ class Deck {
   Map<String, dynamic> toJson() => {
         'id': id,
         'name': name,
+        'nativeName': nativeName,
         'description': description,
         'cardCount': cardCount,
         'dueCount': dueCount,
@@ -182,6 +195,7 @@ class Deck {
       return Deck(
         id: json['id'] as String,
         name: json['name'] as String,
+        nativeName: json['nativeName'] as String?,
         description: json['description'] as String? ?? '',
         cardCount: json['cardCount'] as int? ?? 0,
         dueCount: json['dueCount'] as int? ?? 0,
@@ -198,6 +212,7 @@ class Deck {
 
   Deck copyWith({
     String? name,
+    String? nativeName,
     String? description,
     int? cardCount,
     int? dueCount,
@@ -209,6 +224,7 @@ class Deck {
     return Deck(
       id: id,
       name: name ?? this.name,
+      nativeName: nativeName ?? this.nativeName,
       description: description ?? this.description,
       cardCount: cardCount ?? this.cardCount,
       dueCount: dueCount ?? this.dueCount,

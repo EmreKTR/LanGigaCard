@@ -532,6 +532,7 @@ class DeckStore {
     return Deck(
       id: data.id,
       name: data.title,
+      nativeName: data.nativeTitle,
       description: data.description.isEmpty ? 'No description yet' : data.description,
       cardCount: data.cardCount,
       dueCount: data.dueCount,

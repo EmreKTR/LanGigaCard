@@ -11,6 +11,7 @@ class DeckData {
     required this.id,
     required this.title,
     required this.description,
+    this.nativeTitle,
     this.coverImageUrl,
     this.cardCount = 0,
     this.dueCount = 0,
@@ -19,7 +20,14 @@ class DeckData {
   });
 
   final String id;
+
+  /// The deck's name in the language being learned.
   final String title;
+
+  /// The same name in the learner's own language, when the server knows one
+  /// — null for decks the learner named themselves.
+  final String? nativeTitle;
+
   final String description;
   final String? coverImageUrl;
   final int cardCount;
@@ -31,6 +39,7 @@ class DeckData {
     return DeckData(
       id: id,
       title: title ?? this.title,
+      nativeTitle: nativeTitle,
       description: description ?? this.description,
       coverImageUrl: coverImageUrl,
       cardCount: cardCount,

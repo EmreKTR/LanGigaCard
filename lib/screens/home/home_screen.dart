@@ -8,6 +8,7 @@ import '../../l10n/app_localizations.dart';
 import '../../models/app_models.dart';
 import '../../theme/app_theme.dart';
 import '../../widgets/category_picker_sheet.dart';
+import '../../widgets/deck_title.dart';
 import '../../widgets/progress_ring.dart';
 import '../../widgets/refreshable.dart';
 import '../../widgets/status_indicators.dart';
@@ -391,10 +392,13 @@ class _GradientHeader extends StatelessWidget {
                           // The deck's own name — this used to strip the word
                           // "French" out and append "Vocabulary", which only
                           // ever made sense for the French sample library.
-                          Text(deck!.name,
-                              style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w700, fontSize: 15),
-                              maxLines: 1,
-                              overflow: TextOverflow.ellipsis),
+                          DeckTitle(
+                            deck: deck!,
+                            style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w700, fontSize: 15),
+                            // On the purple gradient the theme's muted grey
+                            // would all but vanish.
+                            nativeColor: Colors.white.withValues(alpha: 0.72),
+                          ),
                           Text('${profile.nativeLanguage} → ${profile.targetLanguage}',
                               style: TextStyle(color: Colors.white.withValues(alpha: 0.75), fontSize: 12)),
                           const SizedBox(height: AppSpacing.sm),
@@ -585,7 +589,10 @@ class _DeckReviewTile extends StatelessWidget {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(deck.name, style: TextStyle(fontWeight: FontWeight.w700, color: colors.textPrimary), maxLines: 1, overflow: TextOverflow.ellipsis),
+                  DeckTitle(
+                    deck: deck,
+                    style: TextStyle(fontWeight: FontWeight.w700, color: colors.textPrimary),
+                  ),
                   Text(l10n.decksCardCount(cardCount), style: TextStyle(color: colors.textMuted, fontSize: 12)),
                 ],
               ),

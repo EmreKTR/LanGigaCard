@@ -5,6 +5,7 @@ import '../../models/app_models.dart';
 import '../../l10n/app_localizations.dart';
 import '../../theme/app_theme.dart';
 import '../../widgets/app_buttons.dart';
+import '../../widgets/deck_title.dart';
 import '../../widgets/refreshable.dart';
 import '../study/quiz_screen.dart';
 import '../study/study_session_screen.dart';
@@ -277,7 +278,10 @@ class _DeckCard extends StatelessWidget {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Text(deck.name, style: TextStyle(fontWeight: FontWeight.w700, fontSize: 16, color: colors.textPrimary)),
+                      DeckTitle(
+                        deck: deck,
+                        style: TextStyle(fontWeight: FontWeight.w700, fontSize: 16, color: colors.textPrimary),
+                      ),
                       const SizedBox(height: 2),
                       Text(deck.description, style: TextStyle(color: colors.textMuted, fontSize: 12), maxLines: 2, overflow: TextOverflow.ellipsis),
                     ],

@@ -248,6 +248,7 @@ class VocabGridDeckApi implements DeckApi {
   DeckData _deckFromJson(Map<String, dynamic> json) => DeckData(
         id: '${json['id']}',
         title: json['title'] as String,
+        nativeTitle: json['nativeTitle'] as String?,
         description: json['description'] as String? ?? '',
         coverImageUrl: json['coverImageUrl'] as String?,
         cardCount: json['cardCount'] as int? ?? 0,
